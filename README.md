@@ -1,2 +1,2 @@
 
-WIP - Kit to work with terminal
+WIP - Kit to work with terminals
