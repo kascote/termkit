@@ -5,3 +5,4 @@
 pubspec.lock
 
 build/
+packages/termparser/example/scratch.dart

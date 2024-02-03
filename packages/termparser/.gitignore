@@ -1,0 +1,5 @@
+.dart_tool/
+pubspec.lock
+
+example/scratch.dart
+
