@@ -70,5 +70,8 @@ abstract class Sup {
   /// Stop receiving focus events
   static String get endFocusTracking => '$CSI?1004l';
 
+  /// Request terminal name and version
+  static String get termVersion => '$CSI>0q';
+
   // set buffer size csi!("8;{columns};{rows}t")
 }
