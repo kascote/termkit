@@ -7,5 +7,8 @@ abstract class Provider {
   void provideESCSequence(String char);
 
   ///
-  void provideCSISequence(List<int> parameters, int ignoredParameterCount, String char);
+  void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block});
+
+  ///
+  void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block});
 }

@@ -52,112 +52,160 @@ void main() {
       final eng = Engine();
       final cp = MockProvider(); // MockEscProvider();
 
-      const input = 'a\x1BDc';
+      const input = '\x1BW';
       stringAdvance(eng, cp, input);
 
-      expect(cp.chars.length, 3);
-      expect(cp.chars[0], 'a');
-      expect(cp.chars[1], 'D');
-      expect(cp.chars[2], 'c');
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'W');
     });
   });
 
   group('CSI >', () {
+    test('esc', () {
+      final eng = Engine();
+      final cp = MockProvider(); // MockCsiProvider();
+
+      stringAdvance(eng, cp, '\x1b[\x1b');
+
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], '\x1b');
+    });
+
+    test('with ignore', () {
+      final eng = Engine();
+      final cp = MockProvider(); // MockCsiProvider();
+
+      stringAdvance(eng, cp, '\x1b[\x7f');
+
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 0);
+    });
+
     test('without parameters', () {
       final eng = Engine();
       final cp = MockProvider(); // MockCsiProvider();
 
-      listAdvance(eng, cp, [0x1b, 0x5b, 0x6d]);
+      stringAdvance(eng, cp, '\x1b[m');
 
       expect(cp.params.length, 1);
-      expect(cp.params[0], <int>[]);
+      expect(cp.params[0], <String>[]);
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'm');
+    });
+
+    test('with collect first', () {
+      final eng = Engine();
+      final cp = MockProvider(); // MockCsiProvider();
+
+      stringAdvance(eng, cp, '\x1b[<c');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], <String>['<']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'c');
     });
 
     test('with two default parameters', () {
       final eng = Engine();
       final cp = MockProvider(); // MockCsiProvider();
 
-      const input = '\x1b\x5b;m';
-      stringAdvance(eng, cp, input);
+      stringAdvance(eng, cp, '\x1b[;m');
 
       expect(cp.params.length, 1);
-      expect(cp.params[0], <int>[0, 0]); // default parameters values
+      expect(cp.params[0], <String>['0', '0']); // default parameters values
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'm');
     });
 
-    test('with two commands with two default parameters', () {
+    test('with parameters and sequence', () {
       final eng = Engine();
       final cp = MockProvider(); // MockCsiProvider();
 
-      const input = '\x1b\x5b;m\x1b\x5b1;x';
-      stringAdvance(eng, cp, input);
-
-      expect(cp.params.length, 2);
-      expect(cp.params[0], <int>[0, 0]); // default parameters values
-      expect(cp.params[1], <int>[1, 0]); // default parameters values
-      expect(cp.chars.length, 2);
-      expect(cp.chars[0], 'm');
-      expect(cp.chars[1], 'x');
-    });
-
-    test('csi with trailing semicolon', () {
-      final eng = Engine();
-      final cp = MockProvider(); // MockCsiProvider();
-
-      const input = '\x1b\x5b123;m';
-      stringAdvance(eng, cp, input);
+      stringAdvance(eng, cp, '\x1b[0:1;2:3;4:m');
 
       expect(cp.params.length, 1);
-      expect(cp.params[0], <int>[123, 0]); // default parameters values
+      expect(cp.params[0], <String>['0:1', '2:3', '4:']);
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'm');
     });
 
-    test('csi max parameters', () {
+    test('with color space', () {
       final eng = Engine();
       final cp = MockProvider(); // MockCsiProvider();
 
-      const input = '\x1b\x5b1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20;21;22;23;24;25;26;27;28;29;30m';
+      stringAdvance(eng, cp, '\x1b[38:2::0:0:0m');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], <String>['38:2::0:0:0']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'm');
+    });
+
+    test('with trailing semicolon', () {
+      final eng = Engine();
+      final cp = MockProvider(); // MockCsiProvider();
+
+      stringAdvance(eng, cp, '\x1b[123;m');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], <String>['123', '0']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'm');
+    });
+
+    test('max parameters', () {
+      final eng = Engine();
+      final cp = MockProvider(); // MockCsiProvider();
+
+      const input = '\x1b[1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20;21;22;23;24;25;26;27;28;29;30;31m';
       stringAdvance(eng, cp, input);
 
       expect(cp.params.length, 1);
-      expect(cp.params[0], <int>[
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
-        21,
-        22,
-        23,
-        24,
-        25,
-        26,
-        27,
-        28,
-        29,
-        30,
+      expect(cp.params[0], <String>[
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        '10',
+        '11',
+        '12',
+        '13',
+        '14',
+        '15',
+        '16',
+        '17',
+        '18',
+        '19',
+        '20',
+        '21',
+        '22',
+        '23',
+        '24',
+        '25',
+        '26',
+        '27',
+        '28',
+        '29',
+        '30',
       ]); //
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'm');
+    });
+
+    test('with ignore', () {
+      final eng = Engine();
+      final cp = MockProvider(); // MockCsiProvider();
+
+      stringAdvance(eng, cp, '\x1B[;1\x3Cc');
+
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 0);
     });
 
     test(
@@ -170,15 +218,26 @@ void main() {
         const endPasteSeq = [0x1b, 0x5b, 0x32, 0x30, 0x31, 0x7E]; // ESC [ 2 0 1 ~
 
         listAdvance(eng, cp, [...startPasteSeq, 0x61, 0xc3, 0xb1, 0x63, ...endPasteSeq]);
-        expect(cp.chars.length, 4);
-        expect(cp.chars[0], 'a');
-        expect(cp.chars[1], 'ñ');
-        expect(cp.chars[2], 'c');
-        expect(cp.params.length, 1);
-        expect(cp.params[0], <int>[200, 201]);
+        expect(cp.block, 'añc');
+        expect(cp.chars.length, 0);
+        expect(cp.params[0], <String>['200', '201']);
       },
     );
+  });
 
+  group('OSC', () {
+    test('1', () {
+      final eng = Engine();
+      final cp = MockProvider(); // MockCsiProvider();
+
+      stringAdvance(eng, cp, '\x1b]11;rgb:11/22/33\x1b\\');
+      expect(cp.params.length, 1);
+      expect(cp.params[0], ['11']);
+      expect(cp.block, 'rgb:11/22/33');
+    });
+  });
+
+  group('UTF8 >', () {
     test('parse utf8 characters', () {
       final eng = Engine();
       final cp = MockProvider(); // MockCharProvider();
