@@ -21,12 +21,12 @@ bool _validSequence(List<int> sequence) {
 ///
 Event parseEvent(TermLib term, List<int> sequence) {
   if (sequence.isEmpty) return NoneEvent(sequence);
-  // if (sequence[0] == 0x1b && sequence.length == 1) return KeyEvent(const KeyCode(name: KeyCodeName.escape));
-  // // .[27u
+  if (sequence[0] == 0x1b && sequence.length == 1) return KeyEvent(const KeyCode(name: KeyCodeName.escape));
+  // .[27u
   // if (sequence.startsWith([0x1b, 0x5b, 0x32, 0x37, 0x75])) {
-  //   return KeyEvent(const KeyCode(name: KeyCodeName.escape));
-  // }
-  // return ParserErrorEvent(sequence);
+  //  return KeyEvent(const KeyCode(name: KeyCodeName.escape));
+  //}
+  //return ParserErrorEvent(sequence);
 
   // If there are multiple ESC sequences, we parse the last one.
   // this is a ugly hack until we have the new event parser
@@ -139,6 +139,7 @@ Event _parseCSI(TermLib term, List<int> sequence) {
       return KeyEvent(const KeyCode(name: KeyCodeName.end));
     case 0x5A: // 'Z'
       return KeyEvent(const KeyCode(name: KeyCodeName.backTab), modifiers: const KeyModifiers(KeyModifiers.shift));
+
     case 0x4D: // 'M'
       return _parseCSINormalMouse(sequence);
     case 0x3C: // '<'

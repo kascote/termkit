@@ -17,6 +17,18 @@ extension IntUtils on int {
 
   /// Return the hex representation
   String toHexString() => toRadixString(16);
+
+  /// Check if a bit is set
+  bool isSet(int mask) => (this & mask) == mask;
+
+  /// Subtracts [other] from this integer, returning the result.
+  ///
+  /// If the result is less than the minimum value of [int], the minimum value is returned.
+  /// If the result is greater than the maximum value of [int], the maximum value is returned.
+  int saturatingSub(int other) {
+    if (this < other) return 0;
+    return this - other;
+  }
 }
 
 ///

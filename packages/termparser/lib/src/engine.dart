@@ -272,16 +272,21 @@ class Engine {
       case 0x1b:
         throw Exception('Unexpected Esc byte in CSI Entry state');
 
-      // Semicolon = parameter delimiter
-      case 0x3B:
-        storeParameter();
-        setState(State.csiParameter);
-
       // '0' ..= '9' = parameter value
       case >= 0x30 && <= 0x39:
         parameter.write(byte - 0x30);
         setState(State.csiParameter);
 
+      // ';' = parameter delimiter
+      case 0x3B:
+        storeParameter();
+        setState(State.csiParameter);
+
+      // '<' SGR Mouse
+      case 0x3C:
+        setState(State.csiParameter);
+
+      // ':' sequence delimiter
       case 0x3A:
         setState(State.csiIgnore);
 
@@ -348,17 +353,18 @@ class Engine {
       case 0x3A:
         parameter.write(String.fromCharCode(byte));
 
-      // Semicolon = parameter delimiter
+      // ';' parameter delimiter
       case 0x3B:
         storeParameter();
 
+      // `~`
       case 0x7E:
         storeParameter();
         if (inCsiBlock) {
           provider.provideCSISequence(
             parameters.sublist(0, parametersCount),
             ignoredParametersCount,
-            '',
+            String.fromCharCode(byte),
             block: _block,
           );
           inCsiBlock = false;
@@ -457,6 +463,32 @@ class Engine {
     }
   }
 
+  void advanceCsiXtermMouseState(Provider provider, int byte) {
+    switch (byte) {
+      case 0x1b:
+        provider.provideCSISequence(
+          parameters.sublist(0, parametersCount),
+          ignoredParametersCount,
+          'M',
+        );
+        setState(State.ground);
+
+      default:
+        parameter.write(byte.toString());
+        storeParameter();
+    }
+
+    // ESC [ M Cb Cx Cy are only 6 characters, 3 of which are params
+    if (parametersCount == 3) {
+      provider.provideCSISequence(
+        parameters.sublist(0, parametersCount),
+        ignoredParametersCount,
+        'M',
+      );
+      setState(State.ground);
+    }
+  }
+
   void advanceOscEntryState(Provider provider, int byte) {
     switch (byte) {
       case 0x1b:
@@ -550,7 +582,7 @@ class Engine {
   }
 
   void advance(Provider provider, int byte, {bool more = false}) {
-    // print('advance: $state, ${byte.toRadixString(16)}, ${String.fromCharCode(byte)}, $more');
+    // print('advance: $state $byte, $more');
     if (handlePossibleEsc(provider, byte, more: more)) {
       return;
     }
