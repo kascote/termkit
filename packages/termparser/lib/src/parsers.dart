@@ -1,3 +1,4 @@
+import './extensions/string_estension.dart';
 import './sequences/key_sequence.dart';
 import 'sequences.dart';
 import 'sequences/key_parser.dart';
@@ -67,7 +68,6 @@ Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, St
     'u' => _parseKeyboardEnhancedMode(parameters, ignoredParameterCount, char),
 
     // 'R' => {} , // csiCursorPositionParser,
-    // 'm' => {}, // csiXtermMouseParser,
 
     // '~' => {}, // csiTildeParser
 
@@ -77,6 +77,7 @@ Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, St
 
 ///
 Sequence parseOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
+  print('OSC: $parameters, $ignoredParameterCount, $char, $block');
   return KeySequence(KeyCode(char: char));
 }
 
@@ -112,10 +113,50 @@ Sequence _parseKeyboardEnhancedMode(List<String> parameters, int ignoredParamete
 
   final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
   var modifiers = modifierMask == null ? KeyModifiers.empty() : parseModifier(modifierMask);
-  final kind = _parseEventKind(eventKind);
-  final stateFromModifiers = _parseModifiersToState(modifierMask);
+  final kind = parseEventKind(eventKind);
+  final stateFromModifiers = parseModifiersToState(modifierMask);
 
-  var (keyCode, stateFromKeyCode) = _translateFunctionalKeyCode(codePoint);
+  var (keyCode, stateFromKeyCode) = translateFunctionalKeyCode(codePoint);
 
-  return const NoneSequence();
+  if (keyCode == const KeyCode()) {
+    final c = StringExtension.tryFromCharCode(codePoint);
+    if (c == null) return const NoneSequence(); // ParseError(sequence);
+
+    keyCode = switch (codePoint) {
+      0x1b => const KeyCode(name: KeyCodeName.escape),
+      0xd => const KeyCode(name: KeyCodeName.enter),
+      // !term.rawMode ? const KeyCode(name: KeyCodeName.enter) : const KeyCode(),
+      0xa => const KeyCode(name: KeyCodeName.enter),
+      0x9 => modifiers.has(KeyModifiers.shift)
+          ? const KeyCode(name: KeyCodeName.backTab)
+          : const KeyCode(name: KeyCodeName.tab),
+      0x7f => const KeyCode(name: KeyCodeName.backSpace),
+      _ => KeyCode(char: String.fromCharCode(codePoint))
+    };
+    stateFromKeyCode = KeyEventState.none();
+  }
+
+  modifiers = switch (keyCode.modifiers) {
+    ModifierKeyCode.leftAlt || ModifierKeyCode.rightAlt => modifiers.add(KeyModifiers.alt),
+    ModifierKeyCode.leftControl || ModifierKeyCode.rightControl => modifiers.add(KeyModifiers.ctrl),
+    ModifierKeyCode.leftShift || ModifierKeyCode.rightShift => modifiers.add(KeyModifiers.shift),
+    ModifierKeyCode.leftSuper || ModifierKeyCode.rightSuper => modifiers.add(KeyModifiers.superKey),
+    ModifierKeyCode.leftHyper || ModifierKeyCode.rightHyper => modifiers.add(KeyModifiers.hyper),
+    ModifierKeyCode.leftMeta || ModifierKeyCode.rightMeta => modifiers.add(KeyModifiers.meta),
+    _ => modifiers
+  };
+
+  if (modifiers.has(KeyModifiers.shift)) {
+    if (codePoints.length > 1) {
+      keyCode = KeyCode(char: String.fromCharCode(int.parse(codePoints[1])));
+      modifiers.add(KeyModifiers.shift);
+    }
+  }
+
+  return KeySequence(
+    keyCode,
+    modifiers: modifiers,
+    eventType: kind,
+    eventState: stateFromKeyCode == KeyEventState.none() ? stateFromModifiers : stateFromKeyCode,
+  );
 }

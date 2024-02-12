@@ -140,3 +140,21 @@ final class KeyboardEnhancementFlags extends Sequence with EquatableMixin {
   // *Note*: this is not yet supported.
   // static const int reportTextWithKeys = 0x10;
 }
+
+/// Represent a Color sequence response from OSC 11
+final class ColorQuerySequence extends Sequence with EquatableMixin {
+  /// The red color value.
+  final int r;
+
+  /// The green color value.
+  final int g;
+
+  /// The blue color value.
+  final int b;
+
+  /// Constructs a new instance of [ColorQuerySequence].
+  const ColorQuerySequence(this.r, this.g, this.b);
+
+  @override
+  List<Object> get props => [r, g, b];
+}

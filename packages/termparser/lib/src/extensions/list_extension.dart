@@ -6,3 +6,9 @@ extension ListUtils<T> on List<T> {
   /// Returns the last element or null if the list is empty.
   T? get lastOrNull => isNotEmpty ? last : null;
 }
+
+///
+extension ListIntUtils on List<int> {
+  /// Returns the elements in a string
+  String toHexString() => fold(StringBuffer(), (sb, e) => sb..write('${e.toRadixString(16)}:')).toString();
+}

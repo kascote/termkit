@@ -16,7 +16,7 @@ extension IntUtils on int {
   }
 
   /// Return the hex representation
-  String toHexString() => toRadixString(16);
+  String toHexString({int padding = 2}) => toRadixString(16).padLeft(padding, '0');
 
   /// Check if a bit is set
   bool isSet(int mask) => (this & mask) == mask;
@@ -29,10 +29,23 @@ extension IntUtils on int {
     if (this < other) return 0;
     return this - other;
   }
-}
 
-///
-extension ListIntUtils on List<int> {
-  /// Returns the elements in a string
-  String toHexString() => fold(StringBuffer(), (sb, e) => sb..write('${e.toRadixString(16)}:')).toString();
+  /// Returns `true` if this is a printable character.
+  ///
+  /// quick check for printable characters. for more advanced check review
+  /// https://github.com/xxgreg/dart_printable_char
+  bool get isPrintable {
+    // Fast check for Latin-1
+    if (this <= 0xFF) {
+      if (0x20 <= this && this <= 0x7E) {
+        // All the ASCII is printable from space through DEL-1.
+        return true;
+      }
+      if (0xA1 <= this && this <= 0xFF) {
+        // Similarly for ¡ through ÿ...
+        return this != 0xAD; // ...except for the bizarre soft hyphen.
+      }
+    }
+    return false;
+  }
 }
