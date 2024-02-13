@@ -7,6 +7,11 @@ extension StringExtension on String {
     return int.parse(trim(), radix: 16);
   }
 
+  /// parse the string to an int assuming is a hexadecimal representation.
+  int? tryParseHex() {
+    return int.tryParse(trim(), radix: 16);
+  }
+
   /// Try to parse the string to an int assuming is a hexadecimal representation.
   static String? tryFromCharCode(int charCode) {
     try {

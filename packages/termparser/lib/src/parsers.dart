@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import './extensions/string_estension.dart';
 import './sequences/key_sequence.dart';
 import 'sequences.dart';
@@ -77,8 +79,11 @@ Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, St
 
 ///
 Sequence parseOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-  print('OSC: $parameters, $ignoredParameterCount, $char, $block');
-  return KeySequence(KeyCode(char: char));
+  if (parameters.isEmpty || block == null) return const NoneSequence();
+  if (parameters[0] == '11') {
+    return _parserColorSequence(block);
+  }
+  return const NoneSequence();
 }
 
 Sequence _parseKeyAndModifiers(KeyCodeName name, String parameters) {
@@ -159,4 +164,30 @@ Sequence _parseKeyboardEnhancedMode(List<String> parameters, int ignoredParamete
     eventType: kind,
     eventState: stateFromKeyCode == KeyEventState.none() ? stateFromModifiers : stateFromKeyCode,
   );
+}
+
+Sequence _parserColorSequence(List<int> block) {
+  final buffer = utf8.decode(block, allowMalformed: true);
+  // has malformed data
+  if (buffer.contains('�')) return const NoneSequence();
+  // format not recognized
+  if (!buffer.startsWith('rgb:')) return const NoneSequence();
+  if (buffer.length < 12) return const NoneSequence();
+
+  final parts = buffer.substring(4).split('/');
+
+  if (parts.length != 3) return const NoneSequence();
+
+  final r = _tryParseInt(parts[0]);
+  final g = _tryParseInt(parts[1]);
+  final b = _tryParseInt(parts[2]);
+
+  if (r == null || g == null || b == null) return const NoneSequence();
+
+  return ColorQuerySequence(r, g, b);
+}
+
+int? _tryParseInt(String value) {
+  if (value.length < 2 || value.length > 4) return null;
+  return value.substring(0, 2).tryParseHex();
 }

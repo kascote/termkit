@@ -413,7 +413,7 @@ void main() {
       expect(parser.moveNext(), true);
       expect(
         parser.current,
-        equals(const ColorQuerySequence(255, 255, 255)),
+        equals(const ColorQuerySequence(171, 188, 205)), // ab/bc/cd
       );
     });
   });

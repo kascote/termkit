@@ -7,7 +7,7 @@ import 'sequences.dart';
 class Parser implements Iterator<Sequence> {
   final Engine _engine;
   final _SequenceProvider _provider;
-  int _index = -1;
+  // int _index = -1;
 
   ///
   Parser()
@@ -79,7 +79,7 @@ class _SequenceProvider implements Provider, Iterator<Sequence> {
   @override
   void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
     final seq = parsers.parseOscSequence(parameters, ignoredParameterCount, char, block: block);
-    if (seq != null) _sequences.add(seq);
+    _sequences.add(seq);
     _escO = false;
   }
 
