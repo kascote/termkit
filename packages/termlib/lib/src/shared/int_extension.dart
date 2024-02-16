@@ -22,6 +22,9 @@ extension IntUtils on int {
   /// Returns a string representation as hex value
   String get hex2 => toRadixString(16).padLeft(2, '0');
 
+  /// Return the hex representation
+  String toHexString({int padding = 2}) => toRadixString(16).padLeft(padding, '0');
+
   /// Returns a string character representation if this is a printable character.
   String get printable => isPrintable ? String.fromCharCode(this) : '.';
 

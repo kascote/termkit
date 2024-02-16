@@ -13,6 +13,8 @@ dependencies:
   meta: ^1.11.0
   termansi:
     path: ../termansi
+  termparser:
+    path: ../termparser
   win32: ^5.1.1
   # path: ^1.8.0
 

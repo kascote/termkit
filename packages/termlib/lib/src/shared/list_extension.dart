@@ -1,3 +1,5 @@
+import './int_extension.dart';
+
 /// Extensions for the [List<int>] class.
 extension ListIntUtils on List<int> {
   /// Returns true if this list starts with the given [other] list.
@@ -20,4 +22,7 @@ extension ListIntUtils on List<int> {
 
   /// Returns a string representation of this list.
   String toStringAsRunes() => String.fromCharCodes(this, 1);
+
+  /// Returns the elements in a string
+  String toHexString() => fold(StringBuffer(), (sb, e) => sb..write('${e.toHexString()}:')).toString();
 }
