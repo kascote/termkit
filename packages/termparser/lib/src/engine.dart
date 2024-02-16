@@ -360,18 +360,18 @@ class Engine {
       // `~`
       case 0x7E:
         storeParameter();
-        if (inCsiBlock) {
+        if (parameters[0] == '200' && !inCsiBlock) {
+          inCsiBlock = true;
+          setState(State.csiBlock);
+        } else {
           provider.provideCSISequence(
             parameters.sublist(0, parametersCount),
             ignoredParametersCount,
             String.fromCharCode(byte),
-            block: _block,
+            block: inCsiBlock ? _block : null,
           );
           inCsiBlock = false;
           setState(State.ground);
-        } else {
-          inCsiBlock = true;
-          setState(State.csiBlock);
         }
 
       // CSI sequence final character
@@ -582,7 +582,7 @@ class Engine {
   }
 
   void advance(Provider provider, int byte, {bool more = false}) {
-    // print('advance: $state $byte, $more');
+    // print('advance: $state $byte $more');
     if (handlePossibleEsc(provider, byte, more: more)) {
       return;
     }

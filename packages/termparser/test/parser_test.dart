@@ -41,6 +41,15 @@ void main() {
       expect(parser.moveNext(), true);
       expect(parser.moveNext(), false);
     });
+
+    test('πOR', () {
+      final parser = Parser()..advance(keySequence('πOR'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeySequence(KeyCode(name: KeyCodeName.f3))),
+      );
+    });
   });
 
   group('CSI > ', () {
@@ -394,6 +403,57 @@ void main() {
       expect(
         parser.current,
         equals(const KeySequence(KeyCode(name: KeyCodeName.escape), modifiers: KeyModifiers(KeyModifiers.superKey))),
+      );
+    });
+
+    test('.[?65;4;6;18;22c', () {
+      final parser = Parser()..advance(keySequence('π[?65;4;6;18;22c'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(
+          const PrimaryDeviceAttributesSequence([
+            DeviceAttributeCodes.sixelGraphics,
+            DeviceAttributeCodes.selectiveErase,
+            DeviceAttributeCodes.userWindows,
+            DeviceAttributeCodes.ansiColor,
+          ]),
+        ),
+      );
+    });
+
+    test('π[10;20R', () {
+      final parser = Parser()..advance(keySequence('π[10;20R'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const CursorPositionSequence(10, 20)),
+      );
+    });
+  });
+
+  group('CSI ~ >', () {
+    test('π[5;1:3~', () {
+      final parser = Parser()..advance(keySequence('π[5;1:3~'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeySequence(KeyCode(name: KeyCodeName.pageUp), eventType: KeyEventType.keyRelease)),
+      );
+    });
+
+    test('π[6;5:3~', () {
+      final parser = Parser()..advance(keySequence('π[6;5:3~'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(
+          const KeySequence(
+            KeyCode(name: KeyCodeName.pageDown),
+            modifiers: KeyModifiers(KeyModifiers.ctrl),
+            eventType: KeyEventType.keyRelease,
+          ),
+        ),
       );
     });
   });

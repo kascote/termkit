@@ -58,6 +58,17 @@ void main() {
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'W');
     });
+
+    test('OR', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1BOR');
+
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 2);
+      expect(cp.chars, ['O', 'R']);
+    });
   });
 
   group('CSI >', () {
@@ -278,6 +289,18 @@ void main() {
       expect(cp.params[0], ['97:65', '2']);
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'u');
+    });
+
+    test('.[6;5:3~', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1b[6;5:3~');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], ['6', '5:3']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], '~');
     });
   });
 

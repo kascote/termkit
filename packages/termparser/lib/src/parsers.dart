@@ -47,7 +47,7 @@ Sequence? parseESCSequence(String char) {
 ///
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
 Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-  // print('parseCSISequence: $parameters, $ignoredParameterCount, $char, $block');
+// print('parseCSISequence: $parameters, $ignoredParameterCount, $char, $block');
 
   return switch (char) {
     'A' => _parseKeyAndModifiers(KeyCodeName.up, parameters.length == 2 ? parameters[1] : ''),
@@ -58,7 +58,6 @@ Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, St
     'H' => _parseKeyAndModifiers(KeyCodeName.home, parameters.length == 2 ? parameters[1] : ''),
     'P' => _parseKeyAndModifiers(KeyCodeName.f1, parameters.length == 2 ? parameters[1] : ''),
     'Q' => _parseKeyAndModifiers(KeyCodeName.f2, parameters.length == 2 ? parameters[1] : ''),
-    'R' => _parseKeyAndModifiers(KeyCodeName.f3, parameters.length == 2 ? parameters[1] : ''),
     'S' => _parseKeyAndModifiers(KeyCodeName.f4, parameters.length == 2 ? parameters[1] : ''),
     // TODO: include shift ?
     'Z' => _parseKeyAndModifiers(KeyCodeName.backTab, parameters.length == 2 ? parameters[1] : ''),
@@ -68,11 +67,9 @@ Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, St
     'I' => const FocusSequence(),
     'O' => const FocusSequence(hasFocus: false),
     'u' => _parseKeyboardEnhancedMode(parameters, ignoredParameterCount, char),
-
-    // 'R' => {} , // csiCursorPositionParser,
-
-    // '~' => {}, // csiTildeParser
-
+    'c' => _primaryDeviceAttributes(parameters, char),
+    '~' => _parseSpecialKeyCode(parameters, char),
+    'R' => _parseCursorPosition(parameters),
     _ => const NoneSequence()
   };
 }
@@ -190,4 +187,78 @@ Sequence _parserColorSequence(List<int> block) {
 int? _tryParseInt(String value) {
   if (value.length < 2 || value.length > 4) return null;
   return value.substring(0, 2).tryParseHex();
+}
+
+Sequence _primaryDeviceAttributes(List<String> parameters, String char) {
+  if (parameters.isEmpty) return const NoneSequence();
+  if (parameters[0] != '?') return const NoneSequence();
+
+  final params = parameters.sublist(1).fold(<DeviceAttributeCodes>[], (acc, p) {
+    if (p.isEmpty) return acc;
+    final code = DeviceAttributeCodes.values
+        .firstWhere((e) => e.value == int.parse(p), orElse: () => DeviceAttributeCodes.unknown);
+    if (code != DeviceAttributeCodes.unknown) return acc..add(code);
+    return acc;
+  });
+
+  return PrimaryDeviceAttributesSequence(params);
+}
+
+Sequence _parseSpecialKeyCode(List<String> parameters, String char) {
+  if (parameters.isEmpty) return const NoneSequence();
+
+  final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
+  final modifier = modifierMask == null ? KeyModifiers.empty() : parseModifier(modifierMask);
+  final eventType = parseEventKind(eventKind);
+  final state = parseModifiersToState(modifierMask);
+  final keyCode = int.parse(parameters.first);
+
+  final key = switch (keyCode) {
+    1 || 7 => KeyCodeName.home,
+    2 => KeyCodeName.insert,
+    3 => KeyCodeName.delete,
+    4 || 8 => KeyCodeName.end,
+    5 => KeyCodeName.pageUp,
+    6 => KeyCodeName.pageDown,
+    11 => KeyCodeName.f1,
+    12 => KeyCodeName.f2,
+    13 => KeyCodeName.f3,
+    14 => KeyCodeName.f4,
+    15 => KeyCodeName.f5,
+    17 => KeyCodeName.f6,
+    18 => KeyCodeName.f7,
+    19 => KeyCodeName.f8,
+    20 => KeyCodeName.f9,
+    21 => KeyCodeName.f10,
+    23 => KeyCodeName.f11,
+    24 => KeyCodeName.f12,
+    25 => KeyCodeName.f13,
+    26 => KeyCodeName.f14,
+    28 => KeyCodeName.f15,
+    29 => KeyCodeName.f16,
+    31 => KeyCodeName.f17,
+    32 => KeyCodeName.f18,
+    33 => KeyCodeName.f19,
+    34 => KeyCodeName.f20,
+    _ => null
+  };
+
+  if (key == null) return const NoneSequence();
+
+  return KeySequence(
+    KeyCode(name: key),
+    modifiers: modifier,
+    eventType: eventType,
+    eventState: state,
+  );
+}
+
+Sequence _parseCursorPosition(List<String> parameters) {
+  if (parameters.isEmpty) return const NoneSequence();
+  if (parameters.length != 2) return const NoneSequence();
+
+  final x = int.tryParse(parameters[0]);
+  final y = int.tryParse(parameters[1]);
+  if (x == null || y == null) return const NoneSequence();
+  return CursorPositionSequence(x, y);
 }

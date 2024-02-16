@@ -47,15 +47,15 @@ final class KeySequence extends Sequence with EquatableMixin {
 }
 
 /// Represent a Cursor event sequence.
-final class CursorSequence extends Sequence with EquatableMixin {
+final class CursorPositionSequence extends Sequence with EquatableMixin {
   /// The x coordinate of the cursor event.
   final int x;
 
   /// The y coordinate of the cursor event.
   final int y;
 
-  /// Constructs a new instance of [CursorSequence].
-  const CursorSequence(this.x, this.y);
+  /// Constructs a new instance of [CursorPositionSequence].
+  const CursorPositionSequence(this.x, this.y);
 
   @override
   List<Object> get props => [x, y];
@@ -157,4 +157,16 @@ final class ColorQuerySequence extends Sequence with EquatableMixin {
 
   @override
   List<Object> get props => [r, g, b];
+}
+
+/// Represent a Device Attributes sequence response
+final class PrimaryDeviceAttributesSequence extends Sequence with EquatableMixin {
+  /// List of device attributes
+  final List<DeviceAttributeCodes> attrs;
+
+  /// Constructs a new instance of [PrimaryDeviceAttributesSequence].
+  const PrimaryDeviceAttributesSequence(this.attrs);
+
+  @override
+  List<Object> get props => [attrs];
 }

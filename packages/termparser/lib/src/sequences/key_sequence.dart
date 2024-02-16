@@ -406,3 +406,54 @@ enum KeyEventType {
   /// Key release event.
   keyRelease,
 }
+
+/// Device Attribute Codes
+///
+/// https://vt100.net/docs/vt510-rm/DA1.html
+/// https://github.com/wez/wezterm/blob/main/termwiz/src/escape/csi.rs#L170
+enum DeviceAttributeCodes {
+  ///
+  columns132(1),
+
+  ///
+  printer(2),
+
+  ///
+  regisGraphics(3),
+
+  ///
+  sixelGraphics(4),
+
+  ///
+  selectiveErase(6),
+
+  ///
+  userDefinedKeys(8),
+
+  ///
+  nationalReplacementCharsets(9),
+
+  ///
+  technicalCharacters(15),
+
+  ///
+  userWindows(18),
+
+  ///
+  horizontalScrolling(21),
+
+  ///
+  ansiColor(22),
+
+  ///
+  ansiTextLocator(29),
+
+  ///
+  unknown(999999);
+
+  ///
+  const DeviceAttributeCodes(this.value);
+
+  ///
+  final int value;
+}
