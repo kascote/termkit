@@ -1,4 +1,5 @@
-import 'package:termparser/termparser.dart';
+import 'package:termparser/src/engine.dart';
+import 'package:termparser/src/provider.dart';
 import 'package:test/test.dart';
 
 import 'mock_provider.dart';

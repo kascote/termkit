@@ -1,52 +1,52 @@
 import 'dart:convert';
 
-import './extensions/string_estension.dart';
-import './sequences/key_sequence.dart';
-import 'sequences.dart';
+import 'events.dart';
+import 'events_types.dart';
+import 'extensions/string_extension.dart';
 import 'sequences/key_parser.dart';
 
-///
-Sequence? parseChar(String char, {bool escO = false}) {
+/// Parse a single character
+Event? parseChar(String char, {bool escO = false}) {
   if (escO) {
     switch (char) {
       case 'P':
-        return const KeySequence(KeyCode(name: KeyCodeName.f1));
+        return const KeyEvent(KeyCode(name: KeyCodeName.f1));
       case 'Q':
-        return const KeySequence(KeyCode(name: KeyCodeName.f2));
+        return const KeyEvent(KeyCode(name: KeyCodeName.f2));
       case 'R':
-        return const KeySequence(KeyCode(name: KeyCodeName.f3));
+        return const KeyEvent(KeyCode(name: KeyCodeName.f3));
       case 'S':
-        return const KeySequence(KeyCode(name: KeyCodeName.f4));
+        return const KeyEvent(KeyCode(name: KeyCodeName.f4));
       default:
-        return const KeySequence(KeyCode());
+        return const KeyEvent(KeyCode());
     }
   }
   switch (char) {
     case '\r' || '\n':
-      return const KeySequence(KeyCode(name: KeyCodeName.enter));
+      return const KeyEvent(KeyCode(name: KeyCodeName.enter));
     case '\t':
-      return const KeySequence(KeyCode(name: KeyCodeName.tab));
+      return const KeyEvent(KeyCode(name: KeyCodeName.tab));
     case '\x7f':
-      return const KeySequence(KeyCode(name: KeyCodeName.backTab));
+      return const KeyEvent(KeyCode(name: KeyCodeName.backTab));
     case '\x1b':
-      return const KeySequence(KeyCode(name: KeyCodeName.escape));
+      return const KeyEvent(KeyCode(name: KeyCodeName.escape));
     case '\x00':
-      return const KeySequence(KeyCode());
+      return const KeyEvent(KeyCode());
     default:
-      return KeySequence(KeyCode(char: char));
+      return KeyEvent(KeyCode(char: char));
   }
 }
 
-///
-Sequence? parseESCSequence(String char) {
+/// Parse an escape sequence
+Event? parseESCSequence(String char) {
   // EscO[P-S] is handled in the Performer, see parse_char & esc_o argument
   // No need to handle other cases here? It's just Alt+$char
-  return KeySequence(KeyCode(char: char), modifiers: const KeyModifiers(KeyModifiers.alt));
+  return KeyEvent(KeyCode(char: char), modifiers: const KeyModifiers(KeyModifiers.alt));
 }
 
-///
+/// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
-Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
+Event parseCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
 // print('parseCSISequence: $parameters, $ignoredParameterCount, $char, $block');
 
   return switch (char) {
@@ -59,44 +59,41 @@ Sequence parseCSISequence(List<String> parameters, int ignoredParameterCount, St
     'P' => _parseKeyAndModifiers(KeyCodeName.f1, parameters.length == 2 ? parameters[1] : ''),
     'Q' => _parseKeyAndModifiers(KeyCodeName.f2, parameters.length == 2 ? parameters[1] : ''),
     'S' => _parseKeyAndModifiers(KeyCodeName.f4, parameters.length == 2 ? parameters[1] : ''),
-    // TODO: include shift ?
     'Z' => _parseKeyAndModifiers(KeyCodeName.backTab, parameters.length == 2 ? parameters[1] : ''),
-    // will not implement ESC[M
-    // 'M'
     'M' || 'm' => sgrMouseParser(parameters, char, ignoredParameterCount),
-    'I' => const FocusSequence(),
-    'O' => const FocusSequence(hasFocus: false),
-    'u' => _parseKeyboardEnhancedMode(parameters, ignoredParameterCount, char),
+    'I' => const FocusEvent(),
+    'O' => const FocusEvent(hasFocus: false),
+    'u' => _parseKeyboardEnhancedMode(parameters, char),
     'c' => _primaryDeviceAttributes(parameters, char),
     '~' => _parseSpecialKeyCode(parameters, char),
     'R' => _parseCursorPosition(parameters),
-    _ => const NoneSequence()
+    _ => const NoneEvent()
   };
 }
 
-///
-Sequence parseOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-  if (parameters.isEmpty || block == null) return const NoneSequence();
+/// Parse an operating system command sequence
+Event parseOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
+  if (parameters.isEmpty || block == null) return const NoneEvent();
   if (parameters[0] == '11') {
     return _parserColorSequence(block);
   }
-  return const NoneSequence();
+  return const NoneEvent();
 }
 
-Sequence _parseKeyAndModifiers(KeyCodeName name, String parameters) {
+Event _parseKeyAndModifiers(KeyCodeName name, String parameters) {
   final (modifier, event) = modifierAndEventParser(parameters);
-  return KeySequence(KeyCode(name: name), modifiers: modifier, eventType: event);
+  return KeyEvent(KeyCode(name: name), modifiers: modifier, eventType: event);
 }
 
 // This function parses `CSI … u` sequences. These are sequences defined in either
 // the `CSI u` (a.k.a. "Fix Keyboard Input on Terminals - Please", https://www.leonerd.org.uk/hacks/fixterms/)
 // or Kitty Keyboard Protocol (https://sw.kovidgoyal.net/kitty/keyboard-protocol/) specifications.
 // This CSI sequence is a tuple of semicolon-separated numbers.
-Sequence _parseKeyboardEnhancedMode(List<String> parameters, int ignoredParameterCount, String char) {
-  if (parameters.isEmpty) return const NoneSequence();
+Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
+  if (parameters.isEmpty) return const NoneEvent();
 
   if (parameters[0] == '?') {
-    return parseKeyboardEnhancedCode(parameters[1]);
+    return keyboardEnhancedCodeParser(parameters[1]);
   }
 
   // In `CSI u`, this is parsed as:
@@ -111,23 +108,23 @@ Sequence _parseKeyboardEnhancedMode(List<String> parameters, int ignoredParamete
 
   final codePoints = parameters.first.split(':');
   final codePoint = int.tryParse(codePoints.first);
-  if (codePoint == null) return const NoneSequence(); // TODO(nelson): or error ?
+  if (codePoint == null) return const NoneEvent();
 
   final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
-  var modifiers = modifierMask == null ? KeyModifiers.empty() : parseModifier(modifierMask);
-  final kind = parseEventKind(eventKind);
-  final stateFromModifiers = parseModifiersToState(modifierMask);
-
-  var (keyCode, stateFromKeyCode) = translateFunctionalKeyCode(codePoint);
+  var modifiers = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
+  final kind = eventKindParser(eventKind);
+  final stateFromModifiers = modifiersToStateParser(modifierMask);
+  var (keyCode, stateFromKeyCode) = functionalKeyCodeParser(codePoint);
 
   if (keyCode == const KeyCode()) {
     final c = StringExtension.tryFromCharCode(codePoint);
-    if (c == null) return const NoneSequence(); // ParseError(sequence);
+    if (c == null) return const NoneEvent();
 
     keyCode = switch (codePoint) {
       0x1b => const KeyCode(name: KeyCodeName.escape),
       0xd => const KeyCode(name: KeyCodeName.enter),
-      // !term.rawMode ? const KeyCode(name: KeyCodeName.enter) : const KeyCode(),
+      // if the terminal is in raw mode, the enter key sends \r
+      // we need to handle this case. How to receive the raw mode status?
       0xa => const KeyCode(name: KeyCodeName.enter),
       0x9 => modifiers.has(KeyModifiers.shift)
           ? const KeyCode(name: KeyCodeName.backTab)
@@ -155,7 +152,7 @@ Sequence _parseKeyboardEnhancedMode(List<String> parameters, int ignoredParamete
     }
   }
 
-  return KeySequence(
+  return KeyEvent(
     keyCode,
     modifiers: modifiers,
     eventType: kind,
@@ -163,54 +160,46 @@ Sequence _parseKeyboardEnhancedMode(List<String> parameters, int ignoredParamete
   );
 }
 
-Sequence _parserColorSequence(List<int> block) {
+Event _parserColorSequence(List<int> block) {
   final buffer = utf8.decode(block, allowMalformed: true);
   // has malformed data
-  if (buffer.contains('�')) return const NoneSequence();
+  if (buffer.contains('�')) return const NoneEvent();
   // format not recognized
-  if (!buffer.startsWith('rgb:')) return const NoneSequence();
-  if (buffer.length < 12) return const NoneSequence();
+  if (!buffer.startsWith('rgb:')) return const NoneEvent();
+  if (buffer.length < 12) return const NoneEvent();
 
   final parts = buffer.substring(4).split('/');
 
-  if (parts.length != 3) return const NoneSequence();
+  if (parts.length != 3) return const NoneEvent();
 
   final r = _tryParseInt(parts[0]);
   final g = _tryParseInt(parts[1]);
   final b = _tryParseInt(parts[2]);
 
-  if (r == null || g == null || b == null) return const NoneSequence();
+  if (r == null || g == null || b == null) return const NoneEvent();
 
-  return ColorQuerySequence(r, g, b);
+  return ColorQueryEvent(r, g, b);
 }
 
 int? _tryParseInt(String value) {
-  if (value.length < 2 || value.length > 4) return null;
-  return value.substring(0, 2).tryParseHex();
+  if (value.isEmpty || value.length > 4) return null;
+  return value.padLeft(2, '0').substring(0, 2).tryParseHex();
 }
 
-Sequence _primaryDeviceAttributes(List<String> parameters, String char) {
-  if (parameters.isEmpty) return const NoneSequence();
-  if (parameters[0] != '?') return const NoneSequence();
+Event _primaryDeviceAttributes(List<String> parameters, String char) {
+  if (parameters.isEmpty) return const NoneEvent();
+  if (parameters[0] != '?') return const NoneEvent();
 
-  final params = parameters.sublist(1).fold(<DeviceAttributeCodes>[], (acc, p) {
-    if (p.isEmpty) return acc;
-    final code = DeviceAttributeCodes.values
-        .firstWhere((e) => e.value == int.parse(p), orElse: () => DeviceAttributeCodes.unknown);
-    if (code != DeviceAttributeCodes.unknown) return acc..add(code);
-    return acc;
-  });
-
-  return PrimaryDeviceAttributesSequence(params);
+  return PrimaryDeviceAttributesEvent.fromParams(parameters.sublist(1));
 }
 
-Sequence _parseSpecialKeyCode(List<String> parameters, String char) {
-  if (parameters.isEmpty) return const NoneSequence();
+Event _parseSpecialKeyCode(List<String> parameters, String char) {
+  if (parameters.isEmpty) return const NoneEvent();
 
   final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
-  final modifier = modifierMask == null ? KeyModifiers.empty() : parseModifier(modifierMask);
-  final eventType = parseEventKind(eventKind);
-  final state = parseModifiersToState(modifierMask);
+  final modifier = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
+  final eventType = eventKindParser(eventKind);
+  final state = modifiersToStateParser(modifierMask);
   final keyCode = int.parse(parameters.first);
 
   final key = switch (keyCode) {
@@ -243,9 +232,9 @@ Sequence _parseSpecialKeyCode(List<String> parameters, String char) {
     _ => null
   };
 
-  if (key == null) return const NoneSequence();
+  if (key == null) return const NoneEvent();
 
-  return KeySequence(
+  return KeyEvent(
     KeyCode(name: key),
     modifiers: modifier,
     eventType: eventType,
@@ -253,12 +242,12 @@ Sequence _parseSpecialKeyCode(List<String> parameters, String char) {
   );
 }
 
-Sequence _parseCursorPosition(List<String> parameters) {
-  if (parameters.isEmpty) return const NoneSequence();
-  if (parameters.length != 2) return const NoneSequence();
+Event _parseCursorPosition(List<String> parameters) {
+  if (parameters.isEmpty) return const NoneEvent();
+  if (parameters.length != 2) return const NoneEvent();
 
   final x = int.tryParse(parameters[0]);
   final y = int.tryParse(parameters[1]);
-  if (x == null || y == null) return const NoneSequence();
-  return CursorPositionSequence(x, y);
+  if (x == null || y == null) return const NoneEvent();
+  return CursorPositionEvent(x, y);
 }

@@ -1,13 +1,30 @@
 import 'engine.dart';
+import 'events.dart';
 import 'parsers.dart' as parsers;
 import 'provider.dart';
-import 'sequences.dart';
 
 /// The ANSI escape sequence parser
-class Parser implements Iterator<Sequence> {
+///
+/// This class implements the ANSI escape sequence parser allowing to parse
+/// data coming from the terminal (stdin) and dispatching events based on the
+/// input.
+///
+/// Data is feed to the parser using the [advance] method and later can check
+/// if there is available events using the [moveNext] method. If there are
+/// events available, they can be retrieved using the [current] property.
+///
+/// ```dart
+///   final parser = Parser();
+///   // ESC [ 20 ; 10 R
+///   parser.advance([0x1B, 0x5B, 0x32, 0x30, 0x3B, 0x31, 0x30, 0x52]);
+///   assert(parser.moveNext(), 'move next');
+///   assert(parser.current == const CursorPositionEvent(20, 10), 'retrieve event');
+///   assert(parser.moveNext() == false, 'no more events');
+/// ```
+///
+final class Parser implements Iterator<Event> {
   final Engine _engine;
   final _SequenceProvider _provider;
-  // int _index = -1;
 
   ///
   Parser()
@@ -25,25 +42,15 @@ class Parser implements Iterator<Sequence> {
   }
 
   @override
-  bool moveNext() {
-    return _provider.moveNext();
-    // if (_provider._sequences.isEmpty) return false;
-    // if (_index == _provider._sequences.length - 1) return false;
-    // _index++;
-    // return _index < _provider._sequences.length;
-  }
+  bool moveNext() => _provider.moveNext();
 
   @override
-  Sequence get current {
-    return _provider.current;
-    // if (_index < 0 || _index >= _provider._sequences.length) throw StateError('No current sequence');
-    // return _provider._sequences[_index];
-  }
+  Event get current => _provider.current;
 }
 
-class _SequenceProvider implements Provider, Iterator<Sequence> {
+class _SequenceProvider implements Provider, Iterator<Event> {
   bool _escO = false;
-  final List<Sequence> _sequences = [];
+  final List<Event> _sequences = [];
   int _index = -1;
 
   @override
@@ -70,8 +77,6 @@ class _SequenceProvider implements Provider, Iterator<Sequence> {
   @override
   void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
     final seq = parsers.parseCSISequence(parameters, ignoredParameterCount, char, block: block);
-    // TODO(nelson): this will return a NoneSequence where the other methods will not add the sequence
-    // we needs to define the behavior
     _sequences.add(seq);
     _escO = false;
   }
@@ -92,7 +97,7 @@ class _SequenceProvider implements Provider, Iterator<Sequence> {
   }
 
   @override
-  Sequence get current {
+  Event get current {
     if (_index < 0 || _index >= _sequences.length) throw StateError('No current sequence');
     return _sequences[_index];
   }

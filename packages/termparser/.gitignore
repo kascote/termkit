@@ -1,4 +1,6 @@
+.vscode/
 .dart_tool/
+doc/
 pubspec.lock
 
 example/scratch.dart

@@ -1,39 +1,37 @@
-<!-- 
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# TermParser
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages). 
+ANSI escape sequence parser.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages). 
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+This parser is loose implementation of Paul Flo Williams' [VT500-series parser](https://vt100.net/emu/dec_ansi_parser).
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+Still is a works in progress, but the following features are implemented:
 
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+- Normal key mode
+- Enhanced key mode (Kitty protocol)
+- Mouse tracking
+- Cursor position report
+- Focus events
+- Color query requests
+- Device attributes
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+This is a simple example how to get started with the package.
 
 ```dart
-const like = 'sample';
+  final parser = Parser();
+  // ESC [ 20 ; 10 R
+  parser.advance([0x1B, 0x5B, 0x32, 0x30, 0x3B, 0x31, 0x30, 0x52]);
+  assert(parser.moveNext(), 'move next');
+  assert(parser.current == const CursorPositionEvent(20, 10), 'retrieve event');
+  assert(parser.moveNext() == false, 'no more events');
 ```
 
-## Additional information
+## Acknowledgements
 
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+This package takes a _**lot**_ of inspiration and ideas from this two great packages:
+
+- [vaxis](https://git.sr.ht/~rockorager/vaxis)
+- [annes](https://github.com/qwandor/anes-rs)

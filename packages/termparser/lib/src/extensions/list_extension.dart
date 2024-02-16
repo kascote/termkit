@@ -1,3 +1,5 @@
+import 'int_extension.dart';
+
 /// List extension
 extension ListUtils<T> on List<T> {
   /// Returns the first element or null if the list is empty.
@@ -10,5 +12,5 @@ extension ListUtils<T> on List<T> {
 ///
 extension ListIntUtils on List<int> {
   /// Returns the elements in a string
-  String toHexString() => fold(StringBuffer(), (sb, e) => sb..write('${e.toRadixString(16)}:')).toString();
+  String toHexString() => fold(StringBuffer(), (sb, e) => sb..write('${e.toHexString()}:')).toString();
 }
