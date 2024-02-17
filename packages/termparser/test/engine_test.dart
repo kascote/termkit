@@ -292,6 +292,42 @@ void main() {
       expect(cp.chars[0], 'u');
     });
 
+    test('.[127u', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1b[127u');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], ['127']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'u');
+    });
+
+    test('.[127;1:3u', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1b[127;1:3u');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], ['127', '1:3']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'u');
+    });
+
+    test('.[127::8;2u', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1b[127::8;2u');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], ['127::8', '2']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'u');
+    });
+
     test('.[6;5:3~', () {
       final eng = Engine();
       final cp = MockProvider();

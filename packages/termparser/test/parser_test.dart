@@ -376,6 +376,38 @@ void main() {
       );
     });
 
+    test('.[127u', () {
+      final parser = Parser()..advance(keySequence('π[127u'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeyEvent(KeyCode(name: KeyCodeName.backSpace))),
+      );
+    });
+
+    test('.[127;1:3u', () {
+      final parser = Parser()..advance(keySequence('π[127;1:3u'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeyEvent(KeyCode(name: KeyCodeName.backSpace), eventType: KeyEventType.keyRelease)),
+      );
+    });
+
+    test('.[127::8;2u', () {
+      final parser = Parser()..advance(keySequence('π[127::8;2u'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(
+          const KeyEvent(
+            KeyCode(name: KeyCodeName.backSpace, baseLayoutKey: 8),
+            modifiers: KeyModifiers(KeyModifiers.shift),
+          ),
+        ),
+      );
+    });
+
     test('.[;1:3B', () {
       final parser = Parser()..advance(keySequence('π[;1:3B'));
       expect(parser.moveNext(), true);

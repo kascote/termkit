@@ -96,6 +96,8 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
     return keyboardEnhancedCodeParser(parameters[1]);
   }
 
+  // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#an-overview
+  //
   // In `CSI u`, this is parsed as:
   //
   //     CSI codePoint ; modifiers u
@@ -105,9 +107,19 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   // enabled progressively. The full sequence is parsed as:
   //
   //     CSI unicode-key-code:alternate-key-codes ; modifiers:event-type ; text-as-codepoints u
+  //
+  // The protocol define that can send the base layout key too with the following sequence when
+  // there is no shifted key:
+  //
+  //     CSI unicode-key-code::base-layout-key
+  //
+  // WezTerm is using it on some cases (Shift-Backspace, Shift-\, etc)
 
   final codePoints = parameters.first.split(':');
-  final codePoint = int.tryParse(codePoints.first);
+  final codePoint = int.tryParse(codePoints.firstOrNull ?? '');
+  final shiftedKey = int.tryParse(codePoints.elementAtOrNull(1) ?? '');
+  final baseLayout = int.tryParse(codePoints.elementAtOrNull(2) ?? '');
+  // the first element is the only required
   if (codePoint == null) return const NoneEvent();
 
   final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
@@ -146,11 +158,12 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   };
 
   if (modifiers.has(KeyModifiers.shift)) {
-    if (codePoints.length > 1) {
-      keyCode = KeyCode(char: String.fromCharCode(int.parse(codePoints[1])));
+    if (shiftedKey != null) {
+      keyCode = KeyCode(char: String.fromCharCode(shiftedKey));
       modifiers.add(KeyModifiers.shift);
     }
   }
+  if (baseLayout != null) keyCode = keyCode.copyWith(baseLayoutKey: baseLayout);
 
   return KeyEvent(
     keyCode,

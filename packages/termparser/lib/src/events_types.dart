@@ -25,16 +25,44 @@ class KeyCode extends Equatable {
   /// Contains the modifiers applied to the key (shift, ctrl, alt, etc).
   final ModifierKeyCode modifiers;
 
+  /// Base layout key
+  ///
+  /// From Kitty documentation:
+  /// The base layout key is the key corresponding to the physical key in the
+  /// standard PC-101 key layout. So for example, if the user is using a
+  /// Cyrillic keyboard with a Cyrillic keyboard layout pressing the ctrl+С key
+  /// will be ctrl+c in the standard layout. So the terminal should send the
+  /// base layout key as 99 corresponding to the c key.
+  final int baseLayoutKey;
+
   /// Constructs a new instance of [KeyCode].
   const KeyCode({
     this.name = KeyCodeName.none,
     this.char = '',
     this.media = MediaKeyCode.none,
     this.modifiers = ModifierKeyCode.none,
+    this.baseLayoutKey = 0,
   });
 
   @override
-  List<Object?> get props => [name, char, media, modifiers];
+  List<Object?> get props => [name, char, media, modifiers, baseLayoutKey];
+
+  /// Create a new instance of [KeyCode] with the given parameters.
+  KeyCode copyWith({
+    KeyCodeName? name,
+    String? char,
+    MediaKeyCode? media,
+    ModifierKeyCode? modifiers,
+    int? baseLayoutKey,
+  }) {
+    return KeyCode(
+      name: name ?? this.name,
+      char: char ?? this.char,
+      media: media ?? this.media,
+      modifiers: modifiers ?? this.modifiers,
+      baseLayoutKey: baseLayoutKey ?? this.baseLayoutKey,
+    );
+  }
 }
 
 /// Represents key modifiers (shift, control, alt, etc.).
