@@ -222,6 +222,16 @@ void main() {
       expect(cp.params[0], <String>['200', '201']);
     });
 
+    test('csi bracketed paste with control codes', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1b[200~o\x1b[2D\x1b[201~');
+      expect(cp.params[0], ['201']);
+      expect(cp.chars[0], '~');
+      expect(cp.block, '');
+    });
+
     test('csi sgr mouse', () {
       final eng = Engine();
       final cp = MockProvider();
@@ -373,6 +383,16 @@ void main() {
       listAdvance(eng, cp, [0xf0, 0x90, 0x8c, 0xbc]);
       expect(cp.chars.length, 4);
       expect(cp.chars[3], '𐌼');
+    });
+
+    test('Ž', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, 'Ž');
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'Ž');
     });
   });
 }

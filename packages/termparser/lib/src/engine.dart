@@ -378,11 +378,13 @@ class Engine {
       //   -> dispatch CSI sequence
       case (>= 0x40 && <= 0x7D):
         storeParameter();
-        provider.provideCSISequence(
-          parameters.sublist(0, parametersCount),
-          ignoredParametersCount,
-          String.fromCharCode(byte),
-        );
+        if (!inCsiBlock || (inCsiBlock && parameters[parametersCount - 1] == '201')) {
+          provider.provideCSISequence(
+            parameters.sublist(0, parametersCount),
+            ignoredParametersCount,
+            String.fromCharCode(byte),
+          );
+        }
 
         setState(State.ground);
 

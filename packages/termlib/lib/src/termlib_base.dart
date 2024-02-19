@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:io' show Platform, Stdout, exit, stderr, stdin, stdout;
 
 import 'package:termansi/termansi.dart' as ansi;
-import 'package:termlib/src/key_handler/events.dart';
+import 'package:termparser/termparser.dart';
 
 import './colors.dart';
 import './ffi/termos.dart';
 import './profile.dart';
-import 'key_handler/events_parser.dart';
 import 'shared/color_util.dart';
 
 /// Type similar to Platform.environment, used for dependency injection
@@ -173,11 +172,12 @@ class TermLib {
     final timeoutDuration = Duration(milliseconds: timeout);
     final completer = Completer<Event>();
     final sequence = <int>[];
+    final parser = Parser();
     StreamSubscription<List<int>>? subscription;
 
     final timer = Timer(timeoutDuration, () async {
       await subscription!.cancel();
-      completer.complete(TimeOutEvent());
+      completer.complete(const NoneEvent());
     });
 
     subscription = _broadcastStream.listen(
@@ -185,7 +185,34 @@ class TermLib {
         sequence.addAll(event);
         await subscription!.cancel();
         timer.cancel();
-        completer.complete(parseEvent(this, sequence));
+        parser.advance(sequence);
+        completer.complete(parser.moveNext() ? parser.current : const NoneEvent());
+      },
+      onError: completer.completeError,
+      cancelOnError: true,
+    );
+
+    return completer.future;
+  }
+
+  /// Read raw keys from the standard input [stdin]
+  Future<List<int>> readRawKeys({int timeout = 100}) async {
+    final timeoutDuration = Duration(milliseconds: timeout);
+    final completer = Completer<List<int>>();
+    final sequence = <int>[];
+    StreamSubscription<List<int>>? subscription;
+
+    final timer = Timer(timeoutDuration, () async {
+      await subscription!.cancel();
+      completer.complete([]);
+    });
+
+    subscription = _broadcastStream.listen(
+      (event) async {
+        sequence.addAll(event);
+        await subscription!.cancel();
+        timer.cancel();
+        completer.complete(sequence);
       },
       onError: completer.completeError,
       cancelOnError: true,

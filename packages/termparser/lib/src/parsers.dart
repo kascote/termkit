@@ -65,7 +65,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     'O' => const FocusEvent(hasFocus: false),
     'u' => _parseKeyboardEnhancedMode(parameters, char),
     'c' => _primaryDeviceAttributes(parameters, char),
-    '~' => _parseSpecialKeyCode(parameters, char),
+    '~' => _parseSpecialKeyCode(parameters, char, block),
     'R' => _parseCursorPosition(parameters),
     _ => const NoneEvent()
   };
@@ -206,8 +206,11 @@ Event _primaryDeviceAttributes(List<String> parameters, String char) {
   return PrimaryDeviceAttributesEvent.fromParams(parameters.sublist(1));
 }
 
-Event _parseSpecialKeyCode(List<String> parameters, String char) {
+Event _parseSpecialKeyCode(List<String> parameters, String char, List<int>? block) {
   if (parameters.isEmpty) return const NoneEvent();
+  if (parameters.isNotEmpty && parameters[0] == '200') {
+    return _parseBracketedPaste(parameters, char, block);
+  }
 
   final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
   final modifier = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
@@ -263,4 +266,11 @@ Event _parseCursorPosition(List<String> parameters) {
   final y = int.tryParse(parameters[1]);
   if (x == null || y == null) return const NoneEvent();
   return CursorPositionEvent(x, y);
+}
+
+Event _parseBracketedPaste(List<String> parameters, String char, List<int>? block) {
+  if (parameters.length != 2 || parameters[1] != '201') {
+    return ParserErrorEvent(parameters, char: char, block: block ?? []);
+  }
+  return PasteEvent(utf8.decode(block ?? [], allowMalformed: true));
 }

@@ -527,46 +527,46 @@ enum DeviceAttributeParams {
 
 /// Represents a Mouse Event
 @immutable
-final class MouseButtonEvent extends Equatable {
+final class MouseButton extends Equatable {
   /// Mouse Button that was pressed or released
-  final MouseButton button;
+  final MouseButtonKind button;
 
   /// The kind of action that was performed
   final MouseButtonAction action;
 
-  /// Constructs a new instance of [MouseButtonEvent].
-  const MouseButtonEvent(this.button, this.action);
+  /// Constructs a new instance of [MouseButton].
+  const MouseButton(this.button, this.action);
 
-  /// Constructs a new instance of [MouseButtonEvent] with the given button and [MouseButtonAction.down]
-  factory MouseButtonEvent.down(MouseButton? button) =>
-      MouseButtonEvent(button ?? MouseButton.none, MouseButtonAction.down);
+  /// Constructs a new instance of [MouseButton] with the given button and [MouseButtonAction.down]
+  factory MouseButton.down([MouseButtonKind? button]) =>
+      MouseButton(button ?? MouseButtonKind.none, MouseButtonAction.down);
 
-  /// Constructs a new instance of [MouseButtonEvent] with the given button and [MouseButtonAction.up]
-  factory MouseButtonEvent.up(MouseButton? button) =>
-      MouseButtonEvent(button ?? MouseButton.none, MouseButtonAction.up);
+  /// Constructs a new instance of [MouseButton] with the given button and [MouseButtonAction.up]
+  factory MouseButton.up([MouseButtonKind? button]) =>
+      MouseButton(button ?? MouseButtonKind.none, MouseButtonAction.up);
 
-  /// Constructs a new instance of [MouseButtonEvent] with the given button and [MouseButtonAction.drag]
-  factory MouseButtonEvent.drag(MouseButton? button) =>
-      MouseButtonEvent(button ?? MouseButton.none, MouseButtonAction.drag);
+  /// Constructs a new instance of [MouseButton] with the given button and [MouseButtonAction.drag]
+  factory MouseButton.drag([MouseButtonKind? button]) =>
+      MouseButton(button ?? MouseButtonKind.none, MouseButtonAction.drag);
 
-  /// Constructs a new instance of [MouseButtonEvent] with [MouseButtonAction.moved]
-  factory MouseButtonEvent.moved(MouseButton? button) =>
-      MouseButtonEvent(button ?? MouseButton.none, MouseButtonAction.moved);
+  /// Constructs a new instance of [MouseButton] with [MouseButtonAction.moved]
+  factory MouseButton.moved([MouseButtonKind? button]) =>
+      MouseButton(button ?? MouseButtonKind.none, MouseButtonAction.moved);
 
-  /// Constructs a new instance of [MouseButtonEvent] with [MouseButtonAction.wheelUp]
-  factory MouseButtonEvent.wheelUp() => const MouseButtonEvent(MouseButton.none, MouseButtonAction.wheelUp);
+  /// Constructs a new instance of [MouseButton] with [MouseButtonAction.wheelUp]
+  factory MouseButton.wheelUp() => const MouseButton(MouseButtonKind.none, MouseButtonAction.wheelUp);
 
-  /// Constructs a new instance of [MouseButtonEvent] with [MouseButtonAction.wheelDown]
-  factory MouseButtonEvent.wheelDown() => const MouseButtonEvent(MouseButton.none, MouseButtonAction.wheelDown);
+  /// Constructs a new instance of [MouseButton] with [MouseButtonAction.wheelDown]
+  factory MouseButton.wheelDown() => const MouseButton(MouseButtonKind.none, MouseButtonAction.wheelDown);
 
-  /// Constructs a new instance of [MouseButtonEvent] with [MouseButtonAction.wheelLeft]
-  factory MouseButtonEvent.wheelLeft() => const MouseButtonEvent(MouseButton.none, MouseButtonAction.wheelLeft);
+  /// Constructs a new instance of [MouseButton] with [MouseButtonAction.wheelLeft]
+  factory MouseButton.wheelLeft() => const MouseButton(MouseButtonKind.none, MouseButtonAction.wheelLeft);
 
-  /// Constructs a new instance of [MouseButtonEvent] with [MouseButtonAction.wheelRight]
-  factory MouseButtonEvent.wheelRight() => const MouseButtonEvent(MouseButton.none, MouseButtonAction.wheelRight);
+  /// Constructs a new instance of [MouseButton] with [MouseButtonAction.wheelRight]
+  factory MouseButton.wheelRight() => const MouseButton(MouseButtonKind.none, MouseButtonAction.wheelRight);
 
-  /// Constructs a new instance of [MouseButtonEvent] with [MouseButtonAction.none]
-  factory MouseButtonEvent.none() => const MouseButtonEvent(MouseButton.none, MouseButtonAction.none);
+  /// Constructs a new instance of [MouseButton] with [MouseButtonAction.none]
+  factory MouseButton.none() => const MouseButton(MouseButtonKind.none, MouseButtonAction.none);
 
   @override
   List<Object?> get props => [button, action];
@@ -603,7 +603,7 @@ enum MouseButtonAction {
 }
 
 /// Represent a Mouse button
-enum MouseButton {
+enum MouseButtonKind {
   /// No button
   none,
 

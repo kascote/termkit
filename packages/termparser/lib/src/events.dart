@@ -18,6 +18,26 @@ final class NoneEvent extends Event with EquatableMixin {
   List<Object> get props => [];
 }
 
+const _blankArray = <int>[];
+
+/// Error event dispatched when can not parse a sequence.
+final class ParserErrorEvent extends Event with EquatableMixin {
+  /// The parameters of the sequence.
+  final List<String> params;
+
+  /// The character if there is one
+  final String char;
+
+  /// The block content if there is one
+  final List<int> block;
+
+  /// Constructs a new instance of [ParserErrorEvent].
+  const ParserErrorEvent(this.params, {this.char = '', this.block = _blankArray});
+
+  @override
+  List<Object> get props => [params, char, block];
+}
+
 /// Represent a Key event.
 @immutable
 final class KeyEvent extends Event with EquatableMixin {
@@ -69,7 +89,7 @@ final class MouseEvent extends Event with EquatableMixin {
   final int y;
 
   /// The button that was pressed.
-  final MouseButtonEvent button;
+  final MouseButton button;
 
   /// The key modifiers that could have been pressed.
   final KeyModifiers modifiers;
@@ -194,4 +214,16 @@ final class PrimaryDeviceAttributesEvent extends Event with EquatableMixin {
       return acc;
     });
   }
+}
+
+/// Paste Action Event
+final class PasteEvent extends Event with EquatableMixin {
+  /// The pasted text
+  final String text;
+
+  /// Constructs a new instance of [PasteEvent].
+  const PasteEvent(this.text);
+
+  @override
+  List<Object> get props => [text];
 }

@@ -15,6 +15,12 @@ void main() {
       expect(parser.moveNext(), true);
     });
 
+    test('Ž', () {
+      final parser = Parser()..advance(keySequence('Ž'));
+      expect(parser.moveNext(), true);
+      expect(parser.current, equals(const KeyEvent(KeyCode(char: 'Ž'))));
+    });
+
     test('esc sequence', () {
       final parser = Parser()..advance([0x1B], more: true);
       expect(parser.moveNext(), false);
@@ -45,6 +51,38 @@ void main() {
       expect(
         parser.current,
         equals(const KeyEvent(KeyCode(name: KeyCodeName.f3))),
+      );
+    });
+
+    test('πc', () {
+      final parser = Parser()..advance(keySequence('πc'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeyEvent(KeyCode(char: 'c'), modifiers: KeyModifiers(KeyModifiers.alt))),
+      );
+    });
+
+    test('πH', () {
+      final parser = Parser()..advance(keySequence('πH'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(
+          const KeyEvent(
+            KeyCode(char: 'H'), // must have shift included? is an uppercase
+            modifiers: KeyModifiers(KeyModifiers.alt),
+          ),
+        ),
+      );
+    });
+
+    test('tab', () {
+      final parser = Parser()..advance([0x09]);
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeyEvent(KeyCode(name: KeyCodeName.tab))),
       );
     });
   });
@@ -86,7 +124,7 @@ void main() {
       expect(parser.moveNext(), true);
       expect(
         parser.current,
-        MouseEvent(86, 18, MouseButtonEvent.moved(MouseButton.none)),
+        MouseEvent(86, 18, MouseButton.moved(MouseButtonKind.none)),
       );
     });
 
@@ -95,7 +133,7 @@ void main() {
       expect(parser.moveNext(), true);
       expect(
         parser.current,
-        MouseEvent(86, 18, MouseButtonEvent.moved(MouseButton.left)),
+        MouseEvent(86, 18, MouseButton.moved(MouseButtonKind.left)),
       );
     });
 
@@ -107,9 +145,36 @@ void main() {
         MouseEvent(
           86,
           18,
-          MouseButtonEvent.down(MouseButton.left),
+          MouseButton.down(MouseButtonKind.left),
           modifiers: const KeyModifiers(KeyModifiers.ctrl | KeyModifiers.alt),
         ),
+      );
+    });
+
+    test('π[<0;20;10;m', () {
+      final parser = Parser()..advance(keySequence('π[<0;20;10;m'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        MouseEvent(20, 10, MouseButton.up(MouseButtonKind.left)),
+      );
+    });
+
+    test('π[<0;20;10m', () {
+      final parser = Parser()..advance(keySequence('π[<0;20;10m'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        MouseEvent(20, 10, MouseButton.up(MouseButtonKind.left)),
+      );
+    });
+
+    test('π[<53;20;10m', () {
+      final parser = Parser()..advance(keySequence('π[<51;20;10m'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        MouseEvent(20, 10, MouseButton.moved(), modifiers: const KeyModifiers(KeyModifiers.ctrl)),
       );
     });
 
@@ -462,6 +527,15 @@ void main() {
   });
 
   group('CSI ~ >', () {
+    test('π[3~', () {
+      final parser = Parser()..advance(keySequence('π[3~'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeyEvent(KeyCode(name: KeyCodeName.delete))),
+      );
+    });
+
     test('π[5;1:3~', () {
       final parser = Parser()..advance(keySequence('π[5;1:3~'));
       expect(parser.moveNext(), true);
@@ -504,6 +578,33 @@ void main() {
         parser.current,
         equals(const ColorQueryEvent(171, 188, 205)), // ab/bc/cd
       );
+    });
+  });
+
+  group('bracketed paste >', () {
+    test('test paste', () {
+      final parser = Parser()..advance(keySequence('π[200~where is Carmen San Diego Ž🩷 π[201~'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const PasteEvent('where is Carmen San Diego Ž🩷 ')),
+      );
+    });
+
+    test('without finish mark', () {
+      final parser = Parser()..advance(keySequence('π[200~o'));
+      expect(parser.moveNext(), false);
+    });
+
+    test('with escape code without finish mark', () {
+      final parser = Parser()..advance(keySequence('π[200~oπ[2j'));
+      expect(parser.moveNext(), false);
+    });
+
+    test('with escape codes', () {
+      final parser = Parser()..advance(keySequence('π[200~oπ[2Dπ[201~'));
+      expect(parser.moveNext(), true);
+      expect(parser.current, isA<NoneEvent>());
     });
   });
 }

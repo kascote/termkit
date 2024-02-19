@@ -14,7 +14,7 @@ Future<void> keyViewer(TermLib t) async {
   final cycle = Cycle(['|', '/', '-', r'\']);
   final tick = Timer.periodic(const Duration(milliseconds: 100), (timer) => timer.tick);
 
-  const keflags = KeyboardEnhancementFlags(
+  const keyFlags = KeyboardEnhancementFlags(
     KeyboardEnhancementFlags.disambiguateEscapeCodes |
         KeyboardEnhancementFlags.reportAlternateKeys |
         KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
@@ -22,7 +22,7 @@ Future<void> keyViewer(TermLib t) async {
   );
 
   t
-    ..setCapabilities(keflags)
+    ..setCapabilities(keyFlags)
     //..pushCapabilities(const KeyboardEnhancementFlags(KeyboardEnhancementFlags.disambiguateEscapeCodes))
     ..eraseClear()
     ..writeLn(' ')
@@ -38,6 +38,7 @@ Future<void> keyViewer(TermLib t) async {
     'darkCyan': p.style()..setFg(p.getColor('darkCyan')),
     'magenta': p.style()..setFg(p.getColor('magenta')),
     'webGray': p.style()..setFg(p.getColor('webGray')),
+    'error': p.style()..setFg(p.getColor('red')),
   };
 
   try {
@@ -46,11 +47,11 @@ Future<void> keyViewer(TermLib t) async {
       final event = await t.readEvent();
 
       switch (event.runtimeType) {
-        case TimeOutEvent:
+        case NoneEvent:
           continue;
-        case ParserErrorEvent:
-          t.writeLn('ParserErrorEvent: $event');
-          continue;
+        // case ParserErrorEvent:
+        //   t.writeLn('ParserErrorEvent: $event');
+        //   continue;
         case KeyEvent:
           final e = event as KeyEvent;
           if (e.code.name == KeyCodeName.escape) break;
@@ -79,11 +80,15 @@ Future<void> keyViewer(TermLib t) async {
           continue;
 
         default:
-          t.writeLn('Unknown event: $event - ${event.runtimeType} - ${event is TimeOutEvent} ');
+          t.writeLn('Unknown event: $event - ${event.runtimeType} - ${event is NoneEvent} ');
           continue;
       }
       break;
     }
+  } catch (e, st) {
+    t
+      ..writeLn(colors['error']!..setText('Error: $e'))
+      ..writeLn('$st');
   } finally {
     tick.cancel();
     t.setCapabilities(KeyboardEnhancementFlags.empty());

@@ -48,7 +48,7 @@ const _mouseModCtrl = 0x10; // 0001_0000;
 
 /// Parse SGR mouse
 Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParameterCount) {
-  if (parameters.length != 3) return const NoneEvent();
+  if (parameters.length > 4) return const NoneEvent();
 
   var action = switch (charFinal) {
     'M' => MouseButtonAction.down,
@@ -65,16 +65,16 @@ Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParam
   if (p1.isSet(_mouseModAlt)) mods |= KeyModifiers.alt;
   if (p1.isSet(_mouseModCtrl)) mods |= KeyModifiers.ctrl;
   final button = switch (btn) {
-    0x00 => MouseButton.left,
-    0x01 => MouseButton.middle,
-    0x02 => MouseButton.right,
-    _ => MouseButton.none,
+    0x00 => MouseButtonKind.left,
+    0x01 => MouseButtonKind.middle,
+    0x02 => MouseButtonKind.right,
+    _ => MouseButtonKind.none,
   };
 
   return MouseEvent(
     parameters[1].parseInt(),
     parameters[2].parseInt(),
-    MouseButtonEvent(button, action),
+    MouseButton(button, action),
     modifiers: KeyModifiers(mods),
   );
 }
