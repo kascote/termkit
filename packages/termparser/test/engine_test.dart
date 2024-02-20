@@ -70,6 +70,38 @@ void main() {
       expect(cp.chars.length, 2);
       expect(cp.chars, ['O', 'R']);
     });
+
+    test('ctrl-a', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x01');
+
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], '\x01');
+    });
+    test('ctrl-i', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x09');
+
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], '\x09');
+    });
+
+    test('ctrl-h', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x0b');
+
+      expect(cp.params.length, 0);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], '\x0b');
+    });
   });
 
   group('CSI >', () {
@@ -207,8 +239,10 @@ void main() {
       expect(cp.params.length, 0);
       expect(cp.chars.length, 0);
     });
+  });
 
-    test('csi bracketed paste', () {
+  group('CSI Bracketed Paste >', () {
+    test('text', () {
       final eng = Engine();
       final cp = MockProvider();
 
@@ -222,7 +256,7 @@ void main() {
       expect(cp.params[0], <String>['200', '201']);
     });
 
-    test('csi bracketed paste with control codes', () {
+    test('with control codes', () {
       final eng = Engine();
       final cp = MockProvider();
 
@@ -231,7 +265,9 @@ void main() {
       expect(cp.chars[0], '~');
       expect(cp.block, '');
     });
+  });
 
+  group('CSI Mouse >', () {
     test('csi sgr mouse', () {
       final eng = Engine();
       final cp = MockProvider();
@@ -255,7 +291,9 @@ void main() {
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'M');
     });
+  });
 
+  group('CSI Focus >', () {
     test('csi focus in', () {
       final eng = Engine();
       final cp = MockProvider();
@@ -266,7 +304,9 @@ void main() {
       expect(cp.chars.length, 1);
       expect(cp.chars[0], 'I');
     });
+  });
 
+  group('CSI keyboard enhancement >', () {
     test('csi ? 1 u', () {
       final eng = Engine();
       final cp = MockProvider();

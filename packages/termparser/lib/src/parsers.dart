@@ -8,33 +8,37 @@ import 'sequences/key_parser.dart';
 /// Parse a single character
 Event? parseChar(String char, {bool escO = false}) {
   if (escO) {
-    switch (char) {
-      case 'P':
-        return const KeyEvent(KeyCode(name: KeyCodeName.f1));
-      case 'Q':
-        return const KeyEvent(KeyCode(name: KeyCodeName.f2));
-      case 'R':
-        return const KeyEvent(KeyCode(name: KeyCodeName.f3));
-      case 'S':
-        return const KeyEvent(KeyCode(name: KeyCodeName.f4));
-      default:
-        return const KeyEvent(KeyCode());
-    }
+    return switch (char) {
+      'P' => const KeyEvent(KeyCode(name: KeyCodeName.f1)),
+      'Q' => const KeyEvent(KeyCode(name: KeyCodeName.f2)),
+      'R' => const KeyEvent(KeyCode(name: KeyCodeName.f3)),
+      'S' => const KeyEvent(KeyCode(name: KeyCodeName.f4)),
+      _ => const KeyEvent(KeyCode()) // none
+    };
   }
-  switch (char) {
-    case '\r' || '\n':
-      return const KeyEvent(KeyCode(name: KeyCodeName.enter));
-    case '\t':
-      return const KeyEvent(KeyCode(name: KeyCodeName.tab));
-    case '\x7f':
-      return const KeyEvent(KeyCode(name: KeyCodeName.backTab));
-    case '\x1b':
-      return const KeyEvent(KeyCode(name: KeyCodeName.escape));
-    case '\x00':
-      return const KeyEvent(KeyCode());
-    default:
-      return KeyEvent(KeyCode(char: char));
-  }
+  return switch (char) {
+    '\r' || '\n' => const KeyEvent(KeyCode(name: KeyCodeName.enter)),
+    '\t' => const KeyEvent(KeyCode(name: KeyCodeName.tab)),
+    '\x7f' => const KeyEvent(KeyCode(name: KeyCodeName.backTab)),
+    '\x1b' => const KeyEvent(KeyCode(name: KeyCodeName.escape)),
+    '\x00' => const KeyEvent(KeyCode()), // none
+    _ => _ctrlOrKey(char)
+  };
+}
+
+KeyEvent _ctrlOrKey(String char) {
+  final code = char.codeUnitAt(0);
+  return switch (code) {
+    >= 0x01 && <= 0x1A => KeyEvent(
+        KeyCode(char: String.fromCharCode(code - 0x01 + 0x61)),
+        modifiers: const KeyModifiers(KeyModifiers.ctrl),
+      ),
+    >= 0x1C && <= 0x1F => KeyEvent(
+        KeyCode(char: String.fromCharCode(code - 0x1C + 0x34)),
+        modifiers: const KeyModifiers(KeyModifiers.ctrl),
+      ),
+    _ => KeyEvent(KeyCode(char: char)),
+  };
 }
 
 /// Parse an escape sequence

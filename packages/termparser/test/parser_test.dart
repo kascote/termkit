@@ -77,12 +77,21 @@ void main() {
       );
     });
 
-    test('tab', () {
+    test('tab / ctrl-i', () {
       final parser = Parser()..advance([0x09]);
       expect(parser.moveNext(), true);
       expect(
         parser.current,
         equals(const KeyEvent(KeyCode(name: KeyCodeName.tab))),
+      );
+    });
+
+    test('ctrl-h', () {
+      final parser = Parser()..advance([0x08]);
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeyEvent(KeyCode(char: 'h'), modifiers: KeyModifiers(KeyModifiers.ctrl))),
       );
     });
   });
