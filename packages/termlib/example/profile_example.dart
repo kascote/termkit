@@ -10,7 +10,7 @@ void main() {
   final c256 = p256.getColor('#00ffff') as Ansi256Color;
   final ctc = ptc.getColor('#00ffff') as TrueColor;
 
-  t.writeLn('ask for the true color ${ctc.hex} on different profiles');
+  t.writeln('ask for the true color ${ctc.hex} on different profiles');
 
   final out = [
     p16.style('hello world 16 - ${c16.code}')
@@ -24,5 +24,5 @@ void main() {
       ..toString(),
   ];
 
-  t.writeLn(out.toString());
+  t.writeln(out.toString());
 }

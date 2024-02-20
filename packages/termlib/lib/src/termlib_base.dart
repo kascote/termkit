@@ -58,7 +58,7 @@ class TermLib {
   ///
   /// When raw mode is enabled, the newline command (`\n`) does not also perform
   /// a carriage return (`\r`). You can use the [newLine] property or the
-  /// [writeLn] function instead of explicitly using `\n` to ensure the
+  /// [writeln] function instead of explicitly using `\n` to ensure the
   /// correct results.
   bool get rawMode => _isRawMode;
   set rawMode(bool value) {
@@ -80,7 +80,7 @@ class TermLib {
   ///
   /// The function will check if the terminal is in raw mode and if so will replace
   /// the `\n` with `\r\n` to ensure the correct results.
-  void writeLn(Object s) {
+  void writeln(Object s) {
     var text = s.toString();
     if (_isRawMode) {
       text = text.replaceAll('\n', '\r\n');

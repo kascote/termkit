@@ -265,7 +265,7 @@ class SnakeGame {
       if (event.code.name == KeyCodeName.escape) {
         _term
           ..eraseClear()
-          ..writeLn('Bye!');
+          ..writeln('Bye!');
         return false;
       }
 

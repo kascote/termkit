@@ -28,11 +28,11 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
 
   t
     ..eraseClear()
-    ..writeLn(' ')
-    ..writeLn(' ');
+    ..writeln(' ')
+    ..writeln(' ');
 
   final caps = await t.requestCapabilities();
-  t.writeLn(showCapabilities(caps));
+  t.writeln(showCapabilities(caps));
 
   final p = t.profile;
   final colors = <String, Style>{
@@ -53,7 +53,7 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
         case NoneEvent:
           continue;
         case ParserErrorEvent:
-          t.writeLn('ParserErrorEvent: $event');
+          t.writeln('ParserErrorEvent: $event');
           continue;
         case KeyEvent:
           final e = event as KeyEvent;
@@ -84,20 +84,20 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
               ..writeln('event: ${e.eventType}');
           }
 
-          t.writeLn(sb);
+          t.writeln(sb);
 
           continue;
 
         default:
-          t.writeLn('Unknown event: $event - ${event.runtimeType} - ${event is NoneEvent} ');
+          t.writeln('Unknown event: $event - ${event.runtimeType} - ${event is NoneEvent} ');
           continue;
       }
       break;
     }
   } catch (e, st) {
     t
-      ..writeLn(colors['error']!..setText('Error: $e'))
-      ..writeLn('$st');
+      ..writeln(colors['error']!..setText('Error: $e'))
+      ..writeln('$st');
   } finally {
     tick.cancel();
     t.setCapabilities(KeyboardEnhancementFlags.empty());

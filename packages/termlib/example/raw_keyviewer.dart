@@ -23,10 +23,10 @@ Future<void> main(List<String> arguments) async {
 Future<void> keyViewer(TermLib t) async {
   t
     ..eraseClear()
-    ..writeLn(' ')
-    ..writeLn(' ')
-    ..writeLn('Press any key to see the key details.')
-    ..writeLn('Press ESC to exit.');
+    ..writeln(' ')
+    ..writeln(' ')
+    ..writeln('Press any key to see the key details.')
+    ..writeln('Press ESC to exit.');
 
   try {
     while (true) {
@@ -44,12 +44,12 @@ Future<void> keyViewer(TermLib t) async {
               ..write('${e.isPrintable ? String.fromCharCode(e) : e == 0x1b ? 'ESC' : '.'} '),
           )
           .toString();
-      t.writeLn('Data: $dataHex - $dataStr');
+      t.writeln('Data: $dataHex - $dataStr');
     }
   } catch (e, st) {
     t
-      ..writeLn('Error: $e')
-      ..writeLn(st);
+      ..writeln('Error: $e')
+      ..writeln(st);
   } finally {
     t.setCapabilities(const KeyboardEnhancementFlags(0));
   }
