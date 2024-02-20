@@ -5,6 +5,8 @@ void main() {
   final t = TermLib();
   final black = Ansi16Color(0);
 
+  t.writeLn('How 256 colors downgrades to 16 colors\n');
+
   for (var i = 0; i < 256; i++) {
     final c = Ansi256Color(i).toAnsi16Color();
 

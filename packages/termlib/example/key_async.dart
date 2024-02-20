@@ -4,26 +4,29 @@ import 'package:termlib/termlib.dart';
 
 import './cycle.dart';
 
-void main() async {
+Future<void> main(List<String> arguments) async {
   final t = TermLib();
-  await t.withRawModeAsync(() => keyViewer(t));
+  final withKitty = arguments.contains('-kitty');
+
+  if (withKitty) {
+    const keyFlags = KeyboardEnhancementFlags(
+      KeyboardEnhancementFlags.disambiguateEscapeCodes |
+          KeyboardEnhancementFlags.reportAlternateKeys |
+          KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlags.reportEventTypes,
+    );
+    t.setCapabilities(keyFlags);
+  }
+
+  await t.withRawModeAsync(() => keyViewer(t, withKitty));
   await t.flushThenExit(0);
 }
 
-Future<void> keyViewer(TermLib t) async {
+Future<void> keyViewer(TermLib t, bool withKitty) async {
   final cycle = Cycle(['|', '/', '-', r'\']);
   final tick = Timer.periodic(const Duration(milliseconds: 100), (timer) => timer.tick);
 
-  const keyFlags = KeyboardEnhancementFlags(
-    KeyboardEnhancementFlags.disambiguateEscapeCodes |
-        KeyboardEnhancementFlags.reportAlternateKeys |
-        KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
-        KeyboardEnhancementFlags.reportEventTypes,
-  );
-
   t
-    ..setCapabilities(keyFlags)
-    //..pushCapabilities(const KeyboardEnhancementFlags(KeyboardEnhancementFlags.disambiguateEscapeCodes))
     ..eraseClear()
     ..writeLn(' ')
     ..writeLn(' ');
@@ -49,9 +52,9 @@ Future<void> keyViewer(TermLib t) async {
       switch (event.runtimeType) {
         case NoneEvent:
           continue;
-        // case ParserErrorEvent:
-        //   t.writeLn('ParserErrorEvent: $event');
-        //   continue;
+        case ParserErrorEvent:
+          t.writeLn('ParserErrorEvent: $event');
+          continue;
         case KeyEvent:
           final e = event as KeyEvent;
           if (e.code.name == KeyCodeName.escape) break;
@@ -66,17 +69,23 @@ Future<void> keyViewer(TermLib t) async {
           final char =
               '${event.code.char.isEmpty ? (colors['webGray']!..setText('none')) : (colors['magenta']!..setText(event.code.char))}';
 
-          t.writeLn(
-            StringBuffer()
-              ..write('modifiers: $modifiers, ')
-              ..write('lhs: $lhsModifiers, ')
+          final sb = StringBuffer()
+            ..write('modifiers: $modifiers, ')
+            ..write('char: $char, ')
+            ..write('mod ${e.modifiers.value} ')
+            ..write('key: ${e.code.name} ');
+          if (withKitty) {
+            sb
+              ..write('\n lhs: $lhsModifiers, ')
               ..write('rhs: $rhsModifiers, ')
-              ..write('char: $char, ')
-              ..write('mod ${e.modifiers.value} ')
-              ..write('key: ${e.code.name} ')
-              ..write('key: ${e.eventState} ')
-              ..write('key: ${e.eventType}'),
-          );
+              ..write('media: ${e.code.media}, ')
+              ..write('base: ${e.code.baseLayoutKey}, ')
+              ..write('state: ${e.eventState}, ')
+              ..writeln('event: ${e.eventType}');
+          }
+
+          t.writeLn(sb);
+
           continue;
 
         default:

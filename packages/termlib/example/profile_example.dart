@@ -24,7 +24,5 @@ void main() {
       ..toString(),
   ];
 
-  t
-    ..writeLn(out.toString())
-    ..eraseClear();
+  t.writeLn(out.toString());
 }
