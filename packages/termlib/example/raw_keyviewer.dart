@@ -23,6 +23,7 @@ Future<void> main(List<String> arguments) async {
 Future<void> keyViewer(TermLib t) async {
   t
     ..eraseClear()
+    ..enableMouseEvents()
     ..writeln(' ')
     ..writeln(' ')
     ..writeln('Press any key to see the key details.')
@@ -51,6 +52,8 @@ Future<void> keyViewer(TermLib t) async {
       ..writeln('Error: $e')
       ..writeln(st);
   } finally {
-    t.setCapabilities(const KeyboardEnhancementFlags(0));
+    t
+      ..setCapabilities(const KeyboardEnhancementFlags(0))
+      ..disableMouseEvents();
   }
 }

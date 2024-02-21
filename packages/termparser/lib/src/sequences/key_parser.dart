@@ -45,6 +45,10 @@ const _buttonBits = 0xC3; // 1100_0011;
 const _mouseModShift = 0x04; // 0000_0100;
 const _mouseModAlt = 0x08; // 0000_1000;
 const _mouseModCtrl = 0x10; // 0001_0000;
+const _mouseWheelUp = 0x40; // 0100_0000;
+const _mouseWheelDown = 0x41; // 0100_0001;
+const _mouseWheelLeft = 0x42; // 0100_0010;
+const _mouseWheelRight = 0x43; // 0100_0011;
 
 /// Parse SGR mouse
 Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParameterCount) {
@@ -61,6 +65,10 @@ Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParam
   var mods = 0;
 
   if (p1.isSet(_motion)) action = MouseButtonAction.moved;
+  if (p1.isSet(_mouseWheelUp)) action = MouseButtonAction.wheelUp;
+  if (p1.isSet(_mouseWheelDown)) action = MouseButtonAction.wheelDown;
+  if (p1.isSet(_mouseWheelLeft)) action = MouseButtonAction.wheelLeft;
+  if (p1.isSet(_mouseWheelRight)) action = MouseButtonAction.wheelRight;
   if (p1.isSet(_mouseModShift)) mods |= KeyModifiers.shift;
   if (p1.isSet(_mouseModAlt)) mods |= KeyModifiers.alt;
   if (p1.isSet(_mouseModCtrl)) mods |= KeyModifiers.ctrl;

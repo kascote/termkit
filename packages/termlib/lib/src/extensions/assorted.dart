@@ -18,4 +18,10 @@ extension AssortedExt on TermLib {
 
   /// Set Terminal Title
   void setTerminalTitle(String title) => write(ansi.Sup.setTerminalTitle(title));
+
+  /// Start receiving mouse events
+  void enableMouseEvents() => write(ansi.Sup.startMouseEvents);
+
+  /// Stop receiving mouse events
+  void disableMouseEvents() => write(ansi.Sup.endMouseEvents);
 }

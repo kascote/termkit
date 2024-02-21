@@ -29,7 +29,8 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
   t
     ..eraseClear()
     ..writeln(' ')
-    ..writeln(' ');
+    ..writeln(' ')
+    ..enableMouseEvents();
 
   final caps = await t.requestCapabilities();
   t.writeln(showCapabilities(caps));
@@ -88,6 +89,17 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
 
           continue;
 
+        case MouseEvent:
+          final e = event as MouseEvent;
+          final modifiers = getModifiers(colors, e.modifiers);
+          final sb = StringBuffer()
+            ..write('modifiers: $modifiers, ')
+            ..write('button: ${e.button.button} / ${e.button.action}, ')
+            ..write('x: ${e.x}, ')
+            ..write('y: ${e.y}, ');
+          t.writeln(sb);
+          continue;
+
         default:
           t.writeln('Unknown event: $event - ${event.runtimeType} - ${event is NoneEvent} ');
           continue;
@@ -100,7 +112,10 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
       ..writeln('$st');
   } finally {
     tick.cancel();
-    t.setCapabilities(KeyboardEnhancementFlags.empty());
+    t
+      ..setCapabilities(KeyboardEnhancementFlags.empty())
+      ..disableMouseEvents();
+
     //t.popCapabilities();
   }
 }

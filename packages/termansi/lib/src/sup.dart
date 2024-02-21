@@ -73,5 +73,17 @@ abstract class Sup {
   /// Request terminal name and version
   static String get termVersion => '$CSI>0q';
 
+  /// Start receiving mouse events
+  static String get startMouseEvents => '$CSI?1000;1003;1006h';
+
+  /// Stop receiving mouse events
+  static String get endMouseEvents => '$CSI?1000;1003;1006l';
+
+  /// Start receiving mouse events as pixels
+  static String get startMousePixelEvents => '$CSI?1000;1003;1016h';
+
+  /// Stop receiving mouse events as pixels
+  static String get endMousePixelsEvents => '$CSI?1000;1003;1016h';
+
   // set buffer size csi!("8;{columns};{rows}t")
 }
