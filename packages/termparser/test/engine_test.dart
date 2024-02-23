@@ -435,4 +435,18 @@ void main() {
       expect(cp.chars[0], 'Ž');
     });
   });
+
+  group('DCS >', () {
+    test('πP>|term v1', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1bP>|term v1\x1b\x5c');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], ['>', '|']);
+      expect(cp.chars.length, 0);
+      expect(cp.block, 'term v1');
+    });
+  });
 }

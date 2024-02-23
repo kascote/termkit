@@ -11,4 +11,7 @@ abstract class Provider {
 
   /// Provide an operating system command sequence to the parser
   void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block});
+
+  /// Provide an operating system command sequence to the parser
+  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block});
 }

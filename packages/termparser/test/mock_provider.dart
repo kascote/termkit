@@ -31,4 +31,11 @@ class MockProvider extends Provider {
     if (char.isNotEmpty) chars.add(char);
     if (block != null) _block.addAll(block);
   }
+
+  @override
+  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
+    params.add(parameters);
+    if (char.isNotEmpty) chars.add(char);
+    if (block != null) _block.addAll(block);
+  }
 }

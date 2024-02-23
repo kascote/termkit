@@ -75,12 +75,17 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
   };
 }
 
-/// Parse an operating system command sequence
+/// Parse an Operating System Command sequence
 Event parseOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
   if (parameters.isEmpty || block == null) return const NoneEvent();
   if (parameters[0] == '11') {
     return _parserColorSequence(block);
   }
+  return const NoneEvent();
+}
+
+/// Parse a Device Control String sequence
+Event parseDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
   return const NoneEvent();
 }
 

@@ -49,10 +49,13 @@ enum State {
   /// to distinguish between (im)proper sequences.
   csiIntermediate,
 
-  /// CSI sequence block
+  /// Text block sequence
   ///
   /// used for bracketed paste mode for example
-  csiBlock,
+  textBlock,
+
+  /// Text block final sequence
+  textBlockFinal,
 
   /// OSC sequence block
   ///
@@ -62,14 +65,16 @@ enum State {
   /// OSC sequence and we're collecting parameters.
   oscParameter,
 
-  /// OSC block mode
-  oscBlock,
-
   /// OSC final sequence
   oscFinal,
 
+  /// DCS entry state
+  dcsEntry,
+
   /// Possible UTF-8 sequence and we're collecting UTF-8 code points.
   utf8,
+
+  oscBlock,
 }
 
 ///
@@ -82,7 +87,7 @@ class Engine {
   final utf8Points = List<int>.filled(_maxUtf8CodePoints, 0);
   int utf8PointsCount = 0;
   int utf8PointsExpectedCount = 0;
-  bool inCsiBlock = false;
+  bool inTextBlock = false;
   final List<int> _block = [];
 
   Engine() {
@@ -140,8 +145,13 @@ class Engine {
         provider.provideChar('\x1b');
         provider.provideChar('\x1b');
         setState(State.ground);
+
       case (State.oscBlock, true):
         setState(State.oscFinal);
+        return false;
+
+      case (State.textBlock, true):
+        setState(State.textBlockFinal);
         return false;
 
       // Discard any state
@@ -205,6 +215,11 @@ class Engine {
       // Intermediate bytes to collect
       case >= 0x20 && <= 0x2F:
         setState(State.escapeIntermediate);
+
+      // DCS
+      case 0x50:
+        setState(State.dcsEntry);
+
       // Escape followed by '[' (0x5B) -> CSI sequence start
       case 0x5B:
         setState(State.csiEntry);
@@ -360,17 +375,17 @@ class Engine {
       // `~`
       case 0x7E:
         storeParameter();
-        if (parameters[0] == '200' && !inCsiBlock) {
-          inCsiBlock = true;
-          setState(State.csiBlock);
+        if (parameters[0] == '200' && !inTextBlock) {
+          inTextBlock = true;
+          setState(State.textBlock);
         } else {
           provider.provideCSISequence(
             parameters.sublist(0, parametersCount),
             ignoredParametersCount,
             String.fromCharCode(byte),
-            block: inCsiBlock ? _block : null,
+            block: inTextBlock ? _block : null,
           );
-          inCsiBlock = false;
+          inTextBlock = false;
           setState(State.ground);
         }
 
@@ -378,7 +393,7 @@ class Engine {
       //   -> dispatch CSI sequence
       case (>= 0x40 && <= 0x7D):
         storeParameter();
-        if (!inCsiBlock || (inCsiBlock && parameters[parametersCount - 1] == '201')) {
+        if (!inTextBlock || (inTextBlock && parameters[parametersCount - 1] == '201')) {
           provider.provideCSISequence(
             parameters.sublist(0, parametersCount),
             ignoredParametersCount,
@@ -446,22 +461,41 @@ class Engine {
     }
   }
 
-  void advanceCsiBlockState(Provider provider, int byte) {
+  void advanceTextBlockState(Provider provider, int byte) {
     switch (byte) {
-      // provides here the block and move to Escape state to handle the final sequence ESC [ 201 ~
+      // block finish with a escape sequence
       case 0x1b:
-        provider.provideCSISequence(
+        setState(State.textBlockFinal);
+
+      // Other bytes are considered as valid
+      default:
+        _block.add(byte);
+    }
+  }
+
+  void advanceTextBlockFinalState(Provider provider, int byte) {
+    switch (byte) {
+      case 0x1b:
+        {}
+
+      // '\' final ST sequence
+      case 0x5c:
+        provider.provideDcsSequence(
           parameters.sublist(0, parametersCount),
           ignoredParametersCount,
           '',
           block: _block,
         );
+        setState(State.ground);
 
-        setState(State.escape);
+      // bracketed paste finish with a CSI sequence
+      case 0x5b:
+        setState(State.csiEntry);
 
-      // Other bytes are considered as valid
+      // cancel the sequence?, or return to block mode and continue capturing?
+      // this way we could accept escape characters inside the block
       default:
-        _block.add(byte);
+        setState(State.ground);
     }
   }
 
@@ -568,6 +602,38 @@ class Engine {
     }
   }
 
+  void advanceDcsEntryState(Provider provider, int byte) {
+    switch (byte) {
+      case 0x1b:
+        throw Exception('Unexpected Esc byte in DCS entry');
+
+      // <=>?
+      case >= 0x3C && <= 0x3F:
+        parameter.write(String.fromCharCode(byte));
+        storeParameter();
+
+      case >= 40 && <= 0x7E:
+        parameter.write(String.fromCharCode(byte));
+        storeParameter();
+        setState(State.textBlock);
+
+      case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
+        {}
+
+      case (>= 0x20 && <= 0x2F):
+        parameter.write(String.fromCharCode(byte));
+
+      // Does it mean we should ignore the whole sequence?
+      // Ignore
+      case 0x7F:
+        {}
+
+      // Other bytes are considered as invalid -> cancel whatever we have
+      default:
+        {}
+    }
+  }
+
   void advanceUtf8State(Provider provider, int byte) {
     if (byte & 0xC0 != 0x80) {
       setState(State.ground);
@@ -584,7 +650,7 @@ class Engine {
   }
 
   void advance(Provider provider, int byte, {bool more = false}) {
-    // print('advance: $state $byte $more');
+    // print('advance: $state $byte/${byte.toHexString()} ${byte.isPrintable ? String.fromCharCode(byte) : ''} $more');
     if (handlePossibleEsc(provider, byte, more: more)) {
       return;
     }
@@ -597,11 +663,13 @@ class Engine {
       State.csiIgnore => advanceCsiIgnoreState(provider, byte),
       State.csiParameter => advanceCsiParameterState(provider, byte),
       State.csiIntermediate => advanceCsiIntermediateState(provider, byte),
-      State.csiBlock => advanceCsiBlockState(provider, byte),
+      State.textBlock => advanceTextBlockState(provider, byte),
+      State.textBlockFinal => advanceTextBlockFinalState(provider, byte),
       State.oscEntry => advanceOscEntryState(provider, byte),
       State.oscParameter => advanceOscParameterState(provider, byte),
       State.oscBlock => advanceOscBlockState(provider, byte),
       State.oscFinal => advanceOscFinalState(provider, byte),
+      State.dcsEntry => advanceDcsEntryState(provider, byte),
       State.utf8 => advanceUtf8State(provider, byte),
     };
   }

@@ -89,6 +89,13 @@ class _SequenceProvider implements Provider, Iterator<Event> {
   }
 
   @override
+  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
+    final seq = parsers.parseDcsSequence(parameters, ignoredParameterCount, char, block: block);
+    _sequences.add(seq);
+    _escO = false;
+  }
+
+  @override
   bool moveNext() {
     if (_sequences.isEmpty) return false;
     if (_index == _sequences.length - 1) return false;
