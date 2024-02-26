@@ -227,3 +227,15 @@ final class PasteEvent extends Event with EquatableMixin {
   @override
   List<Object> get props => [text];
 }
+
+/// Terminal Name and Version
+final class NameAndVersionEvent extends Event with EquatableMixin {
+  /// The terminal name and version
+  final String value;
+
+  /// Constructs a new instance of [NameAndVersionEvent].
+  const NameAndVersionEvent(this.value);
+
+  @override
+  List<Object> get props => [value];
+}

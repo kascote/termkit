@@ -39,7 +39,7 @@ abstract class Sup {
 
   /// Query the terminal for the number of colors it supports
   /// reference https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
-  static String queryOSCColors(int code) => '$OSC$code;?ST';
+  static String queryOSCColors(int code) => '$OSC$code;?$ST';
 
   /// Enable Line Wrapping
   static String get enableLineWrapping => '$CSI?7h';
@@ -86,4 +86,7 @@ abstract class Sup {
   static String get endMousePixelsEvents => '$CSI?1000;1003;1016h';
 
   // set buffer size csi!("8;{columns};{rows}t")
+
+  // soft terminal reset
+  // CSI ! p
 }

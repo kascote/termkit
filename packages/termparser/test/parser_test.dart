@@ -616,4 +616,12 @@ void main() {
       expect(parser.current, isA<NoneEvent>());
     });
   });
+
+  group('parse DCS', () {
+    test('text block', () {
+      final parser = Parser()..advance(keySequence(r'πP>|term v1-234π\\'));
+      expect(parser.moveNext(), true);
+      expect(parser.current, equals(const NameAndVersionEvent('term v1-234')));
+    });
+  });
 }

@@ -77,16 +77,18 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
 
 /// Parse an Operating System Command sequence
 Event parseOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-  if (parameters.isEmpty || block == null) return const NoneEvent();
-  if (parameters[0] == '11') {
-    return _parserColorSequence(block);
-  }
-  return const NoneEvent();
+  return switch (parameters) {
+    ['11', ...] => _parserColorSequence(parameters, block),
+    _ => const NoneEvent(),
+  };
 }
 
 /// Parse a Device Control String sequence
 Event parseDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-  return const NoneEvent();
+  return switch (parameters) {
+    ['>', '|', ...] => _parseDCSBlock(block),
+    _ => const NoneEvent(),
+  };
 }
 
 Event _parseKeyAndModifiers(KeyCodeName name, String parameters) {
@@ -182,13 +184,13 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   );
 }
 
-Event _parserColorSequence(List<int> block) {
+Event _parserColorSequence(List<String> parameters, List<int>? block) {
+  if (block == null) return ParserErrorEvent(parameters);
   final buffer = utf8.decode(block, allowMalformed: true);
   // has malformed data
-  if (buffer.contains('�')) return const NoneEvent();
-  // format not recognized
-  if (!buffer.startsWith('rgb:')) return const NoneEvent();
-  if (buffer.length < 12) return const NoneEvent();
+  if (buffer.length < 12 || buffer.contains('�') || !buffer.startsWith('rgb:')) {
+    return ParserErrorEvent(parameters, block: block);
+  }
 
   final parts = buffer.substring(4).split('/');
 
@@ -210,9 +212,11 @@ int? _tryParseInt(String value) {
 
 Event _primaryDeviceAttributes(List<String> parameters, String char) {
   if (parameters.isEmpty) return const NoneEvent();
-  if (parameters[0] != '?') return const NoneEvent();
 
-  return PrimaryDeviceAttributesEvent.fromParams(parameters.sublist(1));
+  return switch (parameters) {
+    ['?', ...] => PrimaryDeviceAttributesEvent.fromParams(parameters.sublist(1)) as Event,
+    _ => const NoneEvent(),
+  };
 }
 
 Event _parseSpecialKeyCode(List<String> parameters, String char, List<int>? block) {
@@ -282,4 +286,10 @@ Event _parseBracketedPaste(List<String> parameters, String char, List<int>? bloc
     return ParserErrorEvent(parameters, char: char, block: block ?? []);
   }
   return PasteEvent(utf8.decode(block ?? [], allowMalformed: true));
+}
+
+Event _parseDCSBlock(List<int>? block) {
+  if (block == null) return const NoneEvent();
+  final buffer = utf8.decode(block, allowMalformed: true);
+  return NameAndVersionEvent(buffer);
 }

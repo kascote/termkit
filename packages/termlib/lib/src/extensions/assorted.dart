@@ -1,6 +1,5 @@
 import 'package:termansi/termansi.dart' as ansi;
-
-import '../termlib_base.dart';
+import 'package:termlib/termlib.dart';
 
 ///
 extension AssortedExt on TermLib {
@@ -24,4 +23,15 @@ extension AssortedExt on TermLib {
 
   /// Stop receiving mouse events
   void disableMouseEvents() => write(ansi.Sup.endMouseEvents);
+
+  /// Request terminal name and version
+  Future<String> requestTerminalVersion() async {
+    write(ansi.Sup.termVersion);
+    final event = await readEvent();
+    if (event is NameAndVersionEvent) {
+      return event.value;
+    } else {
+      throw Exception('Unexpected event: $event');
+    }
+  }
 }
