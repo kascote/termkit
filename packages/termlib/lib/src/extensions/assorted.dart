@@ -19,14 +19,14 @@ extension AssortedExt on TermLib {
   void setTerminalTitle(String title) => write(ansi.Sup.setTerminalTitle(title));
 
   /// Start receiving mouse events
-  void enableMouseEvents() => write(ansi.Sup.startMouseEvents);
+  void enableMouseEvents() => write(ansi.Sup.enableMouseEvents);
 
   /// Stop receiving mouse events
-  void disableMouseEvents() => write(ansi.Sup.endMouseEvents);
+  void disableMouseEvents() => write(ansi.Sup.disableMouseEvents);
 
   /// Request terminal name and version
   Future<String> requestTerminalVersion() async {
-    write(ansi.Sup.termVersion);
+    write(ansi.Sup.requestTermVersion);
     final event = await readEvent();
     if (event is NameAndVersionEvent) {
       return event.value;

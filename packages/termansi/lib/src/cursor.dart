@@ -1,6 +1,6 @@
 import './escape_codes.dart';
 
-/// An enumeration representing different cursor styles.
+/// Enumeration representing different cursor styles.
 enum CursorStyle {
   /// Default cursor shape configured by the user.
   defaultUserShape,
@@ -26,41 +26,58 @@ enum CursorStyle {
 
 /// Cursor movement sequences.
 abstract class Cursor {
-  /// Moves to home position (0,0)
+  /// Moves to home position (1,1)
   static String get home => '${CSI}H';
 
   /// Moves the cursor to the given position (row, column)
+  ///
+  /// The value is 1 based, meaning 1 is the topmost row or leftmost column.
   static String moveTo(int y, int x) => '$CSI$y;${x}H';
 
   /// Moves the cursor down the given number of lines.
+  ///
+  /// If no value is given, it will move down by 1 line.
   static String moveToNextLine([int n = 1]) => '$CSI${n}E';
 
   /// Moves the cursor up the given number of lines.
+  ///
+  /// If no value is given, it will move up by 1 line.
   static String moveToPrevLine([int n = 1]) => '$CSI${n}F';
 
   /// Moves the cursor to the given column on the current row.
+  ///
   /// The value is 0 based, meaning 0 is the leftmost column.
   static String moveToColumn(int n) => '$CSI${n}G';
 
   /// Moves the cursor to the given row on the current column.
+  ///
   /// The value is 0 based, meaning 0 is the topmost row.
   static String moveToRow(int n) => '$CSI${n}d';
 
   /// Moves the cursor up [n] cells.
+  ///
+  /// If no value is given, it will move up by 1 cell.
   static String moveUp([int n = 1]) => '$CSI${n}A';
 
   /// Moves the cursor right [n] cells.
+  ///
+  /// If no value is given, it will move right by 1 cell.
   static String moveRight([int n = 1]) => '$CSI${n}C';
 
   /// Moves the cursor down [n] cells.
+  ///
+  /// If no value is given, it will move down by 1 cell.
   static String moveDown([int n = 1]) => '$CSI${n}B';
 
   /// Moves the cursor left [n] cells.
+  ///
+  /// If no value is given, it will move left by 1 cell.
   static String moveLeft([int n = 1]) => '$CSI${n}D';
 
   /// Request cursor position
   ///
   /// Will report back as `ESC[{row};{column}R`
+  /// The value is 1 based, meaning 1 is the topmost row or leftmost column.
   static String get requestPosition => '$CSI${6}n';
 
   /// Saves the current cursor position.

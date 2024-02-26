@@ -14,19 +14,19 @@ abstract class Sup {
   /// Request terminal capabilities
   ///
   /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
-  static String get requestCapabilities => '$CSI?u';
+  static String get requestKeyboardCapabilities => '$CSI?u';
 
-  /// Set terminal capabilities
+  /// Set terminal keyboard capabilities
   ///
   /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
-  static String setCapabilities(int flags, [int mode = 1]) => '$CSI=$flags;${mode}u';
+  static String setKeyboardCapabilities(int flags, [int mode = 1]) => '$CSI=$flags;${mode}u';
 
   /// Push terminal capabilities
-  static String pushCapabilities(int flags) => '$CSI>${flags}u';
+  static String pushKeyboardCapabilities(int flags) => '$CSI>${flags}u';
 
   /// Pop terminal capabilities
   /// entries determine the number of entries to remove from the stack, default 1
-  static String popCapabilities([int entries = 1]) => '$CSI<${entries}u';
+  static String popKeyboardCapabilities([int entries = 1]) => '$CSI<${entries}u';
 
   /// Enable Alternate Screen
   static String get enableAlternateScreen => '$CSI?1049h';
@@ -37,7 +37,7 @@ abstract class Sup {
   /// Set Terminal Title
   static String setTerminalTitle(String title) => '${OSC}0;$title$BEL';
 
-  /// Query the terminal for the number of colors it supports
+  /// Query the terminal for colors settings
   /// reference https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
   static String queryOSCColors(int code) => '$OSC$code;?$ST';
 
@@ -59,31 +59,31 @@ abstract class Sup {
   static String get querySyncUpdate => '$CSI?2026\$p';
 
   /// Start Sync Update
-  static String get startSyncUpdate => '$CSI?2026h';
+  static String get enableSyncUpdate => '$CSI?2026h';
 
   /// End Sync Update
-  static String get endSyncUpdate => '$CSI?2026l';
+  static String get disableSyncUpdate => '$CSI?2026l';
 
   /// Start receiving focus events
-  static String get startFocusTracking => '$CSI?1004h';
+  static String get enableFocusTracking => '$CSI?1004h';
 
   /// Stop receiving focus events
-  static String get endFocusTracking => '$CSI?1004l';
+  static String get disableFocusTracking => '$CSI?1004l';
 
   /// Request terminal name and version
-  static String get termVersion => '$CSI>0q';
+  static String get requestTermVersion => '$CSI>0q';
 
   /// Start receiving mouse events
-  static String get startMouseEvents => '$CSI?1000;1003;1006h';
+  static String get enableMouseEvents => '$CSI?1000;1003;1006h';
 
   /// Stop receiving mouse events
-  static String get endMouseEvents => '$CSI?1000;1003;1006l';
+  static String get disableMouseEvents => '$CSI?1000;1003;1006l';
 
   /// Start receiving mouse events as pixels
-  static String get startMousePixelEvents => '$CSI?1000;1003;1016h';
+  static String get enableMousePixelEvents => '$CSI?1000;1003;1016h';
 
   /// Stop receiving mouse events as pixels
-  static String get endMousePixelsEvents => '$CSI?1000;1003;1016h';
+  static String get disableMousePixelsEvents => '$CSI?1000;1003;1016h';
 
   // set buffer size csi!("8;{columns};{rows}t")
 

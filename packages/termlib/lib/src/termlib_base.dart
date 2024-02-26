@@ -248,7 +248,7 @@ class TermLib {
   /// Request terminal capabilities
   Future<KeyboardEnhancementFlags?> requestCapabilities() async {
     return withRawModeAsync<KeyboardEnhancementFlags?>(() async {
-      _stdout.write(ansi.Sup.requestCapabilities);
+      _stdout.write(ansi.Sup.requestKeyboardCapabilities);
 
       final event = await readEvent();
       if (event is KeyboardEnhancementFlags) return event;
@@ -259,13 +259,14 @@ class TermLib {
 
   /// Set terminal capabilities
   void setCapabilities(KeyboardEnhancementFlags flags) =>
-      _stdout.write(ansi.Sup.setCapabilities(flags.flags, flags.mode));
+      _stdout.write(ansi.Sup.setKeyboardCapabilities(flags.flags, flags.mode));
 
   /// Push terminal capabilities
-  void pushCapabilities(KeyboardEnhancementFlags flags) => _stdout.write(ansi.Sup.pushCapabilities(flags.flags));
+  void pushCapabilities(KeyboardEnhancementFlags flags) =>
+      _stdout.write(ansi.Sup.pushKeyboardCapabilities(flags.flags));
 
   /// Pop terminal capabilities
-  void popCapabilities([int entries = 1]) => _stdout.write(ansi.Sup.popCapabilities(entries));
+  void popCapabilities([int entries = 1]) => _stdout.write(ansi.Sup.popKeyboardCapabilities(entries));
 
   /// Resolves the current profile checking different environment variables.
   ProfileEnum colorProfile() {
@@ -371,16 +372,16 @@ class TermLib {
   void scrollDown(int rows) => _stdout.write(ansi.Sup.scrollDown(rows));
 
   /// Start synchronous update mode
-  void startSyncUpdate() => _stdout.write(ansi.Sup.startSyncUpdate);
+  void startSyncUpdate() => _stdout.write(ansi.Sup.enableSyncUpdate);
 
   /// End synchronous update mode
-  void endSyncUpdate() => _stdout.write(ansi.Sup.endSyncUpdate);
+  void endSyncUpdate() => _stdout.write(ansi.Sup.disableSyncUpdate);
 
   /// Start receiving focus events
-  void startFocusTracking() => _stdout.write(ansi.Sup.startFocusTracking);
+  void startFocusTracking() => _stdout.write(ansi.Sup.enableFocusTracking);
 
   /// End receiving focus events
-  void endFocusTracking() => _stdout.write(ansi.Sup.endFocusTracking);
+  void endFocusTracking() => _stdout.write(ansi.Sup.disableFocusTracking);
 
   /// Flushes the stdout and stderr streams, then exits the program with the given
   /// status code.

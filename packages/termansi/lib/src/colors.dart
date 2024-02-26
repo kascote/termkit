@@ -1,8 +1,10 @@
 import './escape_codes.dart';
 
-/// Support code for terminal colors.
+/// Terminal color escape sequences
 abstract class Color {
   /// Reset
+  ///
+  /// Will reset all colors and text attributes. Use `default` to reset only colors
   static String reset() => '${CSI}0m';
 
   /// Black color.
@@ -53,8 +55,8 @@ abstract class Color {
   /// Bright white color.
   static String brightWhite() => '${CSI}97m';
 
-  /// Default color.
-  static String default_() => '${CSI}39m';
+  /// Default Foreground color.
+  static String defaultFg() => '${CSI}39m';
 
   /// Black background.
   static String blackBg() => '${CSI}40m';
@@ -80,7 +82,7 @@ abstract class Color {
   /// White background.
   static String whiteBg() => '${CSI}47m';
 
-  /// Default background
+  /// Default background color
   static String defaultBg() => '${CSI}49m';
 
   /// Bright black color.
@@ -107,9 +109,15 @@ abstract class Color {
   /// Bright white color.
   static String brightWhiteBg() => '${CSI}107m';
 
-  /// True Color
+  /// Set 256 color foreground
+  static String color256Fg(int color) => '${CSI}38;5;${color}m';
+
+  /// Set 256 color background
+  static String color256Bg(int color) => '${CSI}48;5;${color}m';
+
+  /// Foreground True Color
   static String trueColor(int r, int g, int b) => '${CSI}38;2;$r;$g;${b}m';
 
-  /// True Color background
+  /// Background True Color
   static String trueColorBg(int r, int g, int b) => '${CSI}48;2;$r;$g;${b}m';
 }
