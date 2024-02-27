@@ -239,3 +239,32 @@ final class NameAndVersionEvent extends Event with EquatableMixin {
   @override
   List<Object> get props => [value];
 }
+
+/// Query Sync update status Enum
+enum SyncUpdateStatus {
+  /// Sync update is enabled
+  enabled,
+
+  /// Sync update is disabled
+  disabled,
+
+  /// Unknown state
+  unknown,
+
+  /// Sync update is not supported
+  notSupported,
+}
+
+/// Query Sync update status
+///
+/// ref: https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
+final class QuerySyncUpdateEvent extends Event with EquatableMixin {
+  /// The sync update status
+  final SyncUpdateStatus value;
+
+  /// Constructs a new instance of [QuerySyncUpdateEvent].
+  const QuerySyncUpdateEvent(this.value);
+
+  @override
+  List<Object> get props => [value];
+}

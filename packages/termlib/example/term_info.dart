@@ -1,40 +1,57 @@
 import 'package:termlib/termlib.dart';
 
+typedef Theme = ({
+  Style green,
+  Style magenta,
+  Style yellow,
+  Style error,
+});
+
 Future<void> main() async {
   final t = TermLib()
     ..rawMode = true
     ..writeln('terminal info:\n');
 
+  final p = t.profile;
+  final theme = (
+    magenta: t.profile.style()..setFg(p.getColor('magenta')),
+    green: t.profile.style()..setFg(p.getColor('green')),
+    yellow: t.profile.style()..setFg(p.getColor('yellow')),
+    error: t.profile.style()..setFg(p.getColor('red')),
+  );
+
   final version = await t.requestTerminalVersion();
   final keyCap = await t.requestCapabilities();
   final fgColor = await t.foregroundColor();
   final bgColor = await t.backgroundColor();
+  final syncStatus = await t.querySyncUpdate();
 
   t
-    ..writeln('Terminal version: $version')
-    ..writeln('dimensions ${t.windowWidth}x${t.windowHeight}');
-  showCapabilities(t, keyCap);
-  t
-    ..writeln('Foreground color: $fgColor')
-    ..writeln('Background color: $bgColor')
-    ..rawMode = false;
+    ..writeln('Terminal version: ${theme.yellow..setText(version)}')
+    ..writeln('dimensions ${theme.yellow..setText('${t.windowWidth}x${t.windowHeight}')}')
+    ..writeln('Sync update status: ${renderValue(syncStatus.name, theme)}')
+    ..writeln('Foreground color: ${theme.yellow..setText(fgColor.toString())}')
+    ..writeln('Background color: ${theme.yellow..setText(bgColor.toString())}');
+  showKeyboardCapabilities(t, theme, keyCap);
+  t.rawMode = false;
 
   await t.flushThenExit(0);
 }
 
-void showCapabilities(TermLib t, KeyboardEnhancementFlags? flags) {
-  final p = t.profile;
-  final magenta = t.profile.style()..setFg(p.getColor('magenta'));
-  final green = t.profile.style()..setFg(p.getColor('green'));
+String renderValue(String value, Theme theme) {
+  return switch (value) {
+    'enabled' || 'true' => (theme.green..setText(value)).toString(),
+    'disabled' || 'unknown' || 'false' => (theme.magenta..setText(value)).toString(),
+    _ => (theme.error..setText(value)).toString(),
+  };
+}
 
+void showKeyboardCapabilities(TermLib t, Theme theme, KeyboardEnhancementFlags? flags) {
   if (flags == null) {
-    return t.writeln(p.style('unable to retrieve keyboard capabilities')..setFg(p.getColor('red')));
+    return t.writeln(theme.error..setText('unable to retrieve keyboard capabilities'));
   }
 
-  String showFlag(bool value, String name) {
-    final color = value ? green : magenta;
-    return '  ${color..setText(value.toString().padLeft(5))} $name';
-  }
+  String showFlag(bool value, String name) => '  ${renderValue(value.toString(), theme)} $name';
 
   t
     ..writeln('Keyboard capabilities:')

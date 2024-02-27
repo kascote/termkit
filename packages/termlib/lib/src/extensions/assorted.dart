@@ -24,14 +24,43 @@ extension AssortedExt on TermLib {
   /// Stop receiving mouse events
   void disableMouseEvents() => write(ansi.Sup.disableMouseEvents);
 
+  /// Start receiving focus events
+  void startFocusTracking() => write(ansi.Sup.enableFocusTracking);
+
+  /// End receiving focus events
+  void endFocusTracking() => write(ansi.Sup.disableFocusTracking);
+
+  /// Enabled Line Wrapping
+  void enableLineWrapping() => write(ansi.Sup.enableLineWrapping);
+
+  /// Disabled Line Wrapping
+  void disableLineWrapping() => write(ansi.Sup.disableLineWrapping);
+
+  /// Scroll the terminal up by the specified number of rows.
+  void scrollUp(int rows) => write(ansi.Sup.scrollUp(rows));
+
+  /// Scroll the terminal down by the specified number of rows.
+  void scrollDown(int rows) => write(ansi.Sup.scrollDown(rows));
+
+  /// Start synchronous update mode
+  void startSyncUpdate() => write(ansi.Sup.enableSyncUpdate);
+
+  /// End synchronous update mode
+  void endSyncUpdate() => write(ansi.Sup.disableSyncUpdate);
+
+  /// Query Sync status
+  Future<SyncUpdateStatus> querySyncUpdate() async {
+    write(ansi.Sup.querySyncUpdate);
+    final event = await readEvent();
+    if (event is QuerySyncUpdateEvent) return event.value;
+    throw Exception('Unexpected event: $event');
+  }
+
   /// Request terminal name and version
   Future<String> requestTerminalVersion() async {
     write(ansi.Sup.requestTermVersion);
     final event = await readEvent();
-    if (event is NameAndVersionEvent) {
-      return event.value;
-    } else {
-      throw Exception('Unexpected event: $event');
-    }
+    if (event is NameAndVersionEvent) return event.value;
+    throw Exception('Unexpected event: $event');
   }
 }

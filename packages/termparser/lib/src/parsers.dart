@@ -51,7 +51,7 @@ Event? parseESCSequence(String char) {
 /// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
 Event parseCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-// print('parseCSISequence: $parameters, $ignoredParameterCount, $char, $block');
+  // print('parseCSISequence: $parameters, $ignoredParameterCount, $char, $block');
 
   return switch (char) {
     'A' => _parseKeyAndModifiers(KeyCodeName.up, parameters.length == 2 ? parameters[1] : ''),
@@ -71,6 +71,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     'c' => _primaryDeviceAttributes(parameters, char),
     '~' => _parseSpecialKeyCode(parameters, char, block),
     'R' => _parseCursorPosition(parameters),
+    'y' => _parseSyncOutputStatus(parameters),
     _ => const NoneEvent()
   };
 }
@@ -292,4 +293,20 @@ Event _parseDCSBlock(List<int>? block) {
   if (block == null) return const NoneEvent();
   final buffer = utf8.decode(block, allowMalformed: true);
   return NameAndVersionEvent(buffer);
+}
+
+Event _parseSyncOutputStatus(List<String> parameters) {
+  switch (parameters) {
+    case ['?', '2026', ...]:
+      {
+        return switch (parameters[2]) {
+          '1' => const QuerySyncUpdateEvent(SyncUpdateStatus.enabled) as Event,
+          '2' => const QuerySyncUpdateEvent(SyncUpdateStatus.disabled) as Event,
+          '3' => const QuerySyncUpdateEvent(SyncUpdateStatus.unknown) as Event,
+          _ => const QuerySyncUpdateEvent(SyncUpdateStatus.notSupported) as Event,
+        };
+      }
+    default:
+      return ParserErrorEvent(parameters);
+  }
 }

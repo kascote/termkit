@@ -533,6 +533,15 @@ void main() {
         equals(const CursorPositionEvent(10, 20)),
       );
     });
+
+    test(r'π[?2026;2$y', () {
+      final parser = Parser()..advance(keySequence(r'π[?2026;2$y'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const QuerySyncUpdateEvent(SyncUpdateStatus.disabled)),
+      );
+    });
   });
 
   group('CSI ~ >', () {

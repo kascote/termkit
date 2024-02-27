@@ -239,6 +239,18 @@ void main() {
       expect(cp.params.length, 0);
       expect(cp.chars.length, 0);
     });
+
+    test(r'?2026;2$y', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      stringAdvance(eng, cp, '\x1b[?2026;2\$y');
+
+      expect(cp.params.length, 1);
+      expect(cp.params[0], <String>['?', '2026', '2']);
+      expect(cp.chars.length, 1);
+      expect(cp.chars[0], 'y');
+    });
   });
 
   group('CSI Bracketed Paste >', () {

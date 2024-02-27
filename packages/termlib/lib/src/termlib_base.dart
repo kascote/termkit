@@ -292,6 +292,7 @@ class TermLib {
       case 'kitty':
       case 'wezterm':
       case 'alacritty':
+      case 'contour':
         return ProfileEnum.trueColor;
       case 'linux':
         return ProfileEnum.ansi16;
@@ -358,30 +359,6 @@ class TermLib {
 
     return Ansi16Color(0);
   }
-
-  /// Enabled Line Wrapping
-  void enableLineWrapping() => _stdout.write(ansi.Sup.enableLineWrapping);
-
-  /// Disabled Line Wrapping
-  void disableLineWrapping() => _stdout.write(ansi.Sup.disableLineWrapping);
-
-  /// Scroll the terminal up by the specified number of rows.
-  void scrollUp(int rows) => _stdout.write(ansi.Sup.scrollUp(rows));
-
-  /// Scroll the terminal down by the specified number of rows.
-  void scrollDown(int rows) => _stdout.write(ansi.Sup.scrollDown(rows));
-
-  /// Start synchronous update mode
-  void startSyncUpdate() => _stdout.write(ansi.Sup.enableSyncUpdate);
-
-  /// End synchronous update mode
-  void endSyncUpdate() => _stdout.write(ansi.Sup.disableSyncUpdate);
-
-  /// Start receiving focus events
-  void startFocusTracking() => _stdout.write(ansi.Sup.enableFocusTracking);
-
-  /// End receiving focus events
-  void endFocusTracking() => _stdout.write(ansi.Sup.disableFocusTracking);
 
   /// Flushes the stdout and stderr streams, then exits the program with the given
   /// status code.
