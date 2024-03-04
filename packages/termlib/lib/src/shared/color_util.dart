@@ -12,9 +12,10 @@ int findClosestAnsiIndex(int red, int green, int blue) {
 
   // Loop through all 256 ANSI colors
   for (var i = 0; i < 256; i++) {
-    final ansiRed = _getAnsiRed(i);
-    final ansiGreen = _getAnsiGreen(i);
-    final ansiBlue = _getAnsiBlue(i);
+    // Extract components based on ANSI color index formula
+    final ansiRed = ((i >> 8) & 0x0F) * 17;
+    final ansiGreen = (((i >> 4) & 0x0F) & 0x03) * 36 + 5;
+    final ansiBlue = (i & 0x0F) * 6 + 5;
 
     // Calculate Euclidean distance between RGB and ANSI colors
     final distance = _calculateEuclideanDistance(red, green, blue, ansiRed, ansiGreen, ansiBlue);
@@ -27,24 +28,6 @@ int findClosestAnsiIndex(int red, int green, int blue) {
   }
 
   return closestIndex;
-}
-
-int _getAnsiRed(int index) {
-  // Extract red component based on ANSI color index formula
-  final redIndex = (index >> 8) & 0x0F;
-  return redIndex * 17;
-}
-
-int _getAnsiGreen(int index) {
-  // Extract green component based on ANSI color index formula
-  final greenIndex = ((index >> 4) & 0x0F) & 0x03;
-  return greenIndex * 36 + 5;
-}
-
-int _getAnsiBlue(int index) {
-  // Extract blue component based on ANSI color index formula
-  final blueIndex = index & 0x0F;
-  return blueIndex * 6 + 5;
 }
 
 int _calculateEuclideanDistance(int rgbRed, int rgbGreen, int rgbBlue, int ansiRed, int ansiGreen, int ansiBlue) {
@@ -76,38 +59,6 @@ TrueColor? oscColor(String color) {
   });
 
   return result;
-}
-
-/// Type of the function returned by [colorLerp] function.
-/// the parameter [t] is a value between 0.0 and 1.0.
-typedef LerpFunction = TrueColor Function(double t);
-
-/// Returns a function that interpolates between two colors.
-LerpFunction colorLerp(TrueColor color1, TrueColor color2) {
-  TrueColor lerp(double t) {
-    final value = t.clamp(0.0, 1.0);
-    final r = (color1.r + (color2.r - color1.r) * value).round();
-    final g = (color1.g + (color2.g - color1.g) * value).round();
-    final b = (color1.b + (color2.b - color1.b) * value).round();
-
-    return TrueColor(r, g, b);
-  }
-
-  return lerp;
-}
-
-/// Function that calculates the TrueColor luminance and returns
-/// a value between 0.0 and 1.0. Being 0.0 black and 1.0 white.
-double colorLuminance(TrueColor color) {
-  final rsRGB = color.r / 255.0;
-  final gsRGB = color.g / 255.0;
-  final bsRGB = color.b / 255.0;
-
-  final r = (rsRGB <= 0.03928) ? rsRGB / 12.92 : math.pow((rsRGB + 0.055) / 1.055, 2.4);
-  final g = (gsRGB <= 0.03928) ? gsRGB / 12.92 : math.pow((gsRGB + 0.055) / 1.055, 2.4);
-  final b = (bsRGB <= 0.03928) ? bsRGB / 12.92 : math.pow((bsRGB + 0.055) / 1.055, 2.4);
-
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 /// Returns the distance between two TrueColors utilizing the

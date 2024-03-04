@@ -268,3 +268,15 @@ final class QuerySyncUpdateEvent extends Event with EquatableMixin {
   @override
   List<Object> get props => [value];
 }
+
+/// Raw Key Event
+final class RawKeyEvent extends Event with EquatableMixin {
+  /// The raw key values received
+  final List<int> sequence;
+
+  /// Constructs a new instance of [RawKeyEvent].
+  RawKeyEvent(List<int> value) : sequence = List<int>.from(value);
+
+  @override
+  List<Object> get props => [sequence];
+}

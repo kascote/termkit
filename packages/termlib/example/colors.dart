@@ -1,10 +1,7 @@
 import 'package:termlib/termlib.dart';
 
 void main() {
-  final term = TermLib();
-
-  final x = Style('ANSI 16 Colors:\n\n')..setBold();
-  term.write(x.toString());
+  final term = TermLib()..writeln(Style('ANSI 16 Colors:\n')..setBold());
 
   for (var i = 0; i < 16; i++) {
     if (i == 8) term.write('\n');
@@ -14,10 +11,10 @@ void main() {
       ..setBg(Ansi16Color(i))
       ..setFg(i < 7 ? Ansi16Color(7) : Ansi16Color(0));
 
-    term.write(style.toString());
+    term.write(style);
   }
 
-  term.write((Style('\n\nANSI 256 Colors:\n')..setBold()).toString());
+  term.writeln(Style('\n\nANSI 256 Colors:')..setBold());
 
   for (var i = 16; i < 232; i++) {
     if ((i - 16) % 12 == 0) term.write('\n');
@@ -27,10 +24,10 @@ void main() {
       ..setBg(Ansi256Color(i))
       ..setFg(i < 28 ? Ansi16Color(7) : Ansi16Color(0));
 
-    term.write(style.toString());
+    term.write(style);
   }
 
-  term.write((Style('\n\nGray Scale Colors:\n')..setBold()).toString());
+  term.writeln(Style('\n\nGray Scale Colors:')..setBold());
 
   for (var i = 232; i < 256; i++) {
     if ((i - 232) % 12 == 0) term.write('\n');
@@ -40,10 +37,10 @@ void main() {
       ..setBg(Ansi256Color(i))
       ..setFg(i < 244 ? Ansi16Color(7) : Ansi16Color(0));
 
-    term.write(style.toString());
+    term.write(style);
   }
 
-  term.write((Style('\n\nTrue Colors:\n')..setBold()).toString());
+  term.writeln((Style('\n\nTrue Colors:')..setBold()).toString());
 
   const cols = 80;
   const rows = 20;
@@ -61,8 +58,8 @@ void main() {
 
     if (i % cols == 0) term.write('\n');
 
-    term.write(style.toString());
+    term.write(style);
   }
 
-  term.write('\n\n');
+  term.write('\n');
 }

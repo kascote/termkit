@@ -37,6 +37,16 @@ class Style {
   /// Creates a new Style.
   Style(this.text, {ProfileEnum profile = ProfileEnum.ansi16}) : _profile = profile;
 
+  /// Allows calling directly the Style to set the text value.
+  ///
+  /// ex:
+  ///   final red = termlib.profile.style()..setFg(termlib.profile.getColor('red'));
+  ///   red('Hello!');
+  String call(String value) {
+    setText(value);
+    return toString();
+  }
+
   /// Sets the Style's text value.
   ///
   /// This is a convenience method to set the text value.

@@ -51,16 +51,23 @@ extension AssortedExt on TermLib {
   /// Query Sync status
   Future<SyncUpdateStatus> querySyncUpdate() async {
     write(ansi.Sup.querySyncUpdate);
-    final event = await readEvent();
-    if (event is QuerySyncUpdateEvent) return event.value;
-    throw Exception('Unexpected event: $event');
+    final event = await readEvent<QuerySyncUpdateEvent>();
+    return (event is QuerySyncUpdateEvent) ? event.value : throw Exception('Unexpected event: $event');
   }
 
   /// Request terminal name and version
-  Future<String> requestTerminalVersion() async {
+  Future<String> queryTerminalVersion() async {
     write(ansi.Sup.requestTermVersion);
-    final event = await readEvent();
-    if (event is NameAndVersionEvent) return event.value;
-    throw Exception('Unexpected event: $event');
+    final event = await readEvent<NameAndVersionEvent>();
+    return (event is NameAndVersionEvent) ? event.value : throw Exception('Unexpected event: $event');
+  }
+
+  /// Returns the current terminal status report.
+  Future<TrueColor?> queryOSCStatus(int status) async {
+    return withRawModeAsync<TrueColor?>(() async {
+      write(ansi.Sup.queryOSCColors(status));
+      final event = await readEvent<ColorQueryEvent>();
+      return (event is ColorQueryEvent) ? TrueColor(event.r, event.g, event.b) : null;
+    });
   }
 }

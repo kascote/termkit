@@ -9,14 +9,14 @@ void main() async {
     ..eraseClear()
     ..cursorHide()
     ..setTerminalTitle('ASCII Table')
-    ..rawMode = true;
+    ..enableRawMode();
 
   try {
     final table = AsciiTable(t);
     await table.loop();
   } finally {
     t
-      ..rawMode = false
+      ..disableRawMode()
       ..disableAlternateScreen()
       ..cursorShow();
   }
@@ -50,16 +50,16 @@ class AsciiTable {
     final p = _term.profile;
 
     colors = (
-      codes: _term.profile.style()..setFg(p.getColor('aqua')),
-      text: _term.profile.style()..setFg(p.getColor('grayWeb')),
-      cursor: _term.profile.style()
+      codes: p.style()..setFg(p.getColor('aqua')),
+      text: p.style()..setFg(p.getColor('grayWeb')),
+      cursor: p.style()
         ..setFg(p.getColor('white'))
         ..setBg(p.getColor('darkRed')),
-      cursorSide: _term.profile.style()
+      cursorSide: p.style()
         ..setFg(p.getColor('red'))
         ..setBg(p.getColor('darkRed')),
-      muted: _term.profile.style()..setFg(p.getColor('dimGray')),
-      hotKeys: _term.profile.style()
+      muted: p.style()..setFg(p.getColor('dimGray')),
+      hotKeys: p.style()
         ..setFg(p.getColor('white'))
         ..setBg(p.getColor('dimGray')),
     );
@@ -75,7 +75,7 @@ class AsciiTable {
   Future<void> loop() async {
     draw();
     while (true) {
-      final event = await _term.readEvent();
+      final event = await _term.readEvent<KeyEvent>();
       if (event is KeyEvent) {
         if (event.code.name == KeyCodeName.escape) break;
 
@@ -105,30 +105,29 @@ class AsciiTable {
       ..writeAt(
         winOffset.x,
         baseCol,
-        colors.muted..setText('-' * (table.width * (blockSize + 1))),
+        colors.muted('-' * (table.width * (blockSize + 1))),
       )
-      ..writeAt(winOffset.x, baseCol + 5, colors.hotKeys..setText(' ESC exit '))
-      ..writeAt(winOffset.x, baseCol + 20, colors.hotKeys..setText(' R change range '))
+      ..writeAt(winOffset.x, baseCol + 5, colors.hotKeys(' ESC exit '))
+      ..writeAt(winOffset.x, baseCol + 20, colors.hotKeys(' R change range '))
       ..writeAt(
         baseLine,
         baseCol,
-        colors.muted..setText('-' * (table.width * (blockSize + 1))),
+        colors.muted('-' * (table.width * (blockSize + 1))),
       )
-      ..writeAt(baseLine + 1, baseCol + 15, colors.muted..setText('code:'))
-      ..write(colors.muted..setText('dec:'))
+      ..writeAt(baseLine + 1, baseCol + 15, colors.muted('dec:'))
       ..write(' ${codePoint.toString().padLeft(3)}  ')
-      ..write(colors.muted..setText('hex:'))
+      ..write(colors.muted('hex:'))
       ..write(' ${codePoint.toRadixString(16).padLeft(2, '0')}  ')
-      ..write(colors.muted..setText('bin:'))
+      ..write(colors.muted('bin:'))
       ..write(' ${codePoint.toRadixString(2).padLeft(8, '0')}  ')
-      ..write(colors.muted..setText('oct:'))
+      ..write(colors.muted('oct:'))
       ..write(' ${codePoint.toRadixString(8).padLeft(3)} ')
       ..write(codePoint < 33 ? lowCodes[codePoint].$2 : '')
       ..eraseLineFromCursor()
       ..writeAt(
         baseLine + 2,
         baseCol,
-        colors.muted..setText('-' * (table.width * (blockSize + 1))),
+        colors.muted('-' * (table.width * (blockSize + 1))),
       );
   }
 
@@ -149,7 +148,7 @@ class AsciiTable {
       _term.writeAt(
         winOffset.x + 2,
         axisOffset.y + winOffset.y + (y * 6),
-        colors.text..setText(_centerString(y.toRadixString(16).toUpperCase(), blockSize)),
+        colors.text(_centerString(y.toRadixString(16).toUpperCase(), blockSize)),
       );
     }
 
@@ -158,7 +157,7 @@ class AsciiTable {
       _term.writeAt(
         (x * 2) + winOffset.x + axisOffset.x,
         winOffset.y,
-        colors.text..setText(value.toRadixString(16).toUpperCase().padLeft(blockSize)),
+        colors.text(value.toRadixString(16).toUpperCase().padLeft(blockSize)),
       );
     }
   }
@@ -172,7 +171,7 @@ class AsciiTable {
       _term.writeAt(
         x + winOffset.x + axisOffset.x - 2,
         y + winOffset.y + axisOffset.y + (y * blockSize),
-        colors.codes..setText(_getCode(code)),
+        colors.codes(_getCode(code)),
       );
     }
   }
@@ -185,9 +184,9 @@ class AsciiTable {
   String _getCursor(int code) {
     final codePoint = range.start + code;
     final sb = StringBuffer()
-      ..write(colors.cursorSide..setText(lhsCursor))
-      ..write(colors.cursor..setText(_centerString(_getChar(codePoint), 3)))
-      ..write(colors.cursorSide..setText(rhsCursor));
+      ..write(colors.cursorSide(lhsCursor))
+      ..write(colors.cursor(_centerString(_getChar(codePoint), 3)))
+      ..write(colors.cursorSide(rhsCursor));
 
     return sb.toString();
   }

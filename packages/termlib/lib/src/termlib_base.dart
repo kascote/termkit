@@ -4,10 +4,11 @@ import 'dart:io' show Platform, Stdout, exit, stderr, stdin, stdout;
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser.dart';
 
+import '../color_util.dart';
 import './colors.dart';
+import './extensions/assorted.dart';
 import './ffi/termos.dart';
 import './profile.dart';
-import 'shared/color_util.dart';
 
 /// Type similar to Platform.environment, used for dependency injection
 typedef EnvironmentData = Map<String, String>;
@@ -30,18 +31,28 @@ class TermLib {
   /// It will use the value returned by the [envColorProfile] function.
   late Profile profile;
 
-  /// The singleton instance of [TermLib].
-  TermLib({Stdout? stdoutAdapter, EnvironmentData? env, ProfileEnum? profile}) {
+  /// Initialize the Terminal
+  ///
+  /// If no [profile] is provided, it will use the value returned by the
+  /// [envColorProfile] function. That means that the default profile will be
+  /// resolved based on the environment settings.
+  ///
+  /// [env] and [stdoutAdapter] are used for dependency injection for testing purposes.
+  TermLib({ProfileEnum? profile, EnvironmentData? env, Stdout? stdoutAdapter}) {
     _stdout = stdoutAdapter ?? stdout;
     _env = env ?? Platform.environment;
     _termOs = TermOs(); // terminalAdapter ?? termAdapter(stdoutAdapter: stdoutAdapter, env: env);
     this.profile = Profile(profile: profile ?? envColorProfile());
   }
 
-  /// Returns true if the terminal is attached to an TTY
-  bool get isTty => _stdout.hasTerminal;
+  /// Returns true if the terminal is attached to an interactive terminal session.
+  /// (aka has an standard output connected to a terminal)
+  bool get isInteractive => _stdout.hasTerminal;
 
-  /// Enables or disables raw mode.
+  /// Returns true if the terminal is not attached to an interactive terminal session.
+  bool get isNotInteractive => !_stdout.hasTerminal;
+
+  /// Enables raw mode.
   ///
   /// There are a series of flags applied to a UNIX-like terminal that together
   /// constitute 'raw mode'. These flags turn off echoing of character input,
@@ -60,14 +71,20 @@ class TermLib {
   /// a carriage return (`\r`). You can use the [newLine] property or the
   /// [writeln] function instead of explicitly using `\n` to ensure the
   /// correct results.
-  bool get rawMode => _isRawMode;
-  set rawMode(bool value) {
+  void enableRawMode() => _setRawMode(true);
+
+  /// Disables raw mode.
+  void disableRawMode() => _setRawMode(false);
+
+  bool _setRawMode(bool value) {
+    final original = _isRawMode;
     _isRawMode = value;
     if (value) {
       _termOs.enableRawMode();
     } else {
       _termOs.disableRawMode();
     }
+    return original;
   }
 
   /// Returns the current newline string.
@@ -77,9 +94,6 @@ class TermLib {
   void write(Object s) => _stdout.write(s);
 
   /// Writes the specified object followed by a line break to the standard output.
-  ///
-  /// The function will check if the terminal is in raw mode and if so will replace
-  /// the `\n` with `\r\n` to ensure the correct results.
   void writeln(Object s) {
     var text = s.toString();
     if (_isRawMode) {
@@ -96,10 +110,14 @@ class TermLib {
   }
 
   /// Returns true or false depending if the background is dark or not
-  Future<bool> isBackgroundDark() async {
+  ///
+  /// The factor is a number between 0 and 1, where 0 will return true if the
+  /// background is full black, and 1 will return true if the background is
+  /// full white.
+  Future<bool> isBackgroundDark({double factor = 0.5}) async {
     final color = await backgroundColor();
     final bgColor = Profile(profile: ProfileEnum.trueColor).convert(color);
-    return colorLuminance(bgColor as TrueColor) < 0.5;
+    return colorLuminance(bgColor as TrueColor) < factor;
   }
 
   /// Read cursor position on the terminal and return a [Pos] record
@@ -107,12 +125,8 @@ class TermLib {
     return withRawModeAsync<Pos?>(() async {
       _stdout.write(ansi.Cursor.requestPosition);
 
-      final event = await readEvent();
-      if (event is CursorPositionEvent) {
-        return (row: event.x, col: event.y);
-      }
-
-      return null;
+      final event = await readEvent<CursorPositionEvent>();
+      return (event is CursorPositionEvent) ? (row: event.x, col: event.y) : null;
     });
   }
 
@@ -160,15 +174,15 @@ class TermLib {
   /// Returns the width of the current console window in characters.
   ///
   /// If the terminal is not attached to a TTY, returns 80.
-  int get windowWidth => isTty ? _stdout.terminalColumns : 80;
+  int get windowWidth => isInteractive ? _stdout.terminalColumns : 80;
 
   /// Returns the height of the current console window in characters.
   ///
   /// If the terminal is not attached to a TTY, returns 25.
-  int get windowHeight => isTty ? _stdout.terminalLines : 25;
+  int get windowHeight => isInteractive ? _stdout.terminalLines : 25;
 
   /// Read events from the standard input [stdin]
-  Future<Event> readEvent({int timeout = 100}) async {
+  Future<Event> readEvent<T>({int timeout = 100, bool rawKeys = false}) async {
     final timeoutDuration = Duration(milliseconds: timeout);
     final completer = Completer<Event>();
     final sequence = <int>[];
@@ -183,36 +197,24 @@ class TermLib {
     subscription = _broadcastStream.listen(
       (event) async {
         sequence.addAll(event);
-        await subscription!.cancel();
-        timer.cancel();
+
+        if (rawKeys) {
+          await subscription!.cancel();
+          timer.cancel();
+          completer.complete(RawKeyEvent(sequence));
+          return;
+        }
+
         parser.advance(sequence);
-        completer.complete(parser.moveNext() ? parser.current : const NoneEvent());
-      },
-      onError: completer.completeError,
-      cancelOnError: true,
-    );
-
-    return completer.future;
-  }
-
-  /// Read raw keys from the standard input [stdin]
-  Future<List<int>> readRawKeys({int timeout = 100}) async {
-    final timeoutDuration = Duration(milliseconds: timeout);
-    final completer = Completer<List<int>>();
-    final sequence = <int>[];
-    StreamSubscription<List<int>>? subscription;
-
-    final timer = Timer(timeoutDuration, () async {
-      await subscription!.cancel();
-      completer.complete([]);
-    });
-
-    subscription = _broadcastStream.listen(
-      (event) async {
-        sequence.addAll(event);
-        await subscription!.cancel();
-        timer.cancel();
-        completer.complete(sequence);
+        if (parser.moveNext()) {
+          final evt = parser.current;
+          if (evt is T) {
+            await subscription!.cancel();
+            timer.cancel();
+            completer.complete(evt);
+          }
+        }
+        sequence.clear();
       },
       onError: completer.completeError,
       cancelOnError: true,
@@ -224,53 +226,57 @@ class TermLib {
   /// Enables raw mode and executes the provided asynchronous function.
   /// on return sets raw mode back to its previous value
   T withRawMode<T>(T Function() fn) {
-    final prevRawMode = _isRawMode;
-    rawMode = true;
+    final original = _setRawMode(true);
     try {
       return fn();
     } finally {
-      rawMode = prevRawMode;
+      _setRawMode(original);
     }
   }
 
   /// Enables raw mode and executes the provided asynchronous function.
   /// on return sets raw mode back to its previous value
   Future<T> withRawModeAsync<T>(Future<T> Function() fn) async {
-    final prevRawMode = _isRawMode;
-    rawMode = true;
+    final original = _setRawMode(true);
     try {
       return await fn();
     } finally {
-      rawMode = prevRawMode;
+      _setRawMode(original);
     }
   }
 
-  /// Request terminal capabilities
-  Future<KeyboardEnhancementFlags?> requestCapabilities() async {
+  /// Request keyboard capabilities
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  Future<KeyboardEnhancementFlags?> requestKeyboardCapabilities() async {
     return withRawModeAsync<KeyboardEnhancementFlags?>(() async {
       _stdout.write(ansi.Sup.requestKeyboardCapabilities);
 
-      final event = await readEvent();
-      if (event is KeyboardEnhancementFlags) return event;
-
-      return null;
+      final event = await readEvent<KeyboardEnhancementFlags>();
+      return (event is KeyboardEnhancementFlags) ? event : null;
     });
   }
 
-  /// Set terminal capabilities
-  void setCapabilities(KeyboardEnhancementFlags flags) =>
+  /// Set keyboard flags
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  void setKeyboardFlags(KeyboardEnhancementFlags flags) =>
       _stdout.write(ansi.Sup.setKeyboardCapabilities(flags.flags, flags.mode));
 
-  /// Push terminal capabilities
-  void pushCapabilities(KeyboardEnhancementFlags flags) =>
+  /// Push keyboard flags to the stack
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  void pushKeyboardFlags(KeyboardEnhancementFlags flags) =>
       _stdout.write(ansi.Sup.pushKeyboardCapabilities(flags.flags));
 
-  /// Pop terminal capabilities
-  void popCapabilities([int entries = 1]) => _stdout.write(ansi.Sup.popKeyboardCapabilities(entries));
+  /// Pop keyboard flags from the stack
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  void popKeyboardFlags([int entries = 1]) => _stdout.write(ansi.Sup.popKeyboardCapabilities(entries));
 
-  /// Resolves the current profile checking different environment variables.
+  /// Resolves the current terminal profile checking different environment variables.
   ProfileEnum colorProfile() {
-    // if isTty return ProfileEnum.noColor;
+    if (isNotInteractive) return ProfileEnum.noColor;
 
     if (_env['GOOGLE_CLOUD_SHELL'] == 'true') {
       return ProfileEnum.trueColor;
@@ -305,26 +311,13 @@ class TermLib {
     return ProfileEnum.noColor;
   }
 
-  /// Returns the current terminal status report.
-  Future<TrueColor?> termStatusReport(int status) async {
-    return withRawModeAsync<TrueColor?>(() async {
-      _stdout.write(ansi.Sup.queryOSCColors(status));
-
-      final event = await readEvent();
-      if (event is ColorQueryEvent) {
-        return TrueColor(event.r, event.g, event.b);
-      }
-      return null;
-    });
-  }
-
   /// Returns the terminal foreground color.
   ///
   /// Will try to resolve using OSC10 if available, if not will try to resolve
   /// using COLORFGBG environment variable if available, if not will default to
   /// Ansi color 7
   Future<Color?> foregroundColor() async {
-    final result = await termStatusReport(10);
+    final result = await queryOSCStatus(10);
     if (result != null) return result;
 
     final envColorFgBg = _env['COLORFGBG'];
@@ -345,7 +338,7 @@ class TermLib {
   /// using COLORFGBG environment variable if available, if not will default to
   /// Ansi color 0
   Future<Color> backgroundColor() async {
-    final result = await termStatusReport(11);
+    final result = await queryOSCStatus(11);
     if (result != null) return result;
 
     final envColorFgBg = _env['COLORFGBG'];

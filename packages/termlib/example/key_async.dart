@@ -4,6 +4,15 @@ import 'package:termlib/termlib.dart';
 
 import './cycle.dart';
 
+typedef Theme = ({
+  Style aqua,
+  Style indianRed,
+  Style darkCyan,
+  Style magenta,
+  Style webGray,
+  Style error,
+});
+
 Future<void> main(List<String> arguments) async {
   final t = TermLib();
   final withKitty = arguments.contains('-kitty');
@@ -15,7 +24,7 @@ Future<void> main(List<String> arguments) async {
           KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
           KeyboardEnhancementFlags.reportEventTypes,
     );
-    t.setCapabilities(keyFlags);
+    t.setKeyboardFlags(keyFlags);
   }
 
   await t.withRawModeAsync(() => keyViewer(t, withKitty));
@@ -32,23 +41,23 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
     ..writeln(' ')
     ..enableMouseEvents();
 
-  final caps = await t.requestCapabilities();
+  final caps = await t.requestKeyboardCapabilities();
   t.writeln(showCapabilities(caps));
 
   final p = t.profile;
-  final colors = <String, Style>{
-    'aqua': p.style()..setFg(p.getColor('aqua')),
-    'indianRed': p.style()..setFg(p.getColor('indianRed')),
-    'darkCyan': p.style()..setFg(p.getColor('darkCyan')),
-    'magenta': p.style()..setFg(p.getColor('magenta')),
-    'webGray': p.style()..setFg(p.getColor('webGray')),
-    'error': p.style()..setFg(p.getColor('red')),
-  };
+  final colors = (
+    aqua: p.style()..setFg(p.getColor('aqua')),
+    indianRed: p.style()..setFg(p.getColor('indianRed')),
+    darkCyan: p.style()..setFg(p.getColor('darkCyan')),
+    magenta: p.style()..setFg(p.getColor('magenta')),
+    webGray: p.style()..setFg(p.getColor('webGray')),
+    error: p.style()..setFg(p.getColor('red')),
+  );
 
   try {
     while (true) {
       showTick(t, tick, cycle);
-      final event = await t.readEvent();
+      final event = await t.readEvent<Event>();
 
       switch (event.runtimeType) {
         case NoneEvent:
@@ -60,15 +69,14 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
           final e = event as KeyEvent;
           if (e.code.name == KeyCodeName.escape) break;
 
-          // (e.modifiers.isCapsLock) ? modifiers.write(aqua..setText('L')) : modifiers.write(aquaDark..setText('l'));
-          // (e.modifiers.isNumLock) ? modifiers.write(aqua..setText('N')) : modifiers.write(aquaDark..setText('n'));
+          // (e.modifiers.isCapsLock) ? modifiers.write(aqua('L')) : modifiers.write(aquaDark('l'));
+          // (e.modifiers.isNumLock) ? modifiers.write(aqua('N')) : modifiers.write(aquaDark('n'));
 
           final modifiers = getModifiers(colors, e.modifiers);
           final rhsModifiers = getRHSModifiers(colors, e.code.modifiers);
           final lhsModifiers = getLHSModifiers(colors, e.code.modifiers);
 
-          final char =
-              '${event.code.char.isEmpty ? (colors['webGray']!..setText('none')) : (colors['magenta']!..setText(event.code.char))}';
+          final char = event.code.char.isEmpty ? (colors.webGray('none')) : (colors.magenta(event.code.char));
 
           final sb = StringBuffer()
             ..write('modifiers: $modifiers, ')
@@ -108,12 +116,12 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
     }
   } catch (e, st) {
     t
-      ..writeln(colors['error']!..setText('Error: $e'))
+      ..writeln(colors.error('Error: $e'))
       ..writeln('$st');
   } finally {
     tick.cancel();
     t
-      ..setCapabilities(KeyboardEnhancementFlags.empty())
+      ..setKeyboardFlags(KeyboardEnhancementFlags.empty())
       ..disableMouseEvents();
 
     //t.popCapabilities();
@@ -131,47 +139,47 @@ void showTick(TermLib t, Timer timer, Cycle<String> cycle) {
     ..restorePosition();
 }
 
-String getModifiers(Map<String, Style> colors, KeyModifiers km) {
-  final aqua = colors['aqua']!;
-  final aquaDark = colors['darkCyan']!;
+String getModifiers(Theme colors, KeyModifiers km) {
+  final aq = colors.aqua;
+  final ad = colors.darkCyan;
 
   final modifiers = StringBuffer();
-  (km.has(KeyModifiers.shift)) ? modifiers.write(aqua..setText('S')) : modifiers.write(aquaDark..setText('s'));
-  (km.has(KeyModifiers.ctrl)) ? modifiers.write(aqua..setText('C')) : modifiers.write(aquaDark..setText('c'));
-  (km.has(KeyModifiers.alt)) ? modifiers.write(aqua..setText('A')) : modifiers.write(aquaDark..setText('a'));
-  (km.has(KeyModifiers.superKey)) ? modifiers.write(aqua..setText('K')) : modifiers.write(aquaDark..setText('k'));
-  (km.has(KeyModifiers.hyper)) ? modifiers.write(aqua..setText('H')) : modifiers.write(aquaDark..setText('h'));
-  (km.has(KeyModifiers.meta)) ? modifiers.write(aqua..setText('M')) : modifiers.write(aquaDark..setText('m'));
+  (km.has(KeyModifiers.shift)) ? modifiers.write(aq('S')) : modifiers.write(ad('s'));
+  (km.has(KeyModifiers.ctrl)) ? modifiers.write(aq('C')) : modifiers.write(ad('c'));
+  (km.has(KeyModifiers.alt)) ? modifiers.write(aq('A')) : modifiers.write(ad('a'));
+  (km.has(KeyModifiers.superKey)) ? modifiers.write(aq('K')) : modifiers.write(ad('k'));
+  (km.has(KeyModifiers.hyper)) ? modifiers.write(aq('H')) : modifiers.write(ad('h'));
+  (km.has(KeyModifiers.meta)) ? modifiers.write(aq('M')) : modifiers.write(ad('m'));
 
   return modifiers.toString();
 }
 
-String getLHSModifiers(Map<String, Style> colors, ModifierKeyCode km) {
-  final aqua = colors['aqua']!;
-  final aquaDark = colors['darkCyan']!;
+String getLHSModifiers(Theme colors, ModifierKeyCode km) {
+  final aq = colors.aqua;
+  final ad = colors.darkCyan;
 
   final modifiers = StringBuffer();
-  (km == ModifierKeyCode.leftShift) ? modifiers.write(aqua..setText('S')) : modifiers.write(aquaDark..setText('s'));
-  (km == ModifierKeyCode.leftControl) ? modifiers.write(aqua..setText('C')) : modifiers.write(aquaDark..setText('c'));
-  (km == ModifierKeyCode.leftAlt) ? modifiers.write(aqua..setText('A')) : modifiers.write(aquaDark..setText('a'));
-  (km == ModifierKeyCode.leftSuper) ? modifiers.write(aqua..setText('K')) : modifiers.write(aquaDark..setText('k'));
-  (km == ModifierKeyCode.leftHyper) ? modifiers.write(aqua..setText('H')) : modifiers.write(aquaDark..setText('h'));
-  (km == ModifierKeyCode.leftMeta) ? modifiers.write(aqua..setText('M')) : modifiers.write(aquaDark..setText('m'));
+  (km == ModifierKeyCode.leftShift) ? modifiers.write(aq('S')) : modifiers.write(ad('s'));
+  (km == ModifierKeyCode.leftControl) ? modifiers.write(aq('C')) : modifiers.write(ad('c'));
+  (km == ModifierKeyCode.leftAlt) ? modifiers.write(aq('A')) : modifiers.write(ad('a'));
+  (km == ModifierKeyCode.leftSuper) ? modifiers.write(aq('K')) : modifiers.write(ad('k'));
+  (km == ModifierKeyCode.leftHyper) ? modifiers.write(aq('H')) : modifiers.write(ad('h'));
+  (km == ModifierKeyCode.leftMeta) ? modifiers.write(aq('M')) : modifiers.write(ad('m'));
 
   return modifiers.toString();
 }
 
-String getRHSModifiers(Map<String, Style> colors, ModifierKeyCode km) {
-  final aqua = colors['aqua']!;
-  final aquaDark = colors['darkCyan']!;
+String getRHSModifiers(Theme colors, ModifierKeyCode km) {
+  final aq = colors.aqua;
+  final ad = colors.darkCyan;
 
   final modifiers = StringBuffer();
-  (km == ModifierKeyCode.rightShift) ? modifiers.write(aqua..setText('S')) : modifiers.write(aquaDark..setText('s'));
-  (km == ModifierKeyCode.rightControl) ? modifiers.write(aqua..setText('C')) : modifiers.write(aquaDark..setText('c'));
-  (km == ModifierKeyCode.rightAlt) ? modifiers.write(aqua..setText('A')) : modifiers.write(aquaDark..setText('a'));
-  (km == ModifierKeyCode.rightSuper) ? modifiers.write(aqua..setText('K')) : modifiers.write(aquaDark..setText('k'));
-  (km == ModifierKeyCode.rightHyper) ? modifiers.write(aqua..setText('H')) : modifiers.write(aquaDark..setText('h'));
-  (km == ModifierKeyCode.rightMeta) ? modifiers.write(aqua..setText('M')) : modifiers.write(aquaDark..setText('m'));
+  (km == ModifierKeyCode.rightShift) ? modifiers.write(aq('S')) : modifiers.write(ad('s'));
+  (km == ModifierKeyCode.rightControl) ? modifiers.write(aq('C')) : modifiers.write(ad('c'));
+  (km == ModifierKeyCode.rightAlt) ? modifiers.write(aq('A')) : modifiers.write(ad('a'));
+  (km == ModifierKeyCode.rightSuper) ? modifiers.write(aq('K')) : modifiers.write(ad('k'));
+  (km == ModifierKeyCode.rightHyper) ? modifiers.write(aq('H')) : modifiers.write(ad('h'));
+  (km == ModifierKeyCode.rightMeta) ? modifiers.write(aq('M')) : modifiers.write(ad('m'));
 
   return modifiers.toString();
 }

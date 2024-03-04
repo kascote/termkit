@@ -13,7 +13,7 @@ Future<void> main(List<String> arguments) async {
           KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
           KeyboardEnhancementFlags.reportEventTypes,
     );
-    t.setCapabilities(keyFlags);
+    t.setKeyboardFlags(keyFlags);
   }
 
   await t.withRawModeAsync(() => keyViewer(t));
@@ -25,27 +25,32 @@ Future<void> keyViewer(TermLib t) async {
     ..eraseClear()
     ..enableMouseEvents()
     ..writeln(' ')
-    ..writeln(' ')
     ..writeln('Press any key to see the key details.')
     ..writeln('Press ESC to exit.');
 
+  final p = t.profile;
+  final cyan = p.style()..setFg(p.getColor('cyan'));
+  final green = p.style()..setFg(p.getColor('green'));
+  final gray = p.style()..setFg(p.getColor('webGray'));
+
   try {
     while (true) {
-      final data = await t.readRawKeys();
-      if (data.isEmpty) continue;
-      if (data.startsWith([0x1b, 0x5b, 0x32, 0x37, 0x3b, 0x31, 0x75])) break;
-      if (data.length == 1 && data.first == 0x1b) break;
+      final event = await t.readEvent<RawKeyEvent>(rawKeys: true);
+      if (event is! RawKeyEvent) continue;
+      if (event.sequence.isEmpty) continue;
 
-      final dataHex =
-          data.fold(StringBuffer(), (sb, e) => sb..write('${e.toRadixString(16).padLeft(2, '0')} ')).toString();
-      final dataStr = data
-          .fold(
-            StringBuffer(),
-            (sb, e) => sb
-              ..write('${e.isPrintable ? String.fromCharCode(e) : e == 0x1b ? 'ESC' : '.'} '),
-          )
-          .toString();
-      t.writeln('Data: $dataHex - $dataStr');
+      final seq = event.sequence;
+      if (seq.startsWith([0x1b, 0x5b, 0x32, 0x37, 0x3b, 0x31, 0x75])) break;
+      if (seq.length == 1 && seq.first == 0x1b) break;
+
+      final dataHex = seq.fold(StringBuffer(), (sb, e) => sb..write(cyan('${e.toRadixString(16).padLeft(2, '0')} ')));
+      final dataStr = seq.fold(
+        StringBuffer(),
+        (sb, e) => sb
+          ..write(green('${e.isPrintable ? String.fromCharCode(e) : e == 0x1b ? 'ESC' : '.'} ')),
+      );
+
+      t.writeln('${gray('hex:')} $dataHex - ${gray('seq:')} $dataStr');
     }
   } catch (e, st) {
     t
@@ -53,7 +58,7 @@ Future<void> keyViewer(TermLib t) async {
       ..writeln(st);
   } finally {
     t
-      ..setCapabilities(const KeyboardEnhancementFlags(0))
+      ..setKeyboardFlags(const KeyboardEnhancementFlags(0))
       ..disableMouseEvents();
   }
 }

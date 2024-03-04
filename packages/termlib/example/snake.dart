@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:termlib/color_util.dart';
 import 'package:termlib/termlib.dart';
 
 const snakeBody = ['▓', '▒', '░'];
@@ -36,7 +37,7 @@ Future<void> gameLoop(TermLib t, SnakeGame game) async {
   game.drawBoard();
 
   while (true) {
-    final event = await t.readEvent();
+    final event = await t.readEvent<Event>();
     var heading = game.heading;
 
     if (event is KeyEvent) {
@@ -190,6 +191,7 @@ class SnakeGame {
     final dataStyle = p.style()..setFg(p.getColor('webGray'));
     final fruitStyle = p.style(fruitIcon)..setFg(p.getColor('orangeRed'));
     final scoreStyle = p.style('Score: ${score.toString().padLeft(4)}')..setFg(p.getColor('gold'));
+    final cl = colorLerp(_headColor, _tailColor);
 
     for (var i = 0; i < snake.length; i++) {
       _term.moveTo(snake[i].row, snake[i].col);
@@ -198,21 +200,20 @@ class SnakeGame {
       if (i == 0) body = snakeBody[0];
       if (i == snake.length - 1) body = snakeBody[2];
 
-      final c = p.getColor(colorLerp(i / (snake.length - 1)).hex);
+      final c = p.getColor(cl(i / (snake.length - 1)).hex);
       _term.write(p.style(body)..setFg(c));
     }
     _term
       ..startSyncUpdate()
       ..writeAt(_lastTailPos.row, _lastTailPos.col, ' ')
       ..writeAt(_fruitPos.row, _fruitPos.col, fruitStyle)
-      ..writeAt(winRow, winCol + 5, dataStyle..setText('╡ '))
+      ..writeAt(winRow, winCol + 5, dataStyle('╡ '))
       ..write(scoreStyle)
-      ..write(dataStyle..setText(' ╞'))
+      ..write(dataStyle(' ╞'))
       ..writeAt(
         winRow + rows,
         winCol + 5,
-        dataStyle
-          ..setText('╡ ${(curCol - winCol).toString().padLeft(3)}, ${(curRow - winRow).toString().padLeft(3)} ╞'),
+        dataStyle('╡ ${(curCol - winCol).toString().padLeft(3)}, ${(curRow - winRow).toString().padLeft(3)} ╞'),
       )
       ..endSyncUpdate();
   }
@@ -224,20 +225,20 @@ class SnakeGame {
 
     for (var i = 0; i < cols; i++) {
       _term
-        ..writeAt(winRow, winCol + i, s..setText(boardLines[0]))
-        ..writeAt(winRow + rows, winCol + i, s..setText(boardLines[0]));
+        ..writeAt(winRow, winCol + i, s(boardLines[0]))
+        ..writeAt(winRow + rows, winCol + i, s(boardLines[0]));
     }
 
     for (var i = 0; i < rows; i++) {
       _term
-        ..writeAt(winRow + i, winCol, s..setText(boardLines[1]))
-        ..writeAt(winRow + i, winCol + cols, s..setText(boardLines[1]));
+        ..writeAt(winRow + i, winCol, s(boardLines[1]))
+        ..writeAt(winRow + i, winCol + cols, s(boardLines[1]));
     }
     _term
-      ..writeAt(winRow, winCol, s..setText(boardLines[2]))
-      ..writeAt(winRow, winCol + cols, s..setText(boardLines[3]))
-      ..writeAt(winRow + rows, winCol, s..setText(boardLines[4]))
-      ..writeAt(winRow + rows, winCol + cols, s..setText(boardLines[5]));
+      ..writeAt(winRow, winCol, s(boardLines[2]))
+      ..writeAt(winRow, winCol + cols, s(boardLines[3]))
+      ..writeAt(winRow + rows, winCol, s(boardLines[4]))
+      ..writeAt(winRow + rows, winCol + cols, s(boardLines[5]));
   }
 
   Future<bool> startPage() async {
@@ -247,19 +248,19 @@ class SnakeGame {
     final redStyle = p.style()..setFg(p.getColor('red'));
 
     _term
-      ..writeAt(10, 10, whiteStyle..setText('S N A K E S'))
-      ..writeAt(12, 10, grayStyle..setText('press'))
-      ..writeAt(14, 10, redStyle..setText('[ '))
+      ..writeAt(10, 10, whiteStyle('S N A K E S'))
+      ..writeAt(12, 10, grayStyle('press'))
+      ..writeAt(14, 10, redStyle('[ '))
       ..write('space')
-      ..write(redStyle..setText(' ]'))
+      ..write(redStyle(' ]'))
       ..write(' to start')
-      ..writeAt(16, 10, redStyle..setText('[ '))
+      ..writeAt(16, 10, redStyle('[ '))
       ..write(' esc ')
-      ..write(redStyle..setText(' ]'))
+      ..write(redStyle(' ]'))
       ..write(' to exit');
 
     while (true) {
-      final event = await _term.readEvent();
+      final event = await _term.readEvent<KeyEvent>();
       if (event is! KeyEvent) continue;
 
       if (event.code.name == KeyCodeName.escape) {
@@ -276,13 +277,5 @@ class SnakeGame {
         return true;
       }
     }
-  }
-
-  TrueColor colorLerp(double t) {
-    final r = (_headColor.r + (_tailColor.r - _headColor.r) * t).round();
-    final g = (_headColor.g + (_tailColor.g - _headColor.g) * t).round();
-    final b = (_headColor.b + (_tailColor.b - _headColor.b) * t).round();
-
-    return TrueColor(r, g, b);
   }
 }

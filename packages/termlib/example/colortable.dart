@@ -20,8 +20,8 @@ void main() {
       ..setFg(black);
 
     t
-      ..write(style16.toString())
-      ..write(style256.toString())
+      ..write(style16)
+      ..write(style256)
       ..write(' ');
   }
 }
