@@ -8,7 +8,7 @@ import 'shared/string_extension.dart';
 const _foreground = 38;
 const _background = 48;
 
-/// Color is an interface for all colors.
+/// Color is the base class for all colors.
 sealed class Color {
   /// The profile of the color.
   final ProfileEnum profile;
@@ -120,7 +120,7 @@ class TrueColor extends Equatable implements Color {
   /// The blue value.
   final int b;
 
-  ///  The hex value.
+  /// String that represents the color in hexadecimal notation. ex: #DECAF0
   final String hex;
 
   /// Creates a new TrueColor with the given RGB values.
@@ -135,7 +135,12 @@ class TrueColor extends Equatable implements Color {
   @override
   ProfileEnum get profile => ProfileEnum.trueColor;
 
-  /// Creates a new TrueColor from a hex string.
+  /// Creates a new TrueColor from a string.
+  ///
+  /// The string can be in the following formats:
+  /// - #RGB or RGB
+  /// - #RRGGBB or RRGGBB
+  /// - x11 color name
   factory TrueColor.fromString(String color) {
     var mix = ansi.x11Colors[color] ?? color;
     if (mix.startsWith('#')) {

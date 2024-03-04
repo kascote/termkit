@@ -28,7 +28,8 @@ Map<(ProfileEnum, String), Color> _colorCache = {};
 ///
 /// The Profile is used to convert colors to the current profile.
 /// Is not needed to use the library, but is convenient because will simplify
-/// the use of colors.
+/// the use of colors specially when TrueColor is used by default and need to
+/// display in a lower profile terminal, the color conversion will be automatic.
 class Profile {
   late ProfileEnum _profile;
 
@@ -87,23 +88,19 @@ class Profile {
     if (srcColor.profile == _profile) return srcColor;
 
     Color convertFromTrueColor(TrueColor clr) {
-      if (_profile == ProfileEnum.ansi16) {
-        return _convertRgbToAnsi256(clr).toAnsi16Color();
-      } else if (_profile == ProfileEnum.ansi256) {
-        return _convertRgbToAnsi256(clr);
-      } else {
-        return srcColor;
-      }
+      return switch (_profile) {
+        ProfileEnum.ansi16 => _convertRgbToAnsi256(clr).toAnsi16Color(),
+        ProfileEnum.ansi256 => _convertRgbToAnsi256(clr),
+        _ => srcColor,
+      } as Color;
     }
 
     Color convertToTrueColor(Color clr) {
-      if (clr.profile == ProfileEnum.ansi16) {
-        return TrueColor.fromString(ansiHex[(clr as Ansi16Color).code]);
-      } else if (clr.profile == ProfileEnum.ansi256) {
-        return TrueColor.fromString(ansiHex[(clr as Ansi256Color).code]);
-      } else {
-        return clr;
-      }
+      return switch (_profile) {
+        ProfileEnum.ansi16 => TrueColor.fromString(ansiHex[(clr as Ansi16Color).code]),
+        ProfileEnum.ansi256 => TrueColor.fromString(ansiHex[(clr as Ansi256Color).code]),
+        _ => clr
+      };
     }
 
     return switch (srcColor.profile) {

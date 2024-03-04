@@ -26,16 +26,16 @@ void main() {
     test(
       'termStatusReport should return the terminal status report',
       () {
-        expect(term.termStatusReport(10), 'rgb:1000/A000/B000');
-        expect(term.termStatusReport(11), 'rgb:1100/C000/D000');
-        expect(term.termStatusReport(99), isNull);
+        expect(term.queryOSCStatus(10), 'rgb:1000/A000/B000');
+        expect(term.queryOSCStatus(11), 'rgb:1100/C000/D000');
+        expect(term.queryOSCStatus(99), isNull);
       },
       skip: 'need to implement mock',
     );
 
     test('isTty should return true if the terminal is attached to a TTY', () {
       stdoutMock.clearCallStack();
-      expect(term.isTty, isFalse);
+      expect(term.isInteractive, isFalse);
       expect(stdoutMock.callStack[0], 'hasTerminal');
     });
 

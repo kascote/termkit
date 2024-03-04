@@ -21,7 +21,10 @@ const _overlineSeq = '53';
 // const _crossOutSeqOff = '29';
 // const _overlineSeqOff = '55';
 
-/// Style is a style that can be applied to text.
+/// Style represents a text string that hold Foreground and Background colors,
+/// and other text styles. The colors could be any of the supported, and at
+/// the time they are rendered, will be converted to the profile the style was
+/// defined on.
 class Style {
   late final ProfileEnum _profile;
   final _styles = <String>[];
@@ -39,9 +42,6 @@ class Style {
   /// This is a convenience method to set the text value.
   // ignore: use_setters_to_change_properties
   void setText(String value) => text = value;
-
-  /// convenience method to return the string
-  String get s => toString();
 
   /// Sets the foreground color.
   void setFg(Color color) => _styles.add(color.sequence());
