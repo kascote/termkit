@@ -155,8 +155,8 @@ final class KeyboardEnhancementFlags extends Event with EquatableMixin {
   /// events for plain-text keys.
   static const int reportAllKeysAsEscapeCodes = 0x8;
 
-  // Send the Unicode codepoint as well as the keycode.
-  // static const int reportTextWithKeys = 0x10;
+  /// Send the Unicode codepoint as well as the keycode.
+  static const int reportAssociatedText = 0x10;
 }
 
 /// Represent a Color event response from OSC 11

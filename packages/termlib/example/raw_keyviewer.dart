@@ -1,20 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:termlib/src/shared/list_extension.dart';
 import 'package:termlib/termlib.dart';
 
 Future<void> main(List<String> arguments) async {
   final t = TermLib();
+  final withKitty = arguments.contains('-kitty');
 
-  if (arguments.contains('-kitty')) {
-    const keyFlags = KeyboardEnhancementFlags(
-      KeyboardEnhancementFlags.disambiguateEscapeCodes |
-          KeyboardEnhancementFlags.reportAlternateKeys |
-          KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlags.reportEventTypes,
-    );
-    t.setKeyboardFlags(keyFlags);
-  }
+  if (withKitty) t.enableKeyboardEnhancement();
+
+  ProcessSignal.sigterm.watch().listen((event) {
+    t
+      ..writeln('SIGTERM received')
+      ..disableKeyboardEnchancement()
+      ..disableMouseEvents()
+      ..disableRawMode()
+      ..flushThenExit(0);
+  });
 
   await t.withRawModeAsync(() => keyViewer(t));
   await t.flushThenExit(0);
@@ -40,7 +43,9 @@ Future<void> keyViewer(TermLib t) async {
       if (event.sequence.isEmpty) continue;
 
       final seq = event.sequence;
+      if (seq.startsWith([0x1b, 0x5b, 0x32, 0x37, 0x75])) break;
       if (seq.startsWith([0x1b, 0x5b, 0x32, 0x37, 0x3b, 0x31, 0x75])) break;
+      if (seq.startsWith([0x1b, 0x5b, 0x32, 0x37, 0x3b, 0x31, 0x3b, 0x32, 0x37, 0x75])) break;
       if (seq.length == 1 && seq.first == 0x1b) break;
 
       final dataHex = seq.fold(StringBuffer(), (sb, e) => sb..write(cyan('${e.toRadixString(16).padLeft(2, '0')} ')));

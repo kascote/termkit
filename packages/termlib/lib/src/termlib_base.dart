@@ -269,6 +269,32 @@ class TermLib {
   void pushKeyboardFlags(KeyboardEnhancementFlags flags) =>
       _stdout.write(ansi.Sup.pushKeyboardCapabilities(flags.flags));
 
+  /// Enable keybard enhancement
+  void enableKeyboardEnhancement() {
+    const keyFlags = KeyboardEnhancementFlags(
+      KeyboardEnhancementFlags.disambiguateEscapeCodes |
+          KeyboardEnhancementFlags.reportAlternateKeys |
+          KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlags.reportEventTypes,
+    );
+    setKeyboardFlags(keyFlags);
+  }
+
+  /// Enable keybard enhancement with all parameters
+  void enableKeyboardEnhancementFull() {
+    const keyFlags = KeyboardEnhancementFlags(
+      KeyboardEnhancementFlags.disambiguateEscapeCodes |
+          KeyboardEnhancementFlags.reportAlternateKeys |
+          KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlags.reportEventTypes |
+          KeyboardEnhancementFlags.reportAssociatedText,
+    );
+    setKeyboardFlags(keyFlags);
+  }
+
+  /// Disable keyboard enhancements
+  void disableKeyboardEnchancement() => setKeyboardFlags(const KeyboardEnhancementFlags(0));
+
   /// Pop keyboard flags from the stack
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>

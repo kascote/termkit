@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:termlib/termlib.dart';
 
@@ -17,15 +18,16 @@ Future<void> main(List<String> arguments) async {
   final t = TermLib();
   final withKitty = arguments.contains('-kitty');
 
-  if (withKitty) {
-    const keyFlags = KeyboardEnhancementFlags(
-      KeyboardEnhancementFlags.disambiguateEscapeCodes |
-          KeyboardEnhancementFlags.reportAlternateKeys |
-          KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlags.reportEventTypes,
-    );
-    t.setKeyboardFlags(keyFlags);
-  }
+  if (withKitty) t.enableKeyboardEnhancement();
+
+  ProcessSignal.sigterm.watch().listen((event) {
+    t
+      ..writeln('SIGTERM received')
+      ..disableKeyboardEnchancement()
+      ..disableMouseEvents()
+      ..disableRawMode()
+      ..flushThenExit(0);
+  });
 
   await t.withRawModeAsync(() => keyViewer(t, withKitty));
   await t.flushThenExit(0);
