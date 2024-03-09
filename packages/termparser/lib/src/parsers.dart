@@ -19,7 +19,7 @@ Event? parseChar(String char, {bool escO = false}) {
   return switch (char) {
     '\r' || '\n' => const KeyEvent(KeyCode(name: KeyCodeName.enter)),
     '\t' => const KeyEvent(KeyCode(name: KeyCodeName.tab)),
-    '\x7f' => const KeyEvent(KeyCode(name: KeyCodeName.backTab)),
+    '\x7f' => const KeyEvent(KeyCode(name: KeyCodeName.backSpace)),
     '\x1b' => const KeyEvent(KeyCode(name: KeyCodeName.escape)),
     '\x00' => const KeyEvent(KeyCode()), // none
     _ => _ctrlOrKey(char)

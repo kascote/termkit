@@ -63,6 +63,11 @@ class KeyCode extends Equatable {
       baseLayoutKey: baseLayoutKey ?? this.baseLayoutKey,
     );
   }
+
+  @override
+  String toString() {
+    return 'KeyCode{name: $name, char: $char, media: $media, modifiers: $modifiers, baseLayoutKey: $baseLayoutKey}';
+  }
 }
 
 /// Represents key modifiers (shift, control, alt, etc.).
@@ -111,6 +116,11 @@ class KeyModifiers extends Equatable {
 
   ///
   static const none = 0x0;
+
+  @override
+  String toString() {
+    return 'KeyModifiers{shift: ${has(shift)}, alt: ${has(alt)}, ctrl: ${has(ctrl)}, superKey: ${has(superKey)}, hyper: ${has(hyper)}, meta: ${has(meta)}}';
+  }
 }
 
 const _keypad = 0x1;
@@ -157,6 +167,12 @@ class KeyEventState with EquatableMixin {
 
   /// Creates a new instance of [KeyEventState] with none of the states enabled.
   factory KeyEventState.none() => const KeyEventState(_none);
+
+  @override
+  String toString() {
+    if (_value == _none) return 'KeyEventState: {none}';
+    return 'KeyEventState: {isKeypad: $isKeypad, isCapsLock: $isCapsLock, isNumLock: $isNumLock}';
+  }
 }
 
 /// Enum for keys with names

@@ -63,6 +63,11 @@ final class KeyEvent extends Event with EquatableMixin {
 
   @override
   List<Object> get props => [code, modifiers, eventType, eventState];
+
+  @override
+  String toString() {
+    return 'KeyEvent{code: $code, modifiers: $modifiers, eventType: $eventType, eventState: $eventState}';
+  }
 }
 
 /// Represent a Cursor event.

@@ -9,6 +9,7 @@ import './colors.dart';
 import './extensions/assorted.dart';
 import './ffi/termos.dart';
 import './profile.dart';
+import './readline.dart';
 
 /// Type similar to Platform.environment, used for dependency injection
 typedef EnvironmentData = Map<String, String>;
@@ -238,11 +239,7 @@ class TermLib {
   /// on return sets raw mode back to its previous value
   Future<T> withRawModeAsync<T>(Future<T> Function() fn) async {
     final original = _setRawMode(true);
-    try {
-      return await fn();
-    } finally {
-      _setRawMode(original);
-    }
+    return fn().whenComplete(() => _setRawMode(original));
   }
 
   /// Request keyboard capabilities
@@ -377,6 +374,11 @@ class TermLib {
     }
 
     return Ansi16Color(0);
+  }
+
+  /// readline
+  Future<String> readLine([String initBuffer = '']) async {
+    return (await Readline.create(this, initBuffer)).read();
   }
 
   /// Flushes the stdout and stderr streams, then exits the program with the given

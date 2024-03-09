@@ -336,6 +336,15 @@ void main() {
       );
     });
 
+    test('π[100;5u', () {
+      final parser = Parser()..advance(keySequence('π[100;5u'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const KeyEvent(KeyCode(char: 'd'), modifiers: KeyModifiers(KeyModifiers.ctrl))),
+      );
+    });
+
     test('.[97;1:2u', () {
       final parser = Parser()..advance(keySequence('π[97;1:2u'));
       expect(parser.moveNext(), true);
