@@ -202,7 +202,10 @@ void main() {
     test('ESC [ ? 1 u', () {
       final parser = Parser()..advance(keySequence('π[?1u'));
       expect(parser.moveNext(), true);
-      expect(parser.current, equals(const KeyboardEnhancementFlags(KeyboardEnhancementFlags.disambiguateEscapeCodes)));
+      expect(
+        parser.current,
+        equals(const KeyboardEnhancementFlagsEvent(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes)),
+      );
     });
 
     test('ESC [ 97 u', () {

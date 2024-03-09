@@ -41,6 +41,9 @@ class Profile {
   /// Returns an Style for the current profile
   Style style([String content = '']) => Style(content, profile: _profile);
 
+  /// Returns the current profile.
+  ProfileEnum get profile => _profile;
+
   /// Tries to parse a string into a Color object
   ///
   /// If the color string is empty,  the [defaultColor] will be used, by default

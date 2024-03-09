@@ -117,7 +117,7 @@ final class FocusEvent extends Event with EquatableMixin {
 ///
 /// See <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement> for more information.
 @immutable
-final class KeyboardEnhancementFlags extends Event with EquatableMixin {
+final class KeyboardEnhancementFlagsEvent extends Event with EquatableMixin {
   ///
   final int flags;
 
@@ -125,15 +125,15 @@ final class KeyboardEnhancementFlags extends Event with EquatableMixin {
   final int mode;
 
   ///
-  const KeyboardEnhancementFlags(this.flags, [this.mode = 1]);
+  const KeyboardEnhancementFlagsEvent(this.flags, [this.mode = 1]);
 
-  /// Returns an empty [KeyboardEnhancementFlags].
-  factory KeyboardEnhancementFlags.empty() => const KeyboardEnhancementFlags(0);
+  /// Returns an empty [KeyboardEnhancementFlagsEvent].
+  factory KeyboardEnhancementFlagsEvent.empty() => const KeyboardEnhancementFlagsEvent(0);
 
-  /// Add a flag to the current [KeyboardEnhancementFlags] and returns a new object.
-  KeyboardEnhancementFlags add(int flag) => KeyboardEnhancementFlags(flags | flag);
+  /// Add a flag to the current [KeyboardEnhancementFlagsEvent] and returns a new object.
+  KeyboardEnhancementFlagsEvent add(int flag) => KeyboardEnhancementFlagsEvent(flags | flag);
 
-  /// Check if a flag is present in the current [KeyboardEnhancementFlags].
+  /// Check if a flag is present in the current [KeyboardEnhancementFlagsEvent].
   bool has(int flag) => flags.isSet(flag);
 
   @override

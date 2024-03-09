@@ -104,6 +104,14 @@ abstract class Sup {
   /// by default could need to be enabled by the user
   static String get maximizeWindow => '${CSI}1t';
 
+  /// Query Progressive Keyboard Enhancement (Kitty protocol)
+  static String get queryKeyboardEnhancementSupport => '$CSI?u';
+
+  /// Query Primary Device Attributes
+  static String get queryPrimaryDeviceAttributes => '${CSI}c';
+
   // soft terminal reset
   // CSI ! p
+  // read window size in pixels
+  // CSI 14 t
 }

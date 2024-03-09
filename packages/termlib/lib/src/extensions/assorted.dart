@@ -49,17 +49,17 @@ extension AssortedExt on TermLib {
   void endSyncUpdate() => write(ansi.Sup.disableSyncUpdate);
 
   /// Query Sync status
-  Future<SyncUpdateStatus> querySyncUpdate() async {
+  Future<SyncUpdateStatus?> querySyncUpdate() async {
     write(ansi.Sup.querySyncUpdate);
     final event = await readEvent<QuerySyncUpdateEvent>();
-    return (event is QuerySyncUpdateEvent) ? event.value : throw Exception('Unexpected event: $event');
+    return (event is QuerySyncUpdateEvent) ? event.value : null;
   }
 
   /// Request terminal name and version
   Future<String> queryTerminalVersion() async {
     write(ansi.Sup.requestTermVersion);
     final event = await readEvent<NameAndVersionEvent>();
-    return (event is NameAndVersionEvent) ? event.value : throw Exception('Unexpected event: $event');
+    return (event is NameAndVersionEvent) ? event.value : '';
   }
 
   /// Returns the current terminal status report.
@@ -69,5 +69,19 @@ extension AssortedExt on TermLib {
       final event = await readEvent<ColorQueryEvent>();
       return (event is ColorQueryEvent) ? TrueColor(event.r, event.g, event.b) : null;
     });
+  }
+
+  /// Query Keyboard enhancement support
+  Future<bool> queryKeyboardEnhancementSupport() async {
+    write('${ansi.Sup.queryKeyboardEnhancementSupport}${ansi.Sup.queryPrimaryDeviceAttributes}');
+    final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
+    return event is KeyboardEnhancementFlagsEvent;
+  }
+
+  /// Query Primary Device Attributes
+  Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes() async {
+    write(ansi.Sup.queryPrimaryDeviceAttributes);
+    final event = await readEvent<PrimaryDeviceAttributesEvent>();
+    return (event is PrimaryDeviceAttributesEvent) ? event : null;
   }
 }

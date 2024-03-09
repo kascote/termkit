@@ -248,52 +248,52 @@ class TermLib {
   /// Request keyboard capabilities
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  Future<KeyboardEnhancementFlags?> requestKeyboardCapabilities() async {
-    return withRawModeAsync<KeyboardEnhancementFlags?>(() async {
+  Future<KeyboardEnhancementFlagsEvent?> requestKeyboardCapabilities() async {
+    return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
       _stdout.write(ansi.Sup.requestKeyboardCapabilities);
 
-      final event = await readEvent<KeyboardEnhancementFlags>();
-      return (event is KeyboardEnhancementFlags) ? event : null;
+      final event = await readEvent<KeyboardEnhancementFlagsEvent>();
+      return (event is KeyboardEnhancementFlagsEvent) ? event : null;
     });
   }
 
   /// Set keyboard flags
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void setKeyboardFlags(KeyboardEnhancementFlags flags) =>
+  void setKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
       _stdout.write(ansi.Sup.setKeyboardCapabilities(flags.flags, flags.mode));
 
   /// Push keyboard flags to the stack
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void pushKeyboardFlags(KeyboardEnhancementFlags flags) =>
+  void pushKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
       _stdout.write(ansi.Sup.pushKeyboardCapabilities(flags.flags));
 
-  /// Enable keybard enhancement
+  /// Enable keyboard enhancement
   void enableKeyboardEnhancement() {
-    const keyFlags = KeyboardEnhancementFlags(
-      KeyboardEnhancementFlags.disambiguateEscapeCodes |
-          KeyboardEnhancementFlags.reportAlternateKeys |
-          KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlags.reportEventTypes,
+    const keyFlags = KeyboardEnhancementFlagsEvent(
+      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
+          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportEventTypes,
     );
     setKeyboardFlags(keyFlags);
   }
 
-  /// Enable keybard enhancement with all parameters
+  /// Enable keyboard enhancement with all parameters
   void enableKeyboardEnhancementFull() {
-    const keyFlags = KeyboardEnhancementFlags(
-      KeyboardEnhancementFlags.disambiguateEscapeCodes |
-          KeyboardEnhancementFlags.reportAlternateKeys |
-          KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlags.reportEventTypes |
-          KeyboardEnhancementFlags.reportAssociatedText,
+    const keyFlags = KeyboardEnhancementFlagsEvent(
+      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
+          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportEventTypes |
+          KeyboardEnhancementFlagsEvent.reportAssociatedText,
     );
     setKeyboardFlags(keyFlags);
   }
 
   /// Disable keyboard enhancements
-  void disableKeyboardEnchancement() => setKeyboardFlags(const KeyboardEnhancementFlags(0));
+  void disableKeyboardEnhancement() => setKeyboardFlags(const KeyboardEnhancementFlagsEvent(0));
 
   /// Pop keyboard flags from the stack
   ///

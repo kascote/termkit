@@ -13,7 +13,7 @@ Future<void> main(List<String> arguments) async {
   ProcessSignal.sigterm.watch().listen((event) {
     t
       ..writeln('SIGTERM received')
-      ..disableKeyboardEnchancement()
+      ..disableKeyboardEnhancement()
       ..disableMouseEvents()
       ..disableRawMode()
       ..flushThenExit(0);
@@ -63,7 +63,7 @@ Future<void> keyViewer(TermLib t) async {
       ..writeln(st);
   } finally {
     t
-      ..setKeyboardFlags(const KeyboardEnhancementFlags(0))
+      ..setKeyboardFlags(const KeyboardEnhancementFlagsEvent(0))
       ..disableMouseEvents();
   }
 }

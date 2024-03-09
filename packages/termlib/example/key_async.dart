@@ -23,7 +23,7 @@ Future<void> main(List<String> arguments) async {
   ProcessSignal.sigterm.watch().listen((event) {
     t
       ..writeln('SIGTERM received')
-      ..disableKeyboardEnchancement()
+      ..disableKeyboardEnhancement()
       ..disableMouseEvents()
       ..disableRawMode()
       ..flushThenExit(0);
@@ -123,7 +123,7 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
   } finally {
     tick.cancel();
     t
-      ..setKeyboardFlags(KeyboardEnhancementFlags.empty())
+      ..setKeyboardFlags(KeyboardEnhancementFlagsEvent.empty())
       ..disableMouseEvents();
 
     //t.popCapabilities();
@@ -186,22 +186,22 @@ String getRHSModifiers(Theme colors, ModifierKeyCode km) {
   return modifiers.toString();
 }
 
-String showCapabilities(KeyboardEnhancementFlags? flags) {
+String showCapabilities(KeyboardEnhancementFlagsEvent? flags) {
   if (flags == null) return 'unable to retrieve keyboard capabilities';
 
   final sb = StringBuffer()
     ..writeln('Keyboard capabilities:')
     ..writeln(
-      '  ${flags.has(KeyboardEnhancementFlags.disambiguateEscapeCodes).toString().padLeft(5)}: Disambiguate Escape Codes',
+      '  ${flags.has(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes).toString().padLeft(5)}: Disambiguate Escape Codes',
     )
     ..writeln(
-      '  ${flags.has(KeyboardEnhancementFlags.reportEventTypes).toString().padLeft(5)}: Report Event Types',
+      '  ${flags.has(KeyboardEnhancementFlagsEvent.reportEventTypes).toString().padLeft(5)}: Report Event Types',
     )
     ..writeln(
-      '  ${flags.has(KeyboardEnhancementFlags.reportAlternateKeys).toString().padLeft(5)}: Report Alternate Keys',
+      '  ${flags.has(KeyboardEnhancementFlagsEvent.reportAlternateKeys).toString().padLeft(5)}: Report Alternate Keys',
     )
     ..writeln(
-      '  ${flags.has(KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes).toString().padLeft(5)}: Report All Keys As Escape Codes',
+      '  ${flags.has(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes).toString().padLeft(5)}: Report All Keys As Escape Codes',
     );
 
   return sb.toString();

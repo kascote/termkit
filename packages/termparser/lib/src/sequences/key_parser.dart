@@ -88,21 +88,21 @@ Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParam
 }
 
 /// Parse the keyboard enhanced mode
-KeyboardEnhancementFlags keyboardEnhancedCodeParser(String mode) {
+KeyboardEnhancementFlagsEvent keyboardEnhancedCodeParser(String mode) {
   final bits = int.tryParse(mode) ?? 0;
-  var flags = KeyboardEnhancementFlags.empty();
+  var flags = KeyboardEnhancementFlagsEvent.empty();
 
-  if (bits.isSet(KeyboardEnhancementFlags.disambiguateEscapeCodes)) {
-    flags = flags.add(KeyboardEnhancementFlags.disambiguateEscapeCodes);
+  if (bits.isSet(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes)) {
+    flags = flags.add(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes);
   }
-  if (bits.isSet(KeyboardEnhancementFlags.reportEventTypes)) {
-    flags = flags.add(KeyboardEnhancementFlags.reportEventTypes);
+  if (bits.isSet(KeyboardEnhancementFlagsEvent.reportEventTypes)) {
+    flags = flags.add(KeyboardEnhancementFlagsEvent.reportEventTypes);
   }
-  if (bits.isSet(KeyboardEnhancementFlags.reportAlternateKeys)) {
-    flags = flags.add(KeyboardEnhancementFlags.reportAlternateKeys);
+  if (bits.isSet(KeyboardEnhancementFlagsEvent.reportAlternateKeys)) {
+    flags = flags.add(KeyboardEnhancementFlagsEvent.reportAlternateKeys);
   }
-  if (bits.isSet(KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes)) {
-    flags = flags.add(KeyboardEnhancementFlags.reportAllKeysAsEscapeCodes);
+  if (bits.isSet(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes)) {
+    flags = flags.add(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes);
   }
 
   return flags;
