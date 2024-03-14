@@ -1,4 +1,5 @@
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 
 final _keyMapping = {
   const KeyEvent(KeyCode(name: KeyCodeName.escape)): 'escape',
@@ -26,7 +27,7 @@ class Readline {
   /// Readline buffer
   List<String> buffer = [];
 
-  /// Position od the buffer index
+  /// Position in the buffer index
   int bufferIndex = 0;
 
   /// TermLib instance

@@ -1,4 +1,5 @@
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 
 typedef Theme = ({
   Style green,
@@ -19,9 +20,9 @@ Future<void> main() async {
   );
 
   final version = await t.queryTerminalVersion();
-  final keyCap = await t.requestKeyboardCapabilities();
-  final fgColor = await t.foregroundColor();
-  final bgColor = await t.backgroundColor();
+  final keyCap = await t.queryKeyboardCapabilities();
+  final fgColor = await t.foregroundColor;
+  final bgColor = await t.backgroundColor;
   final syncStatus = await t.querySyncUpdate();
   final keyEnhanced = await t.queryKeyboardEnhancementSupport();
   final deviceAttr = await t.queryPrimaryDeviceAttributes();

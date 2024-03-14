@@ -21,10 +21,8 @@ const _overlineSeq = '53';
 // const _crossOutSeqOff = '29';
 // const _overlineSeqOff = '55';
 
-/// Style represents a text string that hold Foreground and Background colors,
-/// and other text styles. The colors could be any of the supported, and at
-/// the time they are rendered, will be converted to the profile the style was
-/// defined on.
+/// Represents a text string that could have some properties as color and text
+/// styles.
 class Style {
   late final ProfileEnum _profile;
   final _styles = <String>[];
@@ -32,16 +30,18 @@ class Style {
   /// The text to show when render
   String text = '';
 
-  // dart doesn't support optional and named parameters yet
+  // Dart doesn't support optional and named parameters yet
   // https://github.com/dart-lang/language/issues/1076
   /// Creates a new Style.
-  Style(this.text, {ProfileEnum profile = ProfileEnum.ansi16}) : _profile = profile;
+  Style(this.text, {ProfileEnum profile = ProfileEnum.ansi256}) : _profile = profile;
 
   /// Allows calling directly the Style to set the text value.
   ///
   /// ex:
+  /// ```dart
   ///   final red = termlib.profile.style()..setFg(termlib.profile.getColor('red'));
-  ///   red('Hello!');
+  ///   termlib.write(red('Hello!'));
+  /// ```
   String call(String value) {
     setText(value);
     return toString();
@@ -83,6 +83,7 @@ class Style {
   /// Sets the overline style.
   void setOverline() => _styles.add(_overlineSeq);
 
+  /// Returns the ANSI representation of the Style.
   @override
   String toString() {
     if (_profile == ProfileEnum.noColor) return text;

@@ -24,35 +24,33 @@ enum ProfileEnum {
 // that a terminal program will use
 Map<(ProfileEnum, String), Color> _colorCache = {};
 
-/// A class representing a screen profile.
-///
-/// The Profile is used to convert colors to the current profile.
-/// Is not needed to use the library, but is convenient because will simplify
-/// the use of colors specially when TrueColor is used by default and need to
-/// display in a lower profile terminal, the color conversion will be automatic.
+/// Abstraction between colors and styles the application use and the
+/// supported by the terminal.
 class Profile {
   late ProfileEnum _profile;
 
-  /// Creates a new Profile. The default profile is ANSI 256.
+  /// Creates a new Profile. If not especified the default profile is ANSI 256.
   Profile({ProfileEnum profile = ProfileEnum.ansi256}) {
     _profile = profile;
   }
 
-  /// Returns an Style for the current profile
+  /// Returns an [Style] object for the current profile
   Style style([String content = '']) => Style(content, profile: _profile);
 
-  /// Returns the current profile.
+  /// Returns the current profile identifier.
   ProfileEnum get profile => _profile;
 
-  /// Tries to parse a string into a Color object
+  /// Tries to parse a string into a Color object. The resulting color will be
+  /// in the current profile.
   ///
-  /// If the color string is empty,  the [defaultColor] will be used, by default
-  /// defaultColor is [NoColor]
+  /// If the [color] parameters is empty, [defaultColor] parameter will be
+  /// used. If a default one is not indicated, [NoColor] will be used.
+  //
   /// If the color string starts with a '#', it is assumed to be an RGB color.
   /// If the color string is a number, it is assumed to be an ANSI 16 or 256 color,
-  /// if not, will return [defaultColor]
+  /// if no color can be resolved [defaultColor] is returned.
   ///
-  /// A color cache, using the profile and passed color, is used to save time.
+  /// A color cache, using the profile and passed color is used to save time.
   /// The function [clearColorCache] can be used to clear the cache.
   Color getColor(String color, {Color defaultColor = const NoColor()}) {
     if (color.isEmpty) return defaultColor;

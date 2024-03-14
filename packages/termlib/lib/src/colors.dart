@@ -3,6 +3,7 @@ import 'package:termansi/termansi.dart' as ansi;
 
 import './profile.dart';
 import 'shared/color_util.dart';
+import 'shared/int_extension.dart';
 import 'shared/string_extension.dart';
 
 const _foreground = 38;
@@ -35,19 +36,18 @@ class NoColor implements Color {
   String toString() => '';
 }
 
-/// ANSIColor is a color (0-15) as defined by the ANSI Standard.
+/// Color (0-15) as defined by the ANSI Standard.
 class Ansi16Color extends Equatable implements Color {
   /// The color value.
   late final int code;
 
   /// Creates a new Ansi16Color with the given color value.
   Ansi16Color(int color) {
-    if (color < 0 || color > 15) {
-      throw ArgumentError.value(color, 'color', 'Must be between 0 and 15');
-    }
+    if (color < 0 || color > 15) throw ArgumentError.value(color, 'color', 'Must be between 0 and 15');
     code = color;
   }
 
+  /// Returns the color's profile. For all the colors from this class is [ProfileEnum.ansi16].
   @override
   ProfileEnum get profile => ProfileEnum.ansi16;
 
@@ -62,20 +62,23 @@ class Ansi16Color extends Equatable implements Color {
   @override
   String toString() => code.toString();
 
+  /// @nodoc
   @override
   List<Object?> get props => [code];
+
+  /// @nodoc
+  @override
+  bool get stringify => false;
 }
 
-/// Represents an ANSI 256 color.
+/// Color (0-255) as defined by the ANSI Standard.
 class Ansi256Color extends Equatable implements Color {
   /// The color value.
   late final int code;
 
   /// Creates a new Ansi256Color with the given color value.
   Ansi256Color(int color) {
-    if (color < 0 || color > 255) {
-      throw ArgumentError.value(color, 'color', 'Must be between 0 and 255');
-    }
+    if (color < 0 || color > 255) throw ArgumentError.value(color, 'color', 'Must be between 0 and 255');
     code = color;
   }
 
@@ -105,32 +108,41 @@ class Ansi256Color extends Equatable implements Color {
     return Ansi16Color(index);
   }
 
+  /// @nodoc
   @override
   List<Object?> get props => [code];
+
+  /// @nodoc
+  @override
+  bool get stringify => false;
 }
 
 /// Represents a true color with RGB values.
 class TrueColor extends Equatable implements Color {
   /// The red value.
-  final int r;
+  late final int r;
 
   /// The green value.
-  final int g;
+  late final int g;
 
   /// The blue value.
-  final int b;
+  late final int b;
 
   /// String that represents the color in hexadecimal notation. ex: #DECAF0
-  final String hex;
+  late final String hex;
 
   /// Creates a new TrueColor with the given RGB values.
-  TrueColor(int red, int green, int blue)
-      : r = red.clamp(0, 255),
-        g = green.clamp(0, 255),
-        b = blue.clamp(0, 255),
-        hex = '#${red.clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
-            '${green.clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
-            '${blue.clamp(0, 255).toRadixString(16).padLeft(2, '0')}';
+  TrueColor(int red, int green, int blue) {
+    if (red < 0 || red > 255) throw ArgumentError.value(red, 'red', 'Must be between 0 and 255');
+    if (green < 0 || green > 255) throw ArgumentError.value(green, 'green', 'Must be between 0 and 255');
+    if (blue < 0 || blue > 255) throw ArgumentError.value(blue, 'blue', 'Must be between 0 and 255');
+
+    r = red;
+    g = green;
+    b = blue;
+
+    hex = '#${red.hex2}${green.hex2}${blue.hex2}';
+  }
 
   @override
   ProfileEnum get profile => ProfileEnum.trueColor;
@@ -170,12 +182,17 @@ class TrueColor extends Equatable implements Color {
   @override
   String toString() => hex;
 
-  /// Returns the distance between two TrueColors.
-  /// The return value is between 0 and 1. 0 means the colors are identical.
+  /// Returns the distance between the current color and the passed one.
+  /// The return a value is between 0 and 1. 0 means the colors are identical.
   double rgbDistance(TrueColor color2) {
     return calculateRedMeanDistance(this, color2);
   }
 
+  /// @nodoc
   @override
   List<Object?> get props => [r, g, b, hex];
+
+  /// @nodoc
+  @override
+  bool get stringify => false;
 }

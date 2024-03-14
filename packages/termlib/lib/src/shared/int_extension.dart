@@ -1,32 +1,10 @@
 /// Extension methods for [int].
 extension IntUtils on int {
-  /// Returns `true` if this is a printable character.
-  ///
-  /// quick check for printable characters. for more advanced check review
-  /// https://github.com/xxgreg/dart_printable_char
-  bool get isPrintable {
-    // Fast check for Latin-1
-    if (this <= 0xFF) {
-      if (0x20 <= this && this <= 0x7E) {
-        // All the ASCII is printable from space through DEL-1.
-        return true;
-      }
-      if (0xA1 <= this && this <= 0xFF) {
-        // Similarly for ¡ through ÿ...
-        return this != 0xAD; // ...except for the bizarre soft hyphen.
-      }
-    }
-    return false;
-  }
-
   /// Returns a string representation as hex value
   String get hex2 => toRadixString(16).padLeft(2, '0');
 
   /// Return the hex representation
   String toHexString({int padding = 2}) => toRadixString(16).padLeft(padding, '0');
-
-  /// Returns a string character representation if this is a printable character.
-  String get printable => isPrintable ? String.fromCharCode(this) : '.';
 
   /// Subtracts [other] from this integer, returning the result.
   ///

@@ -8,9 +8,14 @@ typedef LerpFunction = TrueColor Function(double t);
 
 /// Returns a function that interpolates between two colors.
 ///
+/// The returned function accepts a parameter betwee 0 and 1,
+/// being 0 the first color and 1 the second color.
+///
 /// ex:
+/// ```dart
 ///   final lerp = colorLerp(TrueColor(255, 0, 0), TrueColor(0, 255, 0));
 ///   final color = lerp(0.5); // color is TrueColor(127, 127, 0)
+/// ```
 LerpFunction colorLerp(TrueColor color1, TrueColor color2) {
   TrueColor lerp(double t) {
     final value = t.clamp(0.0, 1.0);

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:termlib/color_util.dart';
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 
 const snakeBody = ['▓', '▒', '░'];
 const boardLines = ['═', '║', '╔', '╗', '╚', '╝'];

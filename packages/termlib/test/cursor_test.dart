@@ -1,5 +1,6 @@
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
 import 'termlib_mock.dart';

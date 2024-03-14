@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 
-import './cycle.dart';
+import './shared.dart';
 
 typedef Theme = ({
   Style aqua,
@@ -43,7 +44,7 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
     ..writeln(' ')
     ..enableMouseEvents();
 
-  final caps = await t.requestKeyboardCapabilities();
+  final caps = await t.queryKeyboardCapabilities();
   t.writeln(showCapabilities(caps));
 
   final p = t.profile;

@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:termlib/src/shared/list_extension.dart';
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
+
+import './shared.dart';
 
 Future<void> main(List<String> arguments) async {
   final t = TermLib();
@@ -52,7 +55,7 @@ Future<void> keyViewer(TermLib t) async {
       final dataStr = seq.fold(
         StringBuffer(),
         (sb, e) => sb
-          ..write(green('${e.isPrintable ? String.fromCharCode(e) : e == 0x1b ? 'ESC' : '.'} ')),
+          ..write(green('${isPrintable(e) ? String.fromCharCode(e) : e == 0x1b ? 'ESC' : '.'} ')),
       );
 
       t.writeln('${gray('hex:')} $dataHex - ${gray('seq:')} $dataStr');

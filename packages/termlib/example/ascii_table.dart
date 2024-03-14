@@ -1,4 +1,7 @@
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
+
+import './shared.dart';
 
 const lhsCursor = '▌';
 const rhsCursor = '▐';
@@ -199,7 +202,7 @@ class AsciiTable {
     return switch (code) {
       < 33 => lowCodes[code].$1,
       127 => 'DEL',
-      _ => code.printable,
+      _ => printable(code),
     };
   }
 }

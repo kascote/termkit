@@ -55,11 +55,6 @@ class TermLib {
 
   /// Enables raw mode.
   ///
-  /// There are a series of flags applied to a UNIX-like terminal that together
-  /// constitute 'raw mode'. These flags turn off echoing of character input,
-  /// processing of input signals like Ctrl+C, and output processing, as well as
-  /// buffering of input until a full line is entered.
-  ///
   /// Raw mode is useful for console applications like text editors, which
   /// perform their own input and output processing, as well as for reading a
   /// single key from the input.
@@ -88,7 +83,7 @@ class TermLib {
     return original;
   }
 
-  /// Returns the current newline string.
+  /// Returns the current newline string honoring the raw mode.
   String get newLine => _isRawMode ? '\r\n' : '\n';
 
   /// Write the Object's string representation to the terminal.
@@ -116,7 +111,7 @@ class TermLib {
   /// background is full black, and 1 will return true if the background is
   /// full white.
   Future<bool> isBackgroundDark({double factor = 0.5}) async {
-    final color = await backgroundColor();
+    final color = await backgroundColor;
     final bgColor = Profile(profile: ProfileEnum.trueColor).convert(color);
     return colorLuminance(bgColor as TrueColor) < factor;
   }
@@ -245,7 +240,7 @@ class TermLib {
   /// Request keyboard capabilities
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  Future<KeyboardEnhancementFlagsEvent?> requestKeyboardCapabilities() async {
+  Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities() async {
     return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
       _stdout.write(ansi.Sup.requestKeyboardCapabilities);
 
@@ -339,7 +334,7 @@ class TermLib {
   /// Will try to resolve using OSC10 if available, if not will try to resolve
   /// using COLORFGBG environment variable if available, if not will default to
   /// Ansi color 7
-  Future<Color?> foregroundColor() async {
+  Future<Color?> get foregroundColor async {
     final result = await queryOSCStatus(10);
     if (result != null) return result;
 
@@ -360,7 +355,7 @@ class TermLib {
   /// Will try to resolve using OSC11 if available, if not will try to resolve
   /// using COLORFGBG environment variable if available, if not will default to
   /// Ansi color 0
-  Future<Color> backgroundColor() async {
+  Future<Color> get backgroundColor async {
     final result = await queryOSCStatus(11);
     if (result != null) return result;
 

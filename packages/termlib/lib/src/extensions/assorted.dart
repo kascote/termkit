@@ -1,5 +1,6 @@
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 
 ///
 extension AssortedExt on TermLib {

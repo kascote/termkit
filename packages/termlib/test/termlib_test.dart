@@ -10,7 +10,7 @@ void main() {
     test(
       'foregroundColor should return the foreground color',
       () {
-        expect(term.foregroundColor(), Ansi16Color(4));
+        expect(term.foregroundColor, Ansi16Color(4));
       },
       skip: 'need to implement mock',
     );
@@ -18,7 +18,7 @@ void main() {
     test(
       'backgroundColor should return the background color',
       () {
-        expect(term.backgroundColor(), Ansi256Color(243));
+        expect(term.backgroundColor, Ansi256Color(243));
       },
       skip: 'need to implement mock',
     );
