@@ -35,7 +35,7 @@ void main() {
 
     test('isTty should return true if the terminal is attached to a TTY', () {
       stdoutMock.clearCallStack();
-      expect(term.isInteractive, isFalse);
+      expect(term.isInteractive, isTrue);
       expect(stdoutMock.callStack[0], 'hasTerminal');
     });
 

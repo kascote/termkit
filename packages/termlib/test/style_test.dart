@@ -14,12 +14,12 @@ void main() {
     });
 
     test('should setup foreground color', () {
-      final s = Style('Hello World')..setFg(Ansi16Color(1));
+      final s = Style('Hello World', profile: ProfileEnum.ansi16)..setFg(Ansi16Color(1));
       expect(s.toString(), equals('\x1B[31mHello World\x1B[0m'));
     });
 
     test('should setup background color', () {
-      final s = Style('Hello World')..setBg(Ansi16Color(1));
+      final s = Style('Hello World', profile: ProfileEnum.ansi16)..setBg(Ansi16Color(1));
       expect(s.toString(), equals('\x1B[41mHello World\x1B[0m'));
     });
 
@@ -59,7 +59,7 @@ void main() {
     });
 
     test('should be able to setup all modes at the same time', () {
-      final s = Style('Hello World')
+      final s = Style('Hello World', profile: ProfileEnum.ansi16)
         ..setFg(Ansi16Color(7))
         ..setBg(Ansi16Color(4))
         ..setBold()

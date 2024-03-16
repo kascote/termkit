@@ -4,7 +4,7 @@ import 'package:termlib/termlib.dart';
 
 void main() {
   final t = TermLib();
-  final p = t.profile;
+  final s = t.style;
 
   t
     ..enableAlternateScreen()
@@ -14,7 +14,7 @@ void main() {
     ..writeAt(
       10,
       10,
-      p.style('Hello, World!')..setFg(t.profile.getColor('yellow')),
+      s('Hello, World!')..setFg(Color.make('yellow')),
     );
 
   sleep(const Duration(seconds: 2));

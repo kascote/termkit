@@ -45,6 +45,7 @@ class Readline {
 
     final r = Readline._(t, pos ?? (col: buf.length, row: 0), buf);
     r.bufferIndex = r.buffer.length;
+
     return r;
   }
 

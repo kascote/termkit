@@ -34,10 +34,10 @@ Future<void> keyViewer(TermLib t) async {
     ..writeln('Press any key to see the key details.')
     ..writeln('Press ESC to exit.');
 
-  final p = t.profile;
-  final cyan = p.style()..setFg(p.getColor('cyan'));
-  final green = p.style()..setFg(p.getColor('green'));
-  final gray = p.style()..setFg(p.getColor('webGray'));
+  final s = t.style;
+  final cyan = s()..setFg(Color.make('cyan'));
+  final green = s()..setFg(Color.make('green'));
+  final gray = s()..setFg(Color.make('webGray'));
 
   try {
     while (true) {

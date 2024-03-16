@@ -7,7 +7,7 @@ void main() {
     if (i == 8) term.write('\n');
     final clrNum = i.toString().padLeft(3);
 
-    final style = Style('  $clrNum  ')
+    final style = Style('  $clrNum  ', profile: ProfileEnum.ansi16)
       ..setBg(Ansi16Color(i))
       ..setFg(i < 7 ? Ansi16Color(7) : Ansi16Color(0));
 
@@ -52,7 +52,7 @@ void main() {
     final b = (i * 255 / total).floor(); // % 255;
     if (g > 255) g = 510 - g;
 
-    final style = Style('·')
+    final style = Style('·', profile: ProfileEnum.trueColor)
       ..setFg(TrueColor(r, g, b))
       ..setBg(TrueColor(255 - r, 255 - g, 255 - b));
 

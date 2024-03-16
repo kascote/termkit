@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:io' show IOSink, Stdout;
 
-import 'package:termlib/src/colors.dart';
-import 'package:termlib/src/profile.dart';
+import 'package:termlib/termlib.dart';
 
 class TermMock {
   late ProfileEnum _colorProfile;
@@ -63,7 +62,7 @@ class MockStdout implements Stdout {
   @override
   bool get hasTerminal {
     callStack.add('hasTerminal');
-    return false;
+    return true;
   }
 
   @override

@@ -8,14 +8,29 @@ import '../color_util.dart';
 import './colors.dart';
 import './extensions/assorted.dart';
 import './ffi/termos.dart';
-import './profile.dart';
 import './readline.dart';
+import './style.dart';
 
 /// Type similar to Platform.environment, used for dependency injection
 typedef EnvironmentData = Map<String, String>;
 
 /// Record that represent a coordinate position
 typedef Pos = ({int row, int col});
+
+/// Enumeration representing different profiles.
+enum ProfileEnum {
+  /// Represents a no color profile.
+  noColor,
+
+  /// Represents an ANSI 16 color.
+  ansi16,
+
+  /// Represents an ANSI 256 color.
+  ansi256,
+
+  /// Represents an RGB color.
+  trueColor,
+}
 
 final _broadcastStream = stdin.asBroadcastStream();
 
@@ -30,7 +45,7 @@ class TermLib {
   ///
   /// The profile is resolved when the [TermLib] instance is created.
   /// It will use the value returned by the [envColorProfile] function.
-  late Profile profile;
+  late ProfileEnum profile;
 
   /// Initialize the Terminal
   ///
@@ -43,7 +58,7 @@ class TermLib {
     _stdout = stdoutAdapter ?? stdout;
     _env = env ?? Platform.environment;
     _termOs = TermOs(); // terminalAdapter ?? termAdapter(stdoutAdapter: stdoutAdapter, env: env);
-    this.profile = Profile(profile: profile ?? envColorProfile());
+    this.profile = profile ?? envColorProfile();
   }
 
   /// Returns true if the terminal is attached to an interactive terminal session.
@@ -83,6 +98,9 @@ class TermLib {
     return original;
   }
 
+  /// Returns a [Style] object for the current profile
+  Style style([String content = '']) => Style(content, profile: profile);
+
   /// Returns the current newline string honoring the raw mode.
   String get newLine => _isRawMode ? '\r\n' : '\n';
 
@@ -112,8 +130,8 @@ class TermLib {
   /// full white.
   Future<bool> isBackgroundDark({double factor = 0.5}) async {
     final color = await backgroundColor;
-    final bgColor = Profile(profile: ProfileEnum.trueColor).convert(color);
-    return colorLuminance(bgColor as TrueColor) < factor;
+    final bgColor = color.convert(ProfileEnum.trueColor) as TrueColor;
+    return colorLuminance(bgColor) < factor;
   }
 
   /// Read cursor position on the terminal and return a [Pos] record
@@ -314,6 +332,7 @@ class TermLib {
 
     switch (envTerm) {
       case 'kitty':
+      case 'xterm-kitty':
       case 'wezterm':
       case 'alacritty':
       case 'contour':

@@ -42,3 +42,50 @@ double colorLuminance(TrueColor color) {
 
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+
+/// HSV color definition
+typedef HSV = ({
+  double h,
+  double s,
+  double v,
+});
+
+/// Convert a TrueColor color to HSV
+//
+// borrow from https://github.com/Qix-/color-convert/blob/master/conversions.js#L97
+HSV rgbToHsv(TrueColor color) {
+  final r = color.r / 255;
+  final g = color.g / 255;
+  final b = color.b / 255;
+  final v = math.max(r, math.max(g, b));
+  final diff = v - math.min(r, math.min(g, b));
+  double diffc(double c) {
+    return (v - c) / 6 / diff + 1 / 2;
+  }
+
+  var h = 0.0;
+  var s = 0.0;
+
+  if (diff != 0) {
+    s = diff / v;
+    final rdif = diffc(r);
+    final gdif = diffc(g);
+    final bdif = diffc(b);
+
+    if (r == v) {
+      h = bdif - gdif;
+    } else if (g == v) {
+      h = (1 / 3) + rdif - bdif;
+    } else if (b == v) {
+      h = (2 / 3) + gdif - rdif;
+    }
+
+    if (h < 0) {
+      h += 1;
+    } else if (h > 1) {
+      h -= 1;
+    }
+  }
+
+  return (h: h * 360, s: s * 100, v: v * 100);
+}

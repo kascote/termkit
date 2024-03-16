@@ -50,21 +50,21 @@ class AsciiTable {
   late Theme colors;
 
   AsciiTable(TermLib term) : _term = term {
-    final p = _term.profile;
+    final s = _term.style;
 
     colors = (
-      codes: p.style()..setFg(p.getColor('aqua')),
-      text: p.style()..setFg(p.getColor('grayWeb')),
-      cursor: p.style()
-        ..setFg(p.getColor('white'))
-        ..setBg(p.getColor('darkRed')),
-      cursorSide: p.style()
-        ..setFg(p.getColor('red'))
-        ..setBg(p.getColor('darkRed')),
-      muted: p.style()..setFg(p.getColor('dimGray')),
-      hotKeys: p.style()
-        ..setFg(p.getColor('white'))
-        ..setBg(p.getColor('dimGray')),
+      codes: s()..setFg(Color.make('aqua')),
+      text: s()..setFg(Color.make('grayWeb')),
+      cursor: s()
+        ..setFg(Color.make('white'))
+        ..setBg(Color.make('darkRed')),
+      cursorSide: s()
+        ..setFg(Color.make('red'))
+        ..setBg(Color.make('darkRed')),
+      muted: s()..setFg(Color.make('dimGray')),
+      hotKeys: s()
+        ..setFg(Color.make('white'))
+        ..setBg(Color.make('dimGray')),
     );
   }
 

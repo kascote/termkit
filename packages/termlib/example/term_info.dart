@@ -11,12 +11,12 @@ typedef Theme = ({
 Future<void> main() async {
   final t = TermLib()..enableRawMode();
 
-  final p = t.profile;
+  final s = t.style;
   final theme = (
-    magenta: p.style()..setFg(p.getColor('201')),
-    green: p.style()..setFg(p.getColor('40')),
-    yellow: p.style()..setFg(p.getColor('190')),
-    error: p.style()..setFg(p.getColor('160')),
+    magenta: s()..setFg(Color.make('201')),
+    green: s()..setFg(Color.make('40')),
+    yellow: s()..setFg(Color.make('190')),
+    error: s()..setFg(Color.make('160')),
   );
 
   final version = await t.queryTerminalVersion();
@@ -30,7 +30,7 @@ Future<void> main() async {
   t
     ..writeln('Terminal version: ${theme.green(version)}')
     ..writeln('dimensions ${theme.green('${t.windowWidth}x${t.windowHeight}')}')
-    ..writeln('Color profile: ${theme.green(p.profile.name)}')
+    ..writeln('Color profile: ${theme.green(t.profile.name)}')
     ..writeln('Sync update status: ${renderValue(syncStatus?.name ?? 'unsupported', theme)}')
     ..writeln('Foreground color: ${theme.yellow(fgColor.toString())}')
     ..writeln('Background color: ${theme.yellow(bgColor.toString())}')
@@ -56,21 +56,33 @@ void showKeyboardCapabilities(TermLib t, Theme theme, KeyboardEnhancementFlagsEv
     return t.writeln(theme.error('unable to retrieve keyboard capabilities'));
   }
 
-  String showFlag(bool value, String name) => '  ${renderValue(value.toString(), theme)} $name';
+  String showFlag(String value, String name) => '  ${renderValue(value, theme)} $name';
 
   t
     ..writeln('Keyboard capabilities:')
     ..writeln(
-      '  ${showFlag(flags.has(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes), "Disambiguate Escape Codes")}',
+      '  ${showFlag(
+        flags.has(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes).toString(),
+        "Disambiguate Escape Codes",
+      )}',
     )
     ..writeln(
-      '  ${showFlag(flags.has(KeyboardEnhancementFlagsEvent.reportEventTypes), "Report Event Types")}',
+      '  ${showFlag(
+        flags.has(KeyboardEnhancementFlagsEvent.reportEventTypes).toString(),
+        "Report Event Types",
+      )}',
     )
     ..writeln(
-      '  ${showFlag(flags.has(KeyboardEnhancementFlagsEvent.reportAlternateKeys), "Report Alternate Keys")}',
+      '  ${showFlag(
+        flags.has(KeyboardEnhancementFlagsEvent.reportAlternateKeys).toString(),
+        "Report Alternate Keys",
+      )}',
     )
     ..writeln(
-      '  ${showFlag(flags.has(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes), "Report All Keys As Escape Codes")}',
+      '  ${showFlag(
+        flags.has(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes).toString(),
+        "Report All Keys As Escape Codes",
+      )}',
     );
 }
 
@@ -86,5 +98,8 @@ void showDeviceAttr(TermLib t, PrimaryDeviceAttributesEvent? deviceAttr, Theme t
     t.writeln('    ${theme.yellow('no params')}');
     return;
   }
-  deviceAttr.params.forEach((p) => t.writeln('    ${theme.green(p.name)}'));
+
+  for (final p in deviceAttr.params) {
+    t.writeln('    ${theme.green(p.name)}');
+  }
 }

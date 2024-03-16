@@ -1,7 +1,7 @@
 import 'package:termansi/termansi.dart' as ansi;
 
 import './colors.dart';
-import './profile.dart';
+import './termlib_base.dart';
 
 const _resetSeq = '0';
 const _boldSeq = '1';
@@ -54,10 +54,10 @@ class Style {
   void setText(String value) => text = value;
 
   /// Sets the foreground color.
-  void setFg(Color color) => _styles.add(color.sequence());
+  void setFg(Color color) => _styles.add(color.convert(_profile).sequence());
 
   /// Sets the background color.
-  void setBg(Color color) => _styles.add(color.sequence(background: true));
+  void setBg(Color color) => _styles.add(color.convert(_profile).sequence(background: true));
 
   /// Sets the bold style.
   void setBold() => _styles.add(_boldSeq);

@@ -18,6 +18,7 @@ void main() async {
 
   try {
     final game = SnakeGame(t);
+    t.writeAt(1, 30, t.profile.name);
 
     await t.withRawModeAsync<void>(() async {
       game.drawBoard();
@@ -188,10 +189,10 @@ class SnakeGame {
   }
 
   void redraw() {
-    final p = _term.profile;
-    final dataStyle = p.style()..setFg(p.getColor('webGray'));
-    final fruitStyle = p.style(fruitIcon)..setFg(p.getColor('orangeRed'));
-    final scoreStyle = p.style('Score: ${score.toString().padLeft(4)}')..setFg(p.getColor('gold'));
+    final s = _term.style;
+    final dataStyle = s()..setFg(Color.make('webGray'));
+    final fruitStyle = s(fruitIcon)..setFg(Color.make('orangeRed'));
+    final scoreStyle = s('Score: ${score.toString().padLeft(4)}')..setFg(Color.make('gold'));
     final cl = colorLerp(_headColor, _tailColor);
 
     for (var i = 0; i < snake.length; i++) {
@@ -201,8 +202,8 @@ class SnakeGame {
       if (i == 0) body = snakeBody[0];
       if (i == snake.length - 1) body = snakeBody[2];
 
-      final c = p.getColor(cl(i / (snake.length - 1)).hex);
-      _term.write(p.style(body)..setFg(c));
+      final c = Color.make(cl(i / (snake.length - 1)).hex);
+      _term.write(s(body)..setFg(c));
     }
     _term
       ..startSyncUpdate()
@@ -220,9 +221,9 @@ class SnakeGame {
   }
 
   void drawBoard() {
-    final p = _term.profile;
-    final c = status == Finish.lose ? p.getColor('indianRed') : p.getColor('webGray');
-    final s = p.style()..setFg(c);
+    final ts = _term.style;
+    final c = status == Finish.lose ? Color.make('indianRed') : Color.make('webGray');
+    final s = ts()..setFg(c);
 
     for (var i = 0; i < cols; i++) {
       _term
@@ -243,10 +244,10 @@ class SnakeGame {
   }
 
   Future<bool> startPage() async {
-    final p = _term.profile;
-    final whiteStyle = p.style()..setFg(p.getColor('white'));
-    final grayStyle = p.style()..setFg(p.getColor('webGray'));
-    final redStyle = p.style()..setFg(p.getColor('red'));
+    final s = _term.style;
+    final whiteStyle = s()..setFg(Color.make('white'));
+    final grayStyle = s()..setFg(Color.make('webGray'));
+    final redStyle = s()..setFg(Color.make('red'));
 
     _term
       ..writeAt(10, 10, whiteStyle('S N A K E S'))

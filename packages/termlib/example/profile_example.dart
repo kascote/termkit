@@ -2,24 +2,21 @@ import 'package:termlib/termlib.dart';
 
 void main() {
   final t = TermLib();
-  final p16 = Profile(profile: ProfileEnum.ansi16);
-  final p256 = Profile();
-  final ptc = Profile(profile: ProfileEnum.trueColor);
 
-  final c16 = p16.getColor('#00ffff') as Ansi16Color;
-  final c256 = p256.getColor('#00ffff') as Ansi256Color;
-  final ctc = ptc.getColor('#00ffff') as TrueColor;
+  final c16 = Color.make('#00ffff').convert(ProfileEnum.ansi16);
+  final c256 = Color.make('#00ffff').convert(ProfileEnum.ansi256);
+  final ctc = Color.make('#00ffff');
 
-  t.writeln('ask for the true color ${ctc.hex} on different profiles');
+  t.writeln('ask for the true color $ctc on different profiles');
 
   final out = [
-    p16.style('hello world 16 - ${c16.code}')
+    t.style('hello world 16 - $c16')
       ..setFg(c16)
       ..toString(),
-    p256.style('Hello World 256 - ${c256.code}')
+    t.style('Hello World 256 - $c256')
       ..setFg(c256)
       ..toString(),
-    ptc.style('Hello World Tc - ${ctc.hex}')
+    t.style('Hello World Tc - $ctc')
       ..setFg(ctc)
       ..toString(),
   ];

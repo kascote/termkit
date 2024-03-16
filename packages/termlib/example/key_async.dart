@@ -30,11 +30,11 @@ Future<void> main(List<String> arguments) async {
       ..flushThenExit(0);
   });
 
-  await t.withRawModeAsync(() => keyViewer(t, withKitty));
+  await t.withRawModeAsync(() => keyViewer(t, withKitty: withKitty));
   await t.flushThenExit(0);
 }
 
-Future<void> keyViewer(TermLib t, bool withKitty) async {
+Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
   final cycle = Cycle(['|', '/', '-', r'\']);
   final tick = Timer.periodic(const Duration(milliseconds: 100), (timer) => timer.tick);
 
@@ -47,14 +47,14 @@ Future<void> keyViewer(TermLib t, bool withKitty) async {
   final caps = await t.queryKeyboardCapabilities();
   t.writeln(showCapabilities(caps));
 
-  final p = t.profile;
+  final s = t.style;
   final colors = (
-    aqua: p.style()..setFg(p.getColor('aqua')),
-    indianRed: p.style()..setFg(p.getColor('indianRed')),
-    darkCyan: p.style()..setFg(p.getColor('darkCyan')),
-    magenta: p.style()..setFg(p.getColor('magenta')),
-    webGray: p.style()..setFg(p.getColor('webGray')),
-    error: p.style()..setFg(p.getColor('red')),
+    aqua: s()..setFg(Color.make('aqua')),
+    indianRed: s()..setFg(Color.make('indianRed')),
+    darkCyan: s()..setFg(Color.make('darkCyan')),
+    magenta: s()..setFg(Color.make('magenta')),
+    webGray: s()..setFg(Color.make('webGray')),
+    error: s()..setFg(Color.make('red')),
   );
 
   try {
