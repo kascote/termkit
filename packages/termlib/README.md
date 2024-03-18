@@ -26,6 +26,7 @@ Add `termlib` to your `pubspec.yaml` file:
 ```yaml
 dependencies:
   termlib: ^0.1.0
+  termparser: ^0.1.0
 ```
 
 Then, run `flutter pub get` to fetch the package.
@@ -61,7 +62,7 @@ Future<void> main() async {
 
 ## Examples
 
-You can find more examples of how to use `termlib` in the [example directory](packages/termlib/example).
+You can find more examples of how to use `termlib` in the [example directory](example).
 
 ## Acknowledges
 
