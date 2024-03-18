@@ -1,8 +1,9 @@
 # TermParser
 
-ANSI escape sequence parser.
+ANSI Terminal escape sequence parser.
 
-This parser is loose implementation of Paul Flo Williams' [VT500-series parser](https://vt100.net/emu/dec_ansi_parser).
+This parser is loose implementation of Paul Flo Williams' [VT500-series parser](https://vt100.net/emu/dec_ansi_parser). It take a lot of ideas from the [annes](https://github.com/qwandor/anes-rs) project, and
+extends it in some areas.
 
 ## Features
 
@@ -24,14 +25,14 @@ This is a simple example how to get started with the package.
   final parser = Parser();
   // ESC [ 20 ; 10 R
   parser.advance([0x1B, 0x5B, 0x32, 0x30, 0x3B, 0x31, 0x30, 0x52]);
-  assert(parser.moveNext(), 'move next');
+  assert(parser.moveNext(), 'unable to get next sequence');
   assert(parser.current == const CursorPositionEvent(20, 10), 'retrieve event');
   assert(parser.moveNext() == false, 'no more events');
 ```
 
 ## Acknowledgements
 
-This package takes a _**lot**_ of inspiration and ideas from this two great packages:
+This package is _**heavily**_ inspired by the following projects:
 
-- [vaxis](https://git.sr.ht/~rockorager/vaxis)
 - [annes](https://github.com/qwandor/anes-rs)
+- [vaxis](https://git.sr.ht/~rockorager/vaxis)

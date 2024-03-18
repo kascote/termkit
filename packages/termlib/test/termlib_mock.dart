@@ -74,10 +74,16 @@ class MockStdout implements Stdout {
   bool get supportsAnsiEscapes => false;
 
   @override
-  int get terminalColumns => 80;
+  int get terminalColumns {
+    callStack.add('terminalColumns');
+    return 80;
+  }
 
   @override
-  int get terminalLines => 40;
+  int get terminalLines {
+    callStack.add('terminalLines');
+    return 40;
+  }
 
   @override
   void add(List<int> data) {

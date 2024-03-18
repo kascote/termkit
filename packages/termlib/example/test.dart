@@ -2,25 +2,21 @@ import 'dart:io';
 
 import 'package:termlib/termlib.dart';
 
-void main() {
+Future<void> main() async {
   final t = TermLib();
-  final s = t.style;
+  final color = await t.isBackgroundDark() ? Color('yellow') : Color('blue');
 
   t
     ..enableAlternateScreen()
     ..eraseClear()
     ..cursorHide()
     ..setTerminalTitle('My Terminal Application')
-    ..writeAt(
-      10,
-      10,
-      s('Hello, World!')..setFg(Color.make('yellow')),
-    );
+    ..writeAt(5, 5, t.style('Hello, World!')..fg(color));
 
   sleep(const Duration(seconds: 2));
 
   t
     ..disableAlternateScreen()
-    ..cursorShow()
-    ..flushThenExit(0);
+    ..cursorShow();
+  await t.flushThenExit(0);
 }

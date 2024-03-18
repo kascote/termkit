@@ -1,3 +1,6 @@
+/// Color utility functions
+library;
+
 import 'dart:math' as math;
 
 import 'src/colors.dart';

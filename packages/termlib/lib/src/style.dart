@@ -3,6 +3,33 @@ import 'package:termansi/termansi.dart' as ansi;
 import './colors.dart';
 import './termlib_base.dart';
 
+/// Text Styles that can be applied to a [Style] object.
+enum TextStyle {
+  /// Bold
+  bold,
+
+  /// Faint
+  faint,
+
+  /// Italic
+  italic,
+
+  /// Underline
+  underline,
+
+  /// Blink
+  blink,
+
+  /// Reverse
+  reverse,
+
+  /// Crossout
+  crossOut,
+
+  /// Overline
+  overline,
+}
+
 const _resetSeq = '0';
 const _boldSeq = '1';
 const _faintSeq = '2';
@@ -54,34 +81,48 @@ class Style {
   void setText(String value) => text = value;
 
   /// Sets the foreground color.
-  void setFg(Color color) => _styles.add(color.convert(_profile).sequence());
+  void fg(Color color) => _styles.add(color.convert(_profile).sequence());
 
   /// Sets the background color.
-  void setBg(Color color) => _styles.add(color.convert(_profile).sequence(background: true));
+  void bg(Color color) => _styles.add(color.convert(_profile).sequence(background: true));
 
   /// Sets the bold style.
-  void setBold() => _styles.add(_boldSeq);
+  void bold() => _styles.add(_boldSeq);
 
   /// Sets the faint style.
-  void setFaint() => _styles.add(_faintSeq);
+  void faint() => _styles.add(_faintSeq);
 
   /// Sets the italic style.
-  void setItalic() => _styles.add(_italicSeq);
+  void italic() => _styles.add(_italicSeq);
 
   /// Sets the underline style.
-  void setUnderline() => _styles.add(_underlineSeq);
+  void underline() => _styles.add(_underlineSeq);
 
   /// Sets the blink style.
-  void setBlink() => _styles.add(_blinkSeq);
+  void blink() => _styles.add(_blinkSeq);
 
   /// Sets the reverse style.
-  void setReverse() => _styles.add(_reverseSeq);
+  void reverse() => _styles.add(_reverseSeq);
 
   /// Sets the cross out style.
-  void setCrossOut() => _styles.add(_crossOutSeq);
+  void crossout() => _styles.add(_crossOutSeq);
 
   /// Sets the overline style.
-  void setOverline() => _styles.add(_overlineSeq);
+  void overline() => _styles.add(_overlineSeq);
+
+  /// Apply a TextStyle to the Style object
+  void apply(TextStyle style) {
+    return switch (style) {
+      TextStyle.bold => bold(),
+      TextStyle.faint => faint(),
+      TextStyle.italic => italic(),
+      TextStyle.underline => underline(),
+      TextStyle.blink => blink(),
+      TextStyle.reverse => reverse(),
+      TextStyle.crossOut => crossout(),
+      TextStyle.overline => overline(),
+    };
+  }
 
   /// Returns the ANSI representation of the Style.
   @override

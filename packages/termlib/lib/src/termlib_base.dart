@@ -6,7 +6,7 @@ import 'package:termparser/termparser.dart';
 
 import '../color_util.dart';
 import './colors.dart';
-import './extensions/assorted.dart';
+import './extensions/term.dart';
 import './ffi/termos.dart';
 import './readline.dart';
 import './style.dart';
@@ -42,7 +42,6 @@ class TermLib {
   bool _isRawMode = false;
 
   /// The current terminal profile to use.
-  ///
   /// The profile is resolved when the [TermLib] instance is created.
   /// It will use the value returned by the [envColorProfile] function.
   late ProfileEnum profile;
@@ -172,7 +171,9 @@ class TermLib {
   /// Returns the color profile based on environment variables inspection.
   ///
   /// `ProfileEnum.noColor` if `NO_COLOR` environment variable is set
+  ///
   /// `ProfileEnum.ansi16` if `CLICOLOR_FORCE` is set.
+  ///
   /// `ProfileEnum.trueColor` or `ProfileEnum.ansi256` depending on TERM and
   /// TERMENV environment variables
   ProfileEnum envColorProfile() {
@@ -237,8 +238,8 @@ class TermLib {
     return completer.future;
   }
 
-  /// Enables raw mode and executes the provided asynchronous function.
-  /// on return sets raw mode back to its previous value
+  /// Enables raw mode and executes the provided function.
+  /// On return sets raw mode back to its previous value
   T withRawMode<T>(T Function() fn) {
     final original = _setRawMode(true);
     try {
@@ -249,7 +250,7 @@ class TermLib {
   }
 
   /// Enables raw mode and executes the provided asynchronous function.
-  /// on return sets raw mode back to its previous value
+  /// On return sets raw mode back to its previous value
   Future<T> withRawModeAsync<T>(Future<T> Function() fn) async {
     final original = _setRawMode(true);
     return fn().whenComplete(() => _setRawMode(original));
@@ -353,7 +354,7 @@ class TermLib {
   /// Will try to resolve using OSC10 if available, if not will try to resolve
   /// using COLORFGBG environment variable if available, if not will default to
   /// Ansi color 7
-  Future<Color?> get foregroundColor async {
+  Future<Color> get foregroundColor async {
     final result = await queryOSCStatus(10);
     if (result != null) return result;
 
@@ -390,7 +391,8 @@ class TermLib {
     return Ansi16Color(0);
   }
 
-  /// readline
+  /// Reads text from the input stream until ENTER or ESC is pressed.
+  /// Basic line editing is supported, including backspace and delete.
   Future<String> readLine([String initBuffer = '']) async {
     return (await Readline.create(this, initBuffer)).read();
   }

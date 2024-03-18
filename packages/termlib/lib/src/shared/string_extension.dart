@@ -20,22 +20,4 @@ extension StringExtension on String {
   int parseHex() {
     return int.parse(trim(), radix: 16);
   }
-
-  /// Try to parse the string to an int assuming is a hexadecimal representation.
-  static String? tryFromCharCode(int charCode) {
-    try {
-      return String.fromCharCode(charCode);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Returns `true` if the string is uppercase.
-  bool isUpperCase() {
-    if (length == 0) return false;
-    final codePoint = codeUnitAt(0);
-    // 0 through 9 returns true for toUpperCase
-    if (codePoint >= 0x30 && codePoint <= 0x39) return true;
-    return this == toUpperCase();
-  }
 }

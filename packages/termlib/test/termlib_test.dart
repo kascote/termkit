@@ -42,6 +42,48 @@ void main() {
     test('hasDarkBackground should return true if the terminal has a dark background', () async {
       expect(await term.isBackgroundDark(), isTrue);
     });
+
+    test('write', () {
+      stdoutMock.clearOutput();
+      term.write('hello world');
+      expect(stdoutMock.buf.toString(), 'hello world');
+    });
+
+    test('writeln', () {
+      stdoutMock.clearOutput();
+      term.writeln('hello world');
+      expect(stdoutMock.buf.toString(), 'hello world\n');
+    });
+
+    test('writeAt', () {
+      stdoutMock.clearOutput();
+      term.writeAt(10, 11, 'hello world');
+      expect(stdoutMock.buf.toString(), '\x1B[10;11Hhello world');
+    });
+
+    test('style', () {
+      final s = term.style();
+      expect(s, isA<Style>());
+      expect(s.text, '');
+    });
+
+    test('cursorPosition', () async {
+      stdoutMock.clearOutput();
+      await term.cursorPosition;
+      expect(stdoutMock.buf.toString(), '\x1B[6n');
+    });
+
+    test('windowWidth', () async {
+      stdoutMock.clearCallStack();
+      term.windowWidth;
+      expect(stdoutMock.callStack, ['hasTerminal', 'terminalColumns']);
+    });
+
+    test('windowHeight', () async {
+      stdoutMock.clearCallStack();
+      term.windowHeight;
+      expect(stdoutMock.callStack, ['hasTerminal', 'terminalLines']);
+    });
   });
 
   group('noColor >', () {

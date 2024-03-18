@@ -35,9 +35,9 @@ Future<void> keyViewer(TermLib t) async {
     ..writeln('Press ESC to exit.');
 
   final s = t.style;
-  final cyan = s()..setFg(Color.make('cyan'));
-  final green = s()..setFg(Color.make('green'));
-  final gray = s()..setFg(Color.make('webGray'));
+  final cyan = s()..fg(Color('cyan'));
+  final green = s()..fg(Color('green'));
+  final gray = s()..fg(Color('webGray'));
 
   try {
     while (true) {

@@ -104,6 +104,11 @@ void main() {
       expect(stdoutMock.buf.toString(), equals('\x1b[?12l'));
     });
 
+    test('should move the cursor to home position', () {
+      term.moveHome();
+      expect(stdoutMock.buf.toString(), equals('\x1B[H'));
+    });
+
     test('should set the cursor style', () {
       term.setCursorStyle(ansi.CursorStyle.defaultUserShape);
       expect(stdoutMock.buf.toString(), equals('\x1b[0 q'));

@@ -5,8 +5,8 @@
 library;
 
 export 'src/colors.dart';
-export 'src/extensions/assorted.dart';
 export 'src/extensions/cursor.dart';
 export 'src/extensions/erase.dart';
+export 'src/extensions/term.dart';
 export 'src/style.dart';
 export 'src/termlib_base.dart';

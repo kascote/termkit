@@ -53,18 +53,18 @@ class AsciiTable {
     final s = _term.style;
 
     colors = (
-      codes: s()..setFg(Color.make('aqua')),
-      text: s()..setFg(Color.make('grayWeb')),
+      codes: s()..fg(Color('aqua')),
+      text: s()..fg(Color('grayWeb')),
       cursor: s()
-        ..setFg(Color.make('white'))
-        ..setBg(Color.make('darkRed')),
+        ..fg(Color('white'))
+        ..bg(Color('darkRed')),
       cursorSide: s()
-        ..setFg(Color.make('red'))
-        ..setBg(Color.make('darkRed')),
-      muted: s()..setFg(Color.make('dimGray')),
+        ..fg(Color('red'))
+        ..bg(Color('darkRed')),
+      muted: s()..fg(Color('dimGray')),
       hotKeys: s()
-        ..setFg(Color.make('white'))
-        ..setBg(Color.make('dimGray')),
+        ..fg(Color('white'))
+        ..bg(Color('dimGray')),
     );
   }
 

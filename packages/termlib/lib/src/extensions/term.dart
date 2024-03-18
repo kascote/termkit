@@ -2,8 +2,8 @@ import 'package:termansi/termansi.dart' as ansi;
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
-///
-extension AssortedExt on TermLib {
+/// Support function that add some extra features to the terminal.
+extension TermUtils on TermLib {
   /// Write a hyperlink to the terminal.
   void hyperlink(String link, String name) => write(ansi.Sup.hyperLink(link, name));
 

@@ -13,10 +13,10 @@ Future<void> main() async {
 
   final s = t.style;
   final theme = (
-    magenta: s()..setFg(Color.make('201')),
-    green: s()..setFg(Color.make('40')),
-    yellow: s()..setFg(Color.make('190')),
-    error: s()..setFg(Color.make('160')),
+    magenta: s()..fg(Color('201')),
+    green: s()..fg(Color('40')),
+    yellow: s()..fg(Color('190')),
+    error: s()..fg(Color('160')),
   );
 
   final version = await t.queryTerminalVersion();

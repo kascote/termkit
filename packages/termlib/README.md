@@ -39,33 +39,40 @@ import 'dart:io';
 
 import 'package:termlib/termlib.dart';
 
-void main() {
+Future<void> main() async {
   final t = TermLib();
-  final p = t.profile;
+  final color = await t.isBackgroundDark() ? Color('yellow') : Color('blue');
 
   t
     ..enableAlternateScreen()
     ..eraseClear()
     ..cursorHide()
     ..setTerminalTitle('My Terminal Application')
-    ..writeAt(
-      10,
-      10,
-      p.style('Hello, World!')..setFg(t.profile.getColor('yellow')),
-    );
+    ..writeAt(5, 5, t.style('Hello, World!')..fg(color));
 
   sleep(const Duration(seconds: 2));
 
   t
     ..disableAlternateScreen()
-    ..cursorShow()
-    ..flushThenExit(0);
+    ..cursorShow();
+  await t.flushThenExit(0);
 }
 ```
 
 ## Examples
 
 You can find more examples of how to use `termlib` in the [example directory](packages/termlib/example).
+
+## Acknowledges
+
+This library __borrows a lot__ of inspiration and ideas from this other great libraries:
+
+- [dart_console](https://github.com/timsneath/dart_console)
+- [crossterm](https://github.com/crossterm-rs/crossterm)
+- [termenv](https://github.com/muesli/termenv)
+- [termwiz](https://github.com/wez/wezterm/tree/main/termwiz)
+- [vaxis](https://sr.ht/~rockorager/vaxis/)
+- [mason](https://github.com/felangel/mason)
 
 ## License
 

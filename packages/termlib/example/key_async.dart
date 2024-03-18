@@ -49,12 +49,12 @@ Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
 
   final s = t.style;
   final colors = (
-    aqua: s()..setFg(Color.make('aqua')),
-    indianRed: s()..setFg(Color.make('indianRed')),
-    darkCyan: s()..setFg(Color.make('darkCyan')),
-    magenta: s()..setFg(Color.make('magenta')),
-    webGray: s()..setFg(Color.make('webGray')),
-    error: s()..setFg(Color.make('red')),
+    aqua: s()..fg(Color('aqua')),
+    indianRed: s()..fg(Color('indianRed')),
+    darkCyan: s()..fg(Color('darkCyan')),
+    magenta: s()..fg(Color('magenta')),
+    webGray: s()..fg(Color('webGray')),
+    error: s()..fg(Color('red')),
   );
 
   try {

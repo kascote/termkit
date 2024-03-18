@@ -4,32 +4,32 @@ import 'package:test/test.dart';
 void main() {
   group('Color make >', () {
     test('empty string', () {
-      expect(Color.make(''), const NoColor());
+      expect(Color(''), const NoColor());
     });
 
     test('from x11 name', () {
-      expect(Color.make('papayaWhip'), TrueColor(0xff, 0xef, 0xd5));
+      expect(Color('papayaWhip'), TrueColor(0xff, 0xef, 0xd5));
     });
 
     test('from 16 base color', () {
-      expect(Color.make('1'), Ansi16Color(1));
+      expect(Color('1'), Ansi16Color(1));
     });
 
     test('from 256 base color', () {
-      expect(Color.make('230'), Ansi256Color(230));
+      expect(Color('230'), Ansi256Color(230));
     });
 
     test('from hex string', () {
-      expect(Color.make('#fafbfc'), TrueColor(0xfa, 0xfb, 0xfc));
+      expect(Color('#fafbfc'), TrueColor(0xfa, 0xfb, 0xfc));
     });
 
     test('return NoColor if invalid value', () {
-      expect(Color.make('foobar'), const NoColor());
+      expect(Color('foobar'), const NoColor());
     });
 
     test('return default color if invalid value', () {
       final defaultColor = Ansi16Color(7);
-      expect(Color.make('foobar', defaultColor: defaultColor), defaultColor);
+      expect(Color('foobar', defaultColor: defaultColor), defaultColor);
     });
   });
 
@@ -95,6 +95,18 @@ void main() {
       expect(Ansi256Color(255).toString(), '255');
     });
 
+    test('toAnsi16Color on graycale should return the correct value', () {
+      expect(Ansi256Color(235).toAnsi16Color(), Ansi16Color(0));
+      expect(Ansi256Color(245).toAnsi16Color(), Ansi16Color(7));
+      expect(Ansi256Color(252).toAnsi16Color(), Ansi16Color(15));
+      expect(Ansi256Color(196).toAnsi16Color(), Ansi16Color(9));
+    });
+
+    test('toTrueColor should return the correct value', () {
+      expect(Ansi256Color(0).toTrueColor(), TrueColor(0, 0, 0));
+      expect(Ansi256Color(255).toTrueColor(), TrueColor(0xee, 0xee, 0xee));
+    });
+
     test('equatable', () {
       expect(Ansi256Color(0), Ansi256Color(0));
       expect(Ansi256Color(0), isNot(Ansi256Color(1)));
@@ -143,6 +155,20 @@ void main() {
       expect(() => TrueColor.fromString('#ff00'), throwsArgumentError);
     });
 
+    test('toAnsi16 should return the correct value', () {
+      expect(TrueColor(0, 0, 0).toAnsi16Color(), Ansi16Color(0));
+      expect(TrueColor(0x00, 0xff, 0xff).toAnsi16Color(), Ansi16Color(14));
+      expect(TrueColor(0x88, 0x00, 0x00).toAnsi16Color(), Ansi16Color(1));
+    });
+
+    test('toAnsi256 shoul return the correct value', () {
+      expect(TrueColor(0, 0, 0).toAnsi256Color(), Ansi256Color(16));
+      expect(TrueColor(0x00, 0xff, 0xff).toAnsi256Color(), Ansi256Color(51));
+      expect(TrueColor(0xff, 0x00, 0x00).toAnsi256Color(), Ansi256Color(196));
+      expect(TrueColor(0xdd, 0xdd, 0xdd).toAnsi256Color(), Ansi256Color(253));
+      expect(TrueColor(0xfe, 0xfe, 0xfe).toAnsi256Color(), Ansi256Color(231));
+    });
+
     test('equatable', () {
       expect(TrueColor(0, 1, 2), TrueColor(0, 1, 2));
       expect(TrueColor(0, 0, 0), isNot(TrueColor(0, 0, 1)));
@@ -176,6 +202,27 @@ void main() {
       expect(Ansi16Color(13).convert(ProfileEnum.trueColor), TrueColor(0xff, 0, 0xff));
       expect(Ansi256Color(230).convert(ProfileEnum.trueColor), TrueColor(0xff, 0xff, 0xd7));
       expect(TrueColor(1, 2, 3).convert(ProfileEnum.trueColor), TrueColor(1, 2, 3));
+    });
+  });
+
+  group('Color base colors >', () {
+    test('should return the correct color for base color', () {
+      expect(Color.black, Ansi16Color(0));
+      expect(Color.red, Ansi16Color(1));
+      expect(Color.green, Ansi16Color(2));
+      expect(Color.yellow, Ansi16Color(3));
+      expect(Color.blue, Ansi16Color(4));
+      expect(Color.magenta, Ansi16Color(5));
+      expect(Color.cyan, Ansi16Color(6));
+      expect(Color.white, Ansi16Color(7));
+      expect(Color.brightBlack, Ansi16Color(8));
+      expect(Color.brightRed, Ansi16Color(9));
+      expect(Color.brightGreen, Ansi16Color(10));
+      expect(Color.brightYellow, Ansi16Color(11));
+      expect(Color.brightBlue, Ansi16Color(12));
+      expect(Color.brightMagenta, Ansi16Color(13));
+      expect(Color.brightCyan, Ansi16Color(14));
+      expect(Color.brightWhite, Ansi16Color(15));
     });
   });
 }

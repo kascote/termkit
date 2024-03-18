@@ -1,46 +1,46 @@
 import 'package:termlib/termlib.dart';
 
 void main() {
-  final term = TermLib()..writeln(Style('ANSI 16 Colors:\n')..setBold());
+  final term = TermLib()..writeln(Style('ANSI 16 Colors:\n')..bold());
 
   for (var i = 0; i < 16; i++) {
     if (i == 8) term.write('\n');
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ', profile: ProfileEnum.ansi16)
-      ..setBg(Ansi16Color(i))
-      ..setFg(i < 7 ? Ansi16Color(7) : Ansi16Color(0));
+      ..bg(Ansi16Color(i))
+      ..fg(i < 7 ? Ansi16Color(7) : Ansi16Color(0));
 
     term.write(style);
   }
 
-  term.writeln(Style('\n\nANSI 256 Colors:')..setBold());
+  term.writeln(Style('\n\nANSI 256 Colors:')..bold());
 
   for (var i = 16; i < 232; i++) {
     if ((i - 16) % 12 == 0) term.write('\n');
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ')
-      ..setBg(Ansi256Color(i))
-      ..setFg(i < 28 ? Ansi16Color(7) : Ansi16Color(0));
+      ..bg(Ansi256Color(i))
+      ..fg(i < 28 ? Ansi16Color(7) : Ansi16Color(0));
 
     term.write(style);
   }
 
-  term.writeln(Style('\n\nGray Scale Colors:')..setBold());
+  term.writeln(Style('\n\nGray Scale Colors:')..bold());
 
   for (var i = 232; i < 256; i++) {
     if ((i - 232) % 12 == 0) term.write('\n');
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ')
-      ..setBg(Ansi256Color(i))
-      ..setFg(i < 244 ? Ansi16Color(7) : Ansi16Color(0));
+      ..bg(Ansi256Color(i))
+      ..fg(i < 244 ? Ansi16Color(7) : Ansi16Color(0));
 
     term.write(style);
   }
 
-  term.writeln((Style('\n\nTrue Colors:')..setBold()).toString());
+  term.writeln((Style('\n\nTrue Colors:')..bold()).toString());
 
   const cols = 80;
   const rows = 20;
@@ -53,8 +53,8 @@ void main() {
     if (g > 255) g = 510 - g;
 
     final style = Style('·', profile: ProfileEnum.trueColor)
-      ..setFg(TrueColor(r, g, b))
-      ..setBg(TrueColor(255 - r, 255 - g, 255 - b));
+      ..fg(TrueColor(r, g, b))
+      ..bg(TrueColor(255 - r, 255 - g, 255 - b));
 
     if (i % cols == 0) term.write('\n');
 

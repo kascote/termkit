@@ -21,24 +21,7 @@ sealed class Color {
   final ProfileEnum profile;
 
   /// Creates a new Color.
-  const Color(this.profile);
-
-  /// Returns the ANSI sequence for the given color.
-  String sequence({bool background = false});
-
-  /// Tries to parse a string into a Color object. The resulting color will be
-  /// in the current profile.
-  ///
-  /// If the [color] parameters is empty, [defaultColor] parameter will be
-  /// used. If a default one is not indicated, [NoColor] will be used.
-  //
-  /// If the color string starts with a '#', it is assumed to be an RGB color.
-  /// If the color string is a number, it is assumed to be an ANSI 16 or 256 color,
-  /// if no color can be resolved [defaultColor] is returned.
-  ///
-  /// A color cache, using the profile and passed color is used to save time.
-  /// The function [clearColorCache] can be used to clear the cache.
-  factory Color.make(String color, {Color defaultColor = const NoColor()}) {
+  factory Color(String color, {Color defaultColor = const NoColor()}) {
     if (color.isEmpty) return defaultColor;
 
     final mix = ansi.x11Colors[color] ?? color;
@@ -47,14 +30,23 @@ sealed class Color {
       c = TrueColor.fromString(mix);
     } else {
       final colNum = int.tryParse(mix);
-      if (colNum == null) return defaultColor;
-      c = (colNum < 16 ? Ansi16Color(colNum) : Ansi256Color(colNum));
+      if (colNum == null) {
+        c = defaultColor;
+      } else {
+        c = (colNum < 16 ? Ansi16Color(colNum) : Ansi256Color(colNum));
+      }
     }
 
     return c;
   }
 
-  /// Converts a color to the current profile.
+  const Color._(this.profile);
+
+  /// Returns the ANSI sequence for the given color.
+  /// If [background] is true, the sequence will be for the background color.
+  String sequence({bool background = false});
+
+  /// Converts a color from the current profile to another profile.
   Color convert(ProfileEnum toProfile) {
     final cache = _colorCache[(toProfile, this)];
     if (cache != null) return cache;
@@ -93,12 +85,62 @@ sealed class Color {
 
   /// Clears the color cache.
   void clearColorCache() => _colorCache.clear();
+
+  // whe can not add static methods to extension classes
+  // and that the static method be part of the extended class
+  /// Returns black color on ANSI 16 profile
+  static Color get black => Ansi16Color(0);
+
+  /// Returns red color on ANSI 16 profile
+  static Color get red => Ansi16Color(1);
+
+  /// Returns green color on ANSI 16 profile
+  static Color get green => Ansi16Color(2);
+
+  /// Returns yellow color on ANSI 16 profile
+  static Color yellow = Ansi16Color(3);
+
+  /// Returns blue color on ANSI 16 profile
+  static Color get blue => Ansi16Color(4);
+
+  /// Returns magenta color on ANSI 16 profile
+  static Color get magenta => Ansi16Color(5);
+
+  /// Returns cyan color on ANSI 16 profile
+  static Color get cyan => Ansi16Color(6);
+
+  /// Returns white color on ANSI 16 profile
+  static Color get white => Ansi16Color(7);
+
+  /// Returns bright black color on ANSI 16 profile
+  static Color get brightBlack => Ansi16Color(8);
+
+  /// Returns bright red color on ANSI 16 profile
+  static Color get brightRed => Ansi16Color(9);
+
+  /// Returns bright green color on ANSI 16 profile
+  static Color get brightGreen => Ansi16Color(10);
+
+  /// Returns bright yellow color on ANSI 16 profile
+  static Color get brightYellow => Ansi16Color(11);
+
+  /// Returns bright blue color on ANSI 16 profile
+  static Color get brightBlue => Ansi16Color(12);
+
+  /// Returns bright magenta color on ANSI 16 profile
+  static Color get brightMagenta => Ansi16Color(13);
+
+  /// Returns bright cyan color on ANSI 16 profile
+  static Color get brightCyan => Ansi16Color(14);
+
+  /// Returns bright white color on ANSI 16 profile
+  static Color get brightWhite => Ansi16Color(15);
 }
 
 /// NoColor is a color representation when the terminal does not support colors.
 class NoColor extends Color {
   /// Creates a new NoColor.
-  const NoColor() : super(ProfileEnum.noColor);
+  const NoColor() : super._(ProfileEnum.noColor);
 
   @override
   String sequence({bool background = false}) => '';
@@ -114,7 +156,7 @@ class Ansi16Color extends Color {
   late final int code;
 
   /// Creates a new Ansi16Color with the given color value.
-  Ansi16Color(int color) : super(ProfileEnum.ansi16) {
+  Ansi16Color(int color) : super._(ProfileEnum.ansi16) {
     if (color < 0 || color > 15) throw ArgumentError.value(color, 'color', 'Must be between 0 and 15');
     code = color;
   }
@@ -144,7 +186,7 @@ class Ansi256Color extends Color {
   late final int code;
 
   /// Creates a new Ansi256Color with the given color value.
-  Ansi256Color(int color) : super(ProfileEnum.ansi256) {
+  Ansi256Color(int color) : super._(ProfileEnum.ansi256) {
     if (color < 0 || color > 255) throw ArgumentError.value(color, 'color', 'Must be between 0 and 255');
     code = color;
   }
@@ -196,7 +238,7 @@ class TrueColor extends Color {
   late final String hex;
 
   /// Creates a new TrueColor with the given RGB values.
-  TrueColor(int red, int green, int blue) : super(ProfileEnum.trueColor) {
+  TrueColor(int red, int green, int blue) : super._(ProfileEnum.trueColor) {
     if (red < 0 || red > 255) throw ArgumentError.value(red, 'red', 'Must be between 0 and 255');
     if (green < 0 || green > 255) throw ArgumentError.value(green, 'green', 'Must be between 0 and 255');
     if (blue < 0 || blue > 255) throw ArgumentError.value(blue, 'blue', 'Must be between 0 and 255');
