@@ -1,5 +1,5 @@
 # TermAnsi
 
-This project defines the common ANSI escape code sequences to be used in
-terminal applications.
-The idea is just to be a simple and easy repository to be used in other projects.
+This package provides a collection of ANSI escape sequences. It essentially
+serves as a reference for ANSI codes, without offering any additional
+functionality beyond their definitions.

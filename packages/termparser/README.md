@@ -2,7 +2,8 @@
 
 ANSI Terminal escape sequence parser.
 
-This parser is loose implementation of Paul Flo Williams' [VT500-series parser](https://vt100.net/emu/dec_ansi_parser). It take a lot of ideas from the [annes](https://github.com/qwandor/anes-rs) project, and
+This parser is loose implementation of Paul Flo Williams' [VT500-series parser](https://vt100.net/emu/dec_ansi_parser).
+It take a lot of ideas from the [annes](https://github.com/qwandor/anes-rs) project, and
 extends it in some areas.
 
 ## Features
@@ -16,6 +17,8 @@ Still is a works in progress, but the following features are implemented:
 - Focus events
 - Color query requests
 - Device attributes
+- Bracketing paste
+- and more...
 
 ## Usage
 
@@ -32,7 +35,7 @@ This is a simple example how to get started with the package.
 
 ## Acknowledgements
 
-This package is _**heavily**_ inspired by the following projects:
+This package is _**strongly influenced**_ by the following projects:
 
 - [annes](https://github.com/qwandor/anes-rs)
 - [vaxis](https://git.sr.ht/~rockorager/vaxis)

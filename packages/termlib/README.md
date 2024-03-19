@@ -66,7 +66,8 @@ You can find more examples of how to use `termlib` in the [example directory](ex
 
 ## Acknowledges
 
-This library __borrows a lot__ of inspiration and ideas from this other great libraries:
+This library **draws inspiration from** of inspiration and ideas from this other
+great libraries:
 
 - [dart_console](https://github.com/timsneath/dart_console)
 - [crossterm](https://github.com/crossterm-rs/crossterm)
