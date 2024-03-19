@@ -3,6 +3,7 @@ import 'dart:io' show Platform, Stdout, exit, stderr, stdin, stdout;
 
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser.dart';
+import 'package:termparser/termparser_events.dart';
 
 import '../color_util.dart';
 import './colors.dart';

@@ -10,5 +10,4 @@
 /// consistent state even if the input data is not complete.
 library;
 
-export './termparser_events.dart';
 export 'src/parser.dart' show Parser;

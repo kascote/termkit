@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:termparser/termparser.dart';
+import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
 List<int> keySequence(String seq) {

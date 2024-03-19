@@ -1,6 +1,4 @@
-/// Support for doing something awesome.
-///
-/// More dartdocs go here.
+/// ANSI escape code definitions
 ///
 library;
 
