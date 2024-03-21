@@ -198,43 +198,44 @@ class TermLib {
   int get windowHeight => isInteractive ? _stdout.terminalLines : 25;
 
   /// Read events from the standard input [stdin]
-  Future<Event> readEvent<T>({int timeout = 100, bool rawKeys = false}) async {
+  /// The type parameter [T] is the type of event to read. It should be a subclass
+  /// of [Event] or [Event] itself to read all the events.
+  ///
+  /// By default will wait for events for 100 milliseconds, but you can change that
+  /// using the [timeout] parameter.
+  ///
+  /// If the [rawKeys] parameter is set to true, it will return [RawKeyEvent] events
+  /// for each key press. This is useful for debugging propouses.
+  ///
+  /// If the timout is reached, it will return a [NoneEvent] instance.
+  Future<Event> readEvent<T extends Event>({int timeout = 100, bool rawKeys = false}) async {
     final timeoutDuration = Duration(milliseconds: timeout);
     final completer = Completer<Event>();
-    final sequence = <int>[];
     final parser = Parser();
-    StreamSubscription<List<int>>? subscription;
+    StreamSubscription<Event>? subscription;
+
+    final eventTransformer = StreamTransformer<List<int>, T>.fromHandlers(
+      handleData: (data, syncSink) {
+        if (rawKeys) return syncSink.add(RawKeyEvent(data) as T);
+
+        parser.advance(data);
+        if (parser.moveNext()) {
+          final evt = parser.current;
+          if (evt is T) syncSink.add(evt);
+        }
+      },
+    );
 
     final timer = Timer(timeoutDuration, () async {
       await subscription!.cancel();
       completer.complete(const NoneEvent());
     });
 
-    subscription = _broadcastStream.listen(
-      (event) async {
-        sequence.addAll(event);
-
-        if (rawKeys) {
-          await subscription!.cancel();
-          timer.cancel();
-          completer.complete(RawKeyEvent(sequence));
-          return;
-        }
-
-        parser.advance(sequence);
-        if (parser.moveNext()) {
-          final evt = parser.current;
-          if (evt is T) {
-            await subscription!.cancel();
-            timer.cancel();
-            completer.complete(evt);
-          }
-        }
-        sequence.clear();
-      },
-      onError: completer.completeError,
-      cancelOnError: true,
-    );
+    subscription = _broadcastStream.transform(eventTransformer).listen((event) async {
+      await subscription!.cancel();
+      timer.cancel();
+      completer.complete(event);
+    });
 
     return completer.future;
   }
