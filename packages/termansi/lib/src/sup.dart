@@ -87,20 +87,21 @@ abstract class Sup {
 
   /// Set Windows size
   ///
-  /// not all terminals support this and not all have this capability enabled
-  /// by default could need to be enabled by the user
+  /// Not all terminals support this and not all have this capability enabled
+  /// by default could need to be enabled by the user.
+  ///
   /// ref: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
   static String setWindowSize(int rows, int cols) => '${CSI}8;$rows;${cols}t';
 
   /// Minimize terminal window
   ///
-  /// not all terminals support this and not all have this capability enabled
+  /// Not all terminals support this and not all have this capability enabled
   /// by default could need to be enabled by the user
   static String get minimizeWindow => '${CSI}2t';
 
   /// Maximize terminal window
   ///
-  /// not all terminals support this and not all have this capability enabled
+  /// Not all terminals support this and not all have this capability enabled
   /// by default could need to be enabled by the user
   static String get maximizeWindow => '${CSI}1t';
 
