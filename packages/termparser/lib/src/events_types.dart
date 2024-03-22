@@ -7,7 +7,7 @@ import 'extensions/int_extension.dart';
 /// This class is used for the legacy key events as well the enhanced key events.
 /// used on the Kitty protocol.
 ///
-/// **Note:** need to have [KeyboardEnhancementFlags.disambiguateEscapeCodes] enabled
+/// **Note:** need to have KeyboardEnhancementFlags.disambiguateEscapeCodes enabled
 /// to [media] and/or [modifiers] to be populated.
 ///
 /// ref: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
@@ -73,7 +73,7 @@ class KeyCode extends Equatable {
 /// Represents key modifiers (shift, control, alt, etc.).
 ///
 /// **Note:** `superKey`, `hyper`, and `meta` can only be read if
-/// [KeyboardEnhancementFlags.disambiguateEscapeCodes] is enabled
+/// KeyboardEnhancementFlags.disambiguateEscapeCodes is enabled
 @immutable
 class KeyModifiers extends Equatable {
   final int _value;

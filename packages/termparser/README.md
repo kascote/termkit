@@ -39,3 +39,7 @@ This package is _**strongly influenced**_ by the following projects:
 
 - [annes](https://github.com/qwandor/anes-rs)
 - [vaxis](https://git.sr.ht/~rockorager/vaxis)
+
+## License
+
+`termparser` is licensed under the [MIT license](LICENSE).

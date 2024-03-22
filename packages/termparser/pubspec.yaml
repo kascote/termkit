@@ -1,10 +1,17 @@
 name: termparser
-description: A starting point for Dart libraries or applications.
-version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+description: ANSI Terminal escape sequence parser
+version: 0.1.0
+repository: https://github.com/kascote/termkit/packages/termparser
+homepage: https://github.com/kascote/termkit
+issue_tracker: https://github.com/kascote/termkit/issues
+documentation: https://github.com/kascote/termkit/tree/master/packages/termparser#readme
+topics: [console, terminal, ansi, parser]
+platforms:
+  linux:
+  macos:
 
 environment:
-  sdk: ^3.2.0
+  sdk: ">=3.2.0 <4.0.0"
 
 # Add regular dependencies here.
 dependencies:

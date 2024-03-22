@@ -1,14 +1,17 @@
 name: termansi
-description: A starting point for Dart libraries or applications.
-version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+description: Collection of ANSI escape sequences definitions.
+version: 0.1.0
+repository: https://github.com/kascote/termkit/packages/termansi
+homepage: https://github.com/kascote/termkit
+issue_tracker: https://github.com/kascote/termkit/issues
+documentation: https://github.com/kascote/termkit/tree/master/packages/termansi#readme
+topics: [console, terminal, ansi]
+platforms:
+  linux:
+  macos:
 
 environment:
-  sdk: ^3.2.0
-
-# Add regular dependencies here.
-dependencies:
-  # path: ^1.8.0
+  sdk: ">=3.2.0 <4.0.0"
 
 dev_dependencies:
   lints: ^3.0.0
