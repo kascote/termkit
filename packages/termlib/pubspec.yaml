@@ -1,7 +1,7 @@
 name: termlib
 description: Library to interact with terminals.
 version: 0.1.0
-repository: https://github.com/kascote/termkit/packages/termlib
+repository: https://github.com/kascote/termkit/tree/main/packages/termlib
 homepage: https://github.com/kascote/termkit
 issue_tracker: https://github.com/kascote/termkit/issues
 documentation: https://github.com/kascote/termkit/tree/master/packages/termlib#readme

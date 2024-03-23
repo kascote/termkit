@@ -1,7 +1,7 @@
 name: termansi
 description: Collection of ANSI escape sequences definitions.
 version: 0.1.0
-repository: https://github.com/kascote/termkit/packages/termansi
+repository: https://github.com/kascote/termkit/tree/master/packages/termansi
 homepage: https://github.com/kascote/termkit
 issue_tracker: https://github.com/kascote/termkit/issues
 documentation: https://github.com/kascote/termkit/tree/master/packages/termansi#readme
