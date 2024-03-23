@@ -1,6 +1,6 @@
 name: termparser
-description: ANSI Terminal escape sequence parser
-version: 0.1.0
+description: ANSI Terminal escape sequence parser for terminal applications.
+version: 0.1.1
 repository: https://github.com/kascote/termkit/tree/master/packages/termparser
 homepage: https://github.com/kascote/termkit
 issue_tracker: https://github.com/kascote/termkit/issues

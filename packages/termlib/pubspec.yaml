@@ -1,6 +1,6 @@
 name: termlib
-description: Library to interact with terminals.
-version: 0.1.0
+description: Library that provides a set of utilities for terminal applications.
+version: 0.1.1
 repository: https://github.com/kascote/termkit/tree/main/packages/termlib
 homepage: https://github.com/kascote/termkit
 issue_tracker: https://github.com/kascote/termkit/issues
@@ -18,8 +18,8 @@ dependencies:
   equatable: ^2.0.5
   ffi: ^2.1.0
   meta: ^1.11.0
-  termansi: ^0.1.0
-  termparser: ^0.1.0
+  termansi: ^0.1.1
+  termparser: ^0.1.1
   win32: ^5.1.1
 
 dev_dependencies:
