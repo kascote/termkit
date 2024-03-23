@@ -265,7 +265,7 @@ class TermLib {
     return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
       _stdout.write(ansi.Sup.requestKeyboardCapabilities);
 
-      final event = await readEvent<KeyboardEnhancementFlagsEvent>();
+      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
       return (event is KeyboardEnhancementFlagsEvent) ? event : null;
     });
   }

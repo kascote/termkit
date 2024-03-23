@@ -142,7 +142,7 @@ final class KeyboardEnhancementFlagsEvent extends Event with EquatableMixin {
   bool has(int flag) => flags.isSet(flag);
 
   @override
-  List<Object> get props => [flags];
+  List<Object> get props => [flags, mode];
 
   /// Represent Escape and modified keys using CSI-u sequences, so they can be unambiguously read.
   static const int disambiguateEscapeCodes = 0x1;

@@ -74,7 +74,7 @@ extension TermUtils on TermLib {
 
   /// Query Keyboard enhancement support
   Future<bool> queryKeyboardEnhancementSupport() async {
-    write('${ansi.Sup.queryKeyboardEnhancementSupport}${ansi.Sup.queryPrimaryDeviceAttributes}');
+    write(ansi.Sup.queryKeyboardEnhancementSupport);
     final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
     return event is KeyboardEnhancementFlagsEvent;
   }
@@ -82,7 +82,7 @@ extension TermUtils on TermLib {
   /// Query Primary Device Attributes
   Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes() async {
     write(ansi.Sup.queryPrimaryDeviceAttributes);
-    final event = await readEvent<PrimaryDeviceAttributesEvent>();
+    final event = await readEvent<PrimaryDeviceAttributesEvent>(timeout: 500);
     return (event is PrimaryDeviceAttributesEvent) ? event : null;
   }
 }
