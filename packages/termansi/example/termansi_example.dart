@@ -50,6 +50,6 @@ void main() {
 
   stdout
     ..writeln()
-    ..writeln(Sup.hyperLink('https://github.com/kascote/termkit', 'TermKit'))
-    ..writeln(Sup.notify('TermKit', 'Hello from TermAnsi'));
+    ..writeln(Term.hyperLink('https://github.com/kascote/termkit', 'TermKit'))
+    ..writeln(Term.notify('TermKit', 'Hello from TermAnsi'));
 }

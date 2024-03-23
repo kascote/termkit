@@ -1,7 +1,7 @@
 import './escape_codes.dart';
 
 /// Support code for terminal output.
-abstract class Sup {
+abstract class Term {
   /// Show a hyperlink.
   ///
   /// https://github.com/Alhadis/OSC8-Adoption/

@@ -263,7 +263,7 @@ class TermLib {
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
   Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities() async {
     return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
-      _stdout.write(ansi.Sup.requestKeyboardCapabilities);
+      _stdout.write(ansi.Term.requestKeyboardCapabilities);
 
       final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
       return (event is KeyboardEnhancementFlagsEvent) ? event : null;
@@ -274,13 +274,13 @@ class TermLib {
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
   void setKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
-      _stdout.write(ansi.Sup.setKeyboardCapabilities(flags.flags, flags.mode));
+      _stdout.write(ansi.Term.setKeyboardCapabilities(flags.flags, flags.mode));
 
   /// Push keyboard flags to the stack
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
   void pushKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
-      _stdout.write(ansi.Sup.pushKeyboardCapabilities(flags.flags));
+      _stdout.write(ansi.Term.pushKeyboardCapabilities(flags.flags));
 
   /// Enable keyboard enhancement
   void enableKeyboardEnhancement() {
@@ -311,7 +311,7 @@ class TermLib {
   /// Pop keyboard flags from the stack
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void popKeyboardFlags([int entries = 1]) => _stdout.write(ansi.Sup.popKeyboardCapabilities(entries));
+  void popKeyboardFlags([int entries = 1]) => _stdout.write(ansi.Term.popKeyboardCapabilities(entries));
 
   /// Resolves the current terminal profile checking different environment variables.
   ProfileEnum colorProfile() {
