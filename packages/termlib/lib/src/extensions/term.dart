@@ -49,6 +49,9 @@ extension TermUtils on TermLib {
   /// End synchronous update mode
   void endSyncUpdate() => write(ansi.Term.disableSyncUpdate);
 
+  /// Soft Terminal reset
+  void softReset() => write(ansi.Term.softTerminalReset);
+
   /// Query Sync status
   Future<SyncUpdateStatus?> querySyncUpdate() async {
     write(ansi.Term.querySyncUpdate);
@@ -84,5 +87,12 @@ extension TermUtils on TermLib {
     write(ansi.Term.queryPrimaryDeviceAttributes);
     final event = await readEvent<PrimaryDeviceAttributesEvent>(timeout: 500);
     return (event is PrimaryDeviceAttributesEvent) ? event : null;
+  }
+
+  /// Query Terminal window size in pixels
+  Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels() async {
+    write(ansi.Term.queryWindowSizePixels);
+    final event = await readEvent<QueryTerminalWindowSizeEvent>(timeout: 500);
+    return (event is QueryTerminalWindowSizeEvent) ? event : null;
   }
 }
