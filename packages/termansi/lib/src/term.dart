@@ -111,8 +111,11 @@ abstract class Term {
   /// Query Primary Device Attributes
   static String get queryPrimaryDeviceAttributes => '${CSI}c';
 
-  // soft terminal reset
-  // CSI ! p
-  // read window size in pixels
-  // CSI 14 t
+  /// Soft terminal reset
+  ///
+  /// https://vt100.net/docs/vt510-rm/DECSTR.html
+  static String get softTerminalReset => '$CSI!p';
+
+  /// Query window window size in pixels
+  static String get queryWindowSizePixels => '${CSI}14t';
 }
