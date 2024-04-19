@@ -285,3 +285,18 @@ final class RawKeyEvent extends Event with EquatableMixin {
   @override
   List<Object> get props => [sequence];
 }
+
+/// Query Terminal size in pixels
+final class QueryTerminalWindowSizeEvent extends Event with EquatableMixin {
+  /// The terminal width
+  final int width;
+
+  /// The terminal height
+  final int height;
+
+  /// Constructs a new instance of [QueryTerminalWindowSizeEvent].
+  const QueryTerminalWindowSizeEvent(this.width, this.height);
+
+  @override
+  List<Object> get props => [width, height];
+}

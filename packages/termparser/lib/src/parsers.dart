@@ -72,6 +72,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     '~' => _parseSpecialKeyCode(parameters, char, block),
     'R' => _parseCursorPosition(parameters),
     'y' => _parseSyncOutputStatus(parameters),
+    't' => _parseWindowSize(parameters),
     _ => const NoneEvent()
   };
 }
@@ -306,6 +307,17 @@ Event _parseSyncOutputStatus(List<String> parameters) {
           _ => const QuerySyncUpdateEvent(SyncUpdateStatus.notSupported) as Event,
         };
       }
+    default:
+      return ParserErrorEvent(parameters);
+  }
+}
+
+Event _parseWindowSize(List<String> parameters) {
+  switch (parameters) {
+    case ['4', ...]:
+      final width = int.tryParse(parameters[1]) ?? -1;
+      final height = int.tryParse(parameters[2]) ?? -1;
+      return QueryTerminalWindowSizeEvent(width, height);
     default:
       return ParserErrorEvent(parameters);
   }
