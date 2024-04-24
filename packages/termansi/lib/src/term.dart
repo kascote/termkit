@@ -79,6 +79,12 @@ abstract class Term {
   /// Stop receiving mouse events
   static String get disableMouseEvents => '$CSI?1000;1003;1006l';
 
+  /// Start receiving mouse events inside default configuration zellij multiplexer
+  static String get enableZellijMouseEvents => _mouseModeCode(true);
+
+  /// Stop receiving mouse events inside default configuration zellij multiplexer
+  static String get disableZellijMouseEvents => _mouseModeCode(false);
+
   /// Start receiving mouse events as pixels
   static String get enableMousePixelEvents => '$CSI?1000;1003;1016h';
 
@@ -111,8 +117,10 @@ abstract class Term {
   /// Query Primary Device Attributes
   static String get queryPrimaryDeviceAttributes => '${CSI}c';
 
-  // soft terminal reset
-  // CSI ! p
-  // read window size in pixels
-  // CSI 14 t
+// soft terminal reset
+// CSI ! p
+// read window size in pixels
+// CSI 14 t
 }
+
+String _mouseModeCode(bool value) => '$CSI?1000;1002;1003;1006;1015${value ? 'h' : 'l'}';

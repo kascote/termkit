@@ -20,10 +20,12 @@ extension TermUtils on TermLib {
   void setTerminalTitle(String title) => write(ansi.Term.setTerminalTitle(title));
 
   /// Start receiving mouse events
-  void enableMouseEvents() => write(ansi.Term.enableMouseEvents);
+  void enableMouseEvents() =>
+      write(zellijMouseMotionQuirk ? ansi.Term.enableZellijMouseEvents : ansi.Term.enableMouseEvents);
 
   /// Stop receiving mouse events
-  void disableMouseEvents() => write(ansi.Term.disableMouseEvents);
+  void disableMouseEvents() =>
+      write(zellijMouseMotionQuirk ? ansi.Term.disableZellijMouseEvents : ansi.Term.disableMouseEvents);
 
   /// Start receiving focus events
   void startFocusTracking() => write(ansi.Term.enableFocusTracking);

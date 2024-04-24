@@ -73,9 +73,16 @@ enum State {
 
   /// Possible UTF-8 sequence and we're collecting UTF-8 code points.
   utf8,
-
   oscBlock,
 }
+
+// we want <C-?> as <C-?>.
+bool ctrlQuestionMarkQuirk = false;
+
+// in this case we want "return", not "enter". and instead of <C-j>
+// mapped to "enter", we want <C-j> to have <C-j>/<C-k> for vim
+// style navigation.
+bool rawModeReturnQuirk = false;
 
 ///
 class Engine {
