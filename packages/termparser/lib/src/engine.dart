@@ -76,14 +76,6 @@ enum State {
   oscBlock,
 }
 
-// we want <C-?> as <C-?>.
-bool ctrlQuestionMarkQuirk = false;
-
-// in this case we want "return", not "enter". and instead of <C-j>
-// mapped to "enter", we want <C-j> to have <C-j>/<C-k> for vim
-// style navigation.
-bool rawModeReturnQuirk = false;
-
 ///
 class Engine {
   final parameters = List<String>.filled(_maxParameters, _defaultParameterValue);

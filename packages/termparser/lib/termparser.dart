@@ -10,4 +10,4 @@
 /// consistent state even if the input data is not complete.
 library;
 
-export 'src/parser.dart' show Parser;
+export 'src/parser.dart' show Parser, ctrlQuestionMarkQuirk, rawModeReturnQuirk;

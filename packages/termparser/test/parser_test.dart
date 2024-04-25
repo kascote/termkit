@@ -1,7 +1,6 @@
 import 'dart:convert';
 
-import 'package:termparser/src/engine.dart';
-import 'package:termparser/termparser.dart';
+import 'package:termparser/src/parser.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
