@@ -117,10 +117,10 @@ abstract class Term {
   /// Query Primary Device Attributes
   static String get queryPrimaryDeviceAttributes => '${CSI}c';
 
-// soft terminal reset
-// CSI ! p
-// read window size in pixels
-// CSI 14 t
+  // soft terminal reset
+  // CSI ! p
+  // read window size in pixels
+  // CSI 14 t
 }
 
 String _mouseModeCode(bool value) => '$CSI?1000;1002;1003;1006;1015${value ? 'h' : 'l'}';

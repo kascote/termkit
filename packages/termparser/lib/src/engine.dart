@@ -73,6 +73,7 @@ enum State {
 
   /// Possible UTF-8 sequence and we're collecting UTF-8 code points.
   utf8,
+
   oscBlock,
 }
 
