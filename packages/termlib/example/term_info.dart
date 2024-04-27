@@ -9,7 +9,7 @@ typedef Theme = ({
 });
 
 Future<void> main() async {
-  final t = TermLib()..enableRawMode();
+  final t = TermLib();
 
   final s = t.style;
   final theme = (
@@ -40,7 +40,6 @@ Future<void> main() async {
   showDeviceAttr(t, deviceAttr, theme);
   t.writeln('Keyboard Enhancement support: ${renderValue(keyEnhanced.toString(), theme)}');
   if (keyEnhanced) showKeyboardCapabilities(t, theme, keyCap);
-  t.disableRawMode();
 
   await t.flushThenExit(0);
 }

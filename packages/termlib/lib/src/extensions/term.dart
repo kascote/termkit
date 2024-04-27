@@ -56,16 +56,20 @@ extension TermUtils on TermLib {
 
   /// Query Sync status
   Future<SyncUpdateStatus?> querySyncUpdate() async {
-    write(ansi.Term.querySyncUpdate);
-    final event = await readEvent<QuerySyncUpdateEvent>();
-    return (event is QuerySyncUpdateEvent) ? event.value : null;
+    return withRawModeAsync<SyncUpdateStatus?>(() async {
+      write(ansi.Term.querySyncUpdate);
+      final event = await readEvent<QuerySyncUpdateEvent>();
+      return (event is QuerySyncUpdateEvent) ? event.value : null;
+    });
   }
 
   /// Request terminal name and version
   Future<String> queryTerminalVersion() async {
-    write(ansi.Term.requestTermVersion);
-    final event = await readEvent<NameAndVersionEvent>();
-    return (event is NameAndVersionEvent) ? event.value : '';
+    return withRawModeAsync<String>(() async {
+      write(ansi.Term.requestTermVersion);
+      final event = await readEvent<NameAndVersionEvent>();
+      return (event is NameAndVersionEvent) ? event.value : '';
+    });
   }
 
   /// Returns the current terminal status report.
@@ -79,30 +83,53 @@ extension TermUtils on TermLib {
 
   /// Query Keyboard enhancement support
   Future<bool> queryKeyboardEnhancementSupport() async {
-    write(ansi.Term.queryKeyboardEnhancementSupport);
-    final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
-    return event is KeyboardEnhancementFlagsEvent;
+    return withRawModeAsync<bool>(() async {
+      write(ansi.Term.queryKeyboardEnhancementSupport);
+      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
+      return event is KeyboardEnhancementFlagsEvent;
+    });
   }
 
   /// Query Primary Device Attributes
   Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes() async {
-    write(ansi.Term.queryPrimaryDeviceAttributes);
-    final event = await readEvent<PrimaryDeviceAttributesEvent>(timeout: 500);
-    return (event is PrimaryDeviceAttributesEvent) ? event : null;
+    return withRawModeAsync<PrimaryDeviceAttributesEvent?>(() async {
+      write(ansi.Term.queryPrimaryDeviceAttributes);
+      final event = await readEvent<PrimaryDeviceAttributesEvent>(timeout: 500);
+      return (event is PrimaryDeviceAttributesEvent) ? event : null;
+    });
   }
 
   /// Query Terminal window size in pixels
   Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels() async {
-    write(ansi.Term.queryWindowSizePixels);
-    final event = await readEvent<QueryTerminalWindowSizeEvent>(timeout: 500);
-    return (event is QueryTerminalWindowSizeEvent) ? event : null;
+    return withRawModeAsync<QueryTerminalWindowSizeEvent?>(() async {
+      write(ansi.Term.queryWindowSizePixels);
+      final event = await readEvent<QueryTerminalWindowSizeEvent>(timeout: 500);
+      return (event is QueryTerminalWindowSizeEvent) ? event : null;
+    });
   }
 
   /// Clipboard Operations
-  void clipboard(Clipboard clipboard, ClipboardMode mode, [String data = '']) {
-    return switch (mode) {
-      ClipboardMode.query || ClipboardMode.clear => write(ansi.Term.clipboard(clipboard.target, mode.mode)),
-      ClipboardMode.set => write(ansi.Term.clipboard(clipboard.target, base64.encode(utf8.encode(data)))),
-    };
+  void clipboardSet(Clipboard clipboard, String data) {
+    write(ansi.Term.clipboard(clipboard.target, base64.encode(utf8.encode(data))));
+  }
+
+  /// Clear Clipboard contents
+  void clipboardClear(Clipboard clipboard) {
+    write(ansi.Term.clipboard(clipboard.target, ClipboardMode.clear.mode));
+  }
+
+  /// Query Clipboard content
+  ///
+  /// Note: Some terminals will have this feature disable by default because is
+  /// a security risk. Check your terminal for support and how to enable it.
+  ///
+  /// Can use the timeout parameter to wait for longer time if the terminal
+  /// use some interface to request permissions.
+  Future<ClipboardCopyEvent?> queryClipboard(Clipboard clipboard, {int timeout = 500}) {
+    return withRawModeAsync<ClipboardCopyEvent?>(() async {
+      write(ansi.Term.clipboard(clipboard.target, ClipboardMode.query.mode));
+      final event = await readEvent<ClipboardCopyEvent>(timeout: timeout);
+      return (event is ClipboardCopyEvent) ? event : null;
+    });
   }
 }
