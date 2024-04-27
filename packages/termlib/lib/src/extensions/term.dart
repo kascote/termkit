@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
@@ -94,5 +96,13 @@ extension TermUtils on TermLib {
     write(ansi.Term.queryWindowSizePixels);
     final event = await readEvent<QueryTerminalWindowSizeEvent>(timeout: 500);
     return (event is QueryTerminalWindowSizeEvent) ? event : null;
+  }
+
+  /// Clipboard Operations
+  void clipboard(Clipboard clipboard, ClipboardMode mode, [String data = '']) {
+    return switch (mode) {
+      ClipboardMode.query || ClipboardMode.clear => write(ansi.Term.clipboard(clipboard.target, mode.mode)),
+      ClipboardMode.set => write(ansi.Term.clipboard(clipboard.target, base64.encode(utf8.encode(data)))),
+    };
   }
 }

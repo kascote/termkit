@@ -8,5 +8,6 @@ export 'src/colors.dart';
 export 'src/extensions/cursor.dart';
 export 'src/extensions/erase.dart';
 export 'src/extensions/term.dart';
+export 'src/extensions/types.dart';
 export 'src/style.dart';
 export 'src/termlib_base.dart';

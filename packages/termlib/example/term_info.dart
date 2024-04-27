@@ -27,6 +27,7 @@ Future<void> main() async {
   final keyEnhanced = await t.queryKeyboardEnhancementSupport();
   final deviceAttr = await t.queryPrimaryDeviceAttributes();
   final termPixels = await t.queryWindowSizeInPixels();
+
   t
     ..writeln('Terminal version: ${theme.green(version)}')
     ..writeln('dimension chars: ${theme.green('${t.windowWidth}x${t.windowHeight}')}')

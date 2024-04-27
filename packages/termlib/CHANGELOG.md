@@ -8,5 +8,6 @@
 
 ## 0.2.0
 
-- added: terminal window size in pixels query
+- added: request terminal window size in pixels query
 - added: soft terminal reset
+- added: clipboard handling support
