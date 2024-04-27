@@ -19,3 +19,8 @@ terminals.
 [termparser](packages/termparser): This package acts as a parser, interpreting
 the ANSI sequences returned by the terminal emulator and converting them into a
 collection of events.
+
+[termunicode](packages/termunicode): Library designed to provide a set of
+utilities for working with Unicode characters in terminal applications. It is
+particularly useful for applications that need to handle a wide range of
+Unicode characters and properties.
