@@ -1,6 +1,6 @@
 name: termlib
 description: Library that provides a set of utilities for terminal applications.
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/kascote/termkit/tree/main/packages/termlib
 homepage: https://github.com/kascote/termkit
 issue_tracker: https://github.com/kascote/termkit/issues
