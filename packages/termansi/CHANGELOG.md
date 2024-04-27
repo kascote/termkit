@@ -9,5 +9,5 @@
 ## 0.2.0
 
 - added: CSI!p - Soft terminal reset
-- added: CSI145 - Read terminal size in pixels
+- added: CSI14t - Read terminal size in pixels
 - added: OSC52 - clipboard support
