@@ -18,8 +18,8 @@ dependencies:
   equatable: ^2.0.5
   ffi: ^2.1.0
   meta: ^1.11.0
-  termansi: ^0.1.1
-  termparser: ^0.1.1
+  termansi: ^0.2.0
+  termparser: ^0.2.0
   win32: ^5.1.1
 
 dev_dependencies:

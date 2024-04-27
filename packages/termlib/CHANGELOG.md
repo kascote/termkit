@@ -11,3 +11,7 @@
 - added: request terminal window size in pixels query
 - added: soft terminal reset
 - added: clipboard handling support
+
+## 0.2.1
+
+- fixed: packages dependencies
