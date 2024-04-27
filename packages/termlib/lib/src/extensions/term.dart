@@ -108,7 +108,7 @@ extension TermUtils on TermLib {
     });
   }
 
-  /// Clipboard Operations
+  /// Set Clipboard content
   void clipboardSet(Clipboard clipboard, String data) {
     write(ansi.Term.clipboard(clipboard.target, base64.encode(utf8.encode(data))));
   }
@@ -120,7 +120,7 @@ extension TermUtils on TermLib {
 
   /// Query Clipboard content
   ///
-  /// Note: Some terminals will have this feature disable by default because is
+  /// Note: Most terminals will have this feature disable by default because is
   /// a security risk. Check your terminal for support and how to enable it.
   ///
   /// Can use the timeout parameter to wait for longer time if the terminal
