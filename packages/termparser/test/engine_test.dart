@@ -262,10 +262,9 @@ void main() {
       const endPasteSeq = [0x1b, 0x5b, 0x32, 0x30, 0x31, 0x7E]; // ESC [ 2 0 1 ~
 
       listAdvance(eng, cp, [...startPasteSeq, 0x61, 0xc3, 0xb1, 0x63, ...endPasteSeq]);
-      expect(cp.block, 'añc');
       expect(cp.chars.length, 1);
       expect(cp.chars[0], '~');
-      expect(cp.params[0], <String>['200', '201']);
+      expect(cp.params[0], <String>['200', 'añc', '201']);
     });
 
     test('with control codes', () {
@@ -275,7 +274,6 @@ void main() {
       stringAdvance(eng, cp, '\x1b[200~o\x1b[2D\x1b[201~');
       expect(cp.params[0], ['201']);
       expect(cp.chars[0], '~');
-      expect(cp.block, '');
     });
   });
 
@@ -410,8 +408,7 @@ void main() {
 
       stringAdvance(eng, cp, '\x1b]11;rgb:11/22/33\x1b\\');
       expect(cp.params.length, 1);
-      expect(cp.params[0], ['11']);
-      expect(cp.block, 'rgb:11/22/33');
+      expect(cp.params[0], ['11', 'rgb:11/22/33']);
     });
   });
 
@@ -456,9 +453,8 @@ void main() {
       stringAdvance(eng, cp, '\x1bP>|term v1\x1b\x5c');
 
       expect(cp.params.length, 1);
-      expect(cp.params[0], ['>', '|']);
+      expect(cp.params[0], ['>', '|', 'term v1']);
       expect(cp.chars.length, 0);
-      expect(cp.block, 'term v1');
     });
   });
 }

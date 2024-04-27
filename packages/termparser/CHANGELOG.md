@@ -8,4 +8,5 @@
 
 ## 0.2.0
 
-- added: QueryTerminalWindowSizeEvent
+- added: QueryTerminalWindowSizeEvent to return window size event
+- added: ClipboardCopyEvent to return clipboard content

@@ -610,6 +610,15 @@ void main() {
         equals(const ColorQueryEvent(171, 188, 205)), // ab/bc/cd
       );
     });
+
+    test('52 - clipboard query', () {
+      final parser = Parser()..advance(keySequence(r'π]52;c;SG9sYQ==π\\'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const ClipboardCopyEvent(ClipboardSource.clipboard, 'Hola')),
+      );
+    });
   });
 
   group('bracketed paste >', () {

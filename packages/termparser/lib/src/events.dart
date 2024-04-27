@@ -300,3 +300,18 @@ final class QueryTerminalWindowSizeEvent extends Event with EquatableMixin {
   @override
   List<Object> get props => [width, height];
 }
+
+/// Cliboard Copy Event
+final class ClipboardCopyEvent extends Event with EquatableMixin {
+  /// The copied text
+  final String text;
+
+  /// Clipboard Source
+  final ClipboardSource source;
+
+  /// Constructs a new instance of [ClipboardCopyEvent].
+  const ClipboardCopyEvent(this.source, this.text);
+
+  @override
+  List<Object> get props => [source, text];
+}

@@ -7,11 +7,11 @@ abstract class Provider {
   void provideESCSequence(String char);
 
   /// Provide a control sequence to the parser
-  void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block});
+  void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char);
 
   /// Provide an operating system command sequence to the parser
-  void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block});
+  void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char);
 
   /// Provide an operating system command sequence to the parser
-  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block});
+  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char);
 }

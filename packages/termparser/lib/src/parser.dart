@@ -75,22 +75,22 @@ class _SequenceProvider implements Provider, Iterator<Event> {
   }
 
   @override
-  void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-    final seq = parsers.parseCSISequence(parameters, ignoredParameterCount, char, block: block);
+  void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char) {
+    final seq = parsers.parseCSISequence(parameters, ignoredParameterCount, char);
     _sequences.add(seq);
     _escO = false;
   }
 
   @override
-  void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-    final seq = parsers.parseOscSequence(parameters, ignoredParameterCount, char, block: block);
+  void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char) {
+    final seq = parsers.parseOscSequence(parameters, ignoredParameterCount, char);
     _sequences.add(seq);
     _escO = false;
   }
 
   @override
-  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-    final seq = parsers.parseDcsSequence(parameters, ignoredParameterCount, char, block: block);
+  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char) {
+    final seq = parsers.parseDcsSequence(parameters, ignoredParameterCount, char);
     _sequences.add(seq);
     _escO = false;
   }

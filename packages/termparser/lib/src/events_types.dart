@@ -632,3 +632,24 @@ enum MouseButtonKind {
   /// Right mouse button
   right,
 }
+
+/// Clipboard Sources
+enum ClipboardSource {
+  /// Clipboard source is unknown
+  unknown,
+
+  /// Clipboard source is clipboard
+  clipboard,
+
+  /// Clipboard source is primary
+  primary,
+
+  /// Clipboard source is secondary
+  secondary,
+
+  /// Clipboard source is selection
+  selection,
+
+  /// Clipboard source is cut buffer
+  cutBuffer,
+}

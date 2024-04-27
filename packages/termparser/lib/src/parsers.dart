@@ -50,8 +50,8 @@ Event? parseESCSequence(String char) {
 
 /// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
-Event parseCSISequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
-  // print('parseCSISequence: $parameters, $ignoredParameterCount, $char, $block');
+Event parseCSISequence(List<String> parameters, int ignoredParameterCount, String char) {
+  // print('parseCSISequence: $parameters, $ignoredParameterCount, $char);
 
   return switch (char) {
     'A' => _parseKeyAndModifiers(KeyCodeName.up, parameters.length == 2 ? parameters[1] : ''),
@@ -69,7 +69,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     'O' => const FocusEvent(hasFocus: false),
     'u' => _parseKeyboardEnhancedMode(parameters, char),
     'c' => _primaryDeviceAttributes(parameters, char),
-    '~' => _parseSpecialKeyCode(parameters, char, block),
+    '~' => _parseSpecialKeyCode(parameters, char),
     'R' => _parseCursorPosition(parameters),
     'y' => _parseSyncOutputStatus(parameters),
     't' => _parseWindowSize(parameters),
@@ -78,17 +78,18 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
 }
 
 /// Parse an Operating System Command sequence
-Event parseOscSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
+Event parseOscSequence(List<String> parameters, int ignoredParameterCount, String char) {
   return switch (parameters) {
-    ['11', ...] => _parserColorSequence(parameters, block),
+    ['11', ...] => _parserColorSequence(parameters),
+    ['52', ...] => _parseClipboardSequence(parameters),
     _ => const NoneEvent(),
   };
 }
 
 /// Parse a Device Control String sequence
-Event parseDcsSequence(List<String> parameters, int ignoredParameterCount, String char, {List<int>? block}) {
+Event parseDcsSequence(List<String> parameters, int ignoredParameterCount, String char) {
   return switch (parameters) {
-    ['>', '|', ...] => _parseDCSBlock(block),
+    ['>', '|', ...] => _parseDCSBlock(parameters),
     _ => const NoneEvent(),
   };
 }
@@ -186,12 +187,12 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   );
 }
 
-Event _parserColorSequence(List<String> parameters, List<int>? block) {
-  if (block == null) return ParserErrorEvent(parameters);
-  final buffer = utf8.decode(block, allowMalformed: true);
+Event _parserColorSequence(List<String> parameters) {
+  if (parameters.length < 2) return const NoneEvent();
+  final buffer = parameters[1];
   // has malformed data
   if (buffer.length < 12 || buffer.contains('�') || !buffer.startsWith('rgb:')) {
-    return ParserErrorEvent(parameters, block: block);
+    return ParserErrorEvent(parameters);
   }
 
   final parts = buffer.substring(4).split('/');
@@ -221,10 +222,10 @@ Event _primaryDeviceAttributes(List<String> parameters, String char) {
   };
 }
 
-Event _parseSpecialKeyCode(List<String> parameters, String char, List<int>? block) {
+Event _parseSpecialKeyCode(List<String> parameters, String char) {
   if (parameters.isEmpty) return const NoneEvent();
   if (parameters.isNotEmpty && parameters[0] == '200') {
-    return _parseBracketedPaste(parameters, char, block);
+    return _parseBracketedPaste(parameters, char);
   }
 
   final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
@@ -283,17 +284,16 @@ Event _parseCursorPosition(List<String> parameters) {
   return CursorPositionEvent(x, y);
 }
 
-Event _parseBracketedPaste(List<String> parameters, String char, List<int>? block) {
-  if (parameters.length != 2 || parameters[1] != '201') {
-    return ParserErrorEvent(parameters, char: char, block: block ?? []);
+Event _parseBracketedPaste(List<String> parameters, String char) {
+  if (parameters.length < 3 || parameters[2] != '201') {
+    return ParserErrorEvent(parameters, char: char);
   }
-  return PasteEvent(utf8.decode(block ?? [], allowMalformed: true));
+  return PasteEvent(parameters[1]);
 }
 
-Event _parseDCSBlock(List<int>? block) {
-  if (block == null) return const NoneEvent();
-  final buffer = utf8.decode(block, allowMalformed: true);
-  return NameAndVersionEvent(buffer);
+Event _parseDCSBlock(List<String> parameters) {
+  if (parameters.length < 2) return const NoneEvent();
+  return NameAndVersionEvent(parameters[2]);
 }
 
 Event _parseSyncOutputStatus(List<String> parameters) {
@@ -321,4 +321,21 @@ Event _parseWindowSize(List<String> parameters) {
     default:
       return ParserErrorEvent(parameters);
   }
+}
+
+Event _parseClipboardSequence(List<String> parameters) {
+  final encoded = parameters.elementAtOrNull(2);
+  if (encoded == null) return const NoneEvent();
+
+  final result = utf8.decode(base64Decode(encoded), allowMalformed: true);
+  final source = switch (parameters[1]) {
+    'c' => ClipboardSource.clipboard,
+    'p' => ClipboardSource.primary,
+    'q' => ClipboardSource.secondary,
+    's' => ClipboardSource.selection,
+    '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' => ClipboardSource.cutBuffer,
+    _ => ClipboardSource.unknown,
+  };
+
+  return ClipboardCopyEvent(source, result);
 }
