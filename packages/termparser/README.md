@@ -6,6 +6,9 @@ This parser is loose implementation of Paul Flo Williams' [VT500-series parser](
 It take a lot of ideas from the [annes](https://github.com/qwandor/anes-rs) project, and
 extends it in some areas.
 
+This library is part of the [termKit](https://github.com/kascote/termkit)
+project.
+
 ## Features
 
 Still is a works in progress, but the following features are implemented:

@@ -4,6 +4,9 @@ Dart library that provides a set of utilities for terminal applications.
 Provides information about the running terminal as well as a set of methods
 for styling the text output or interacting with the terminal.
 
+This library is part of the [termKit](https://github.com/kascote/termkit)
+project.
+
 ## Features
 
 - Keyboard input handling (including Kitty protocol)
