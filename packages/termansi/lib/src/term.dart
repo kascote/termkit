@@ -118,4 +118,23 @@ abstract class Term {
 
   /// Query window window size in pixels
   static String get queryWindowSizePixels => '${CSI}14t';
+
+  /// Clipboard operations
+  ///
+  /// [operation] could be one of the followings
+  ///	  c: clipboard
+  ///	  p: primary
+  ///	  q: secondary
+  ///	  s: select
+  ///	  0-7: cut-buffers
+  ///
+  /// [data] is the content to be copied to the clipboard as a Base64 encoded
+  /// string (RFC-4648)
+  ///
+  /// If [data] is "?", the terminal replies with the current contents of
+  /// the clipboard.
+  ///
+  /// If [data] is neither a base64 string nor "?", the terminal clears
+  /// the clipboard.
+  static String clipboard(String operation, String data) => '${OSC}52;$operation;$data$ST';
 }
