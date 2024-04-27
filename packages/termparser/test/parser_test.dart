@@ -619,6 +619,15 @@ void main() {
         equals(const ClipboardCopyEvent(ClipboardSource.clipboard, 'Hola')),
       );
     });
+
+    test('52 - clipboard query empty', () {
+      final parser = Parser()..advance(keySequence(r'π]52;c;π\\'));
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        equals(const ClipboardCopyEvent(ClipboardSource.clipboard, '')),
+      );
+    });
   });
 
   group('bracketed paste >', () {

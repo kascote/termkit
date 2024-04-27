@@ -327,7 +327,10 @@ Event _parseClipboardSequence(List<String> parameters) {
   final encoded = parameters.elementAtOrNull(2);
   if (encoded == null) return const NoneEvent();
 
-  final result = utf8.decode(base64Decode(encoded), allowMalformed: true);
+  final result = switch (encoded) {
+    '' || '0' => '',
+    _ => utf8.decode(base64Decode(encoded), allowMalformed: true),
+  };
   final source = switch (parameters[1]) {
     'c' => ClipboardSource.clipboard,
     'p' => ClipboardSource.primary,
