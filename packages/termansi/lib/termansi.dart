@@ -8,4 +8,5 @@ export 'src/cursor.dart';
 export 'src/erase.dart';
 export 'src/escape_codes.dart';
 export 'src/term.dart';
+export 'src/text.dart';
 export 'src/x11_colors.dart';

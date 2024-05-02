@@ -11,3 +11,7 @@
 - added: CSI!p - Soft terminal reset
 - added: CSI14t - Read terminal size in pixels
 - added: OSC52 - clipboard support
+
+## 0.3.0
+
+- added: text style attributes

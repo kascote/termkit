@@ -120,4 +120,13 @@ abstract class Color {
 
   /// Background True Color
   static String trueColorBg(int r, int g, int b) => '${CSI}48;2;$r;$g;${b}m';
+
+  /// Set 256 underline color
+  static String underlineColor256(int color) => '${CSI}58;5;${color}m';
+
+  /// Set TrueColor underline color
+  static String underlineTrueColor(int r, int g, int b) => '${CSI}58;2;$r;$g;${b}m';
+
+  /// Reset underline color
+  static String get resetUnderlineColor => '${CSI}59m';
 }
