@@ -15,3 +15,7 @@
 ## 0.2.1
 
 - fixed: packages dependencies
+
+## 0.3.0
+
+- added: more text styles, support curly underline with color

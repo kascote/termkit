@@ -17,6 +17,18 @@ enum TextStyle {
   /// Underline
   underline,
 
+  /// Double underline
+  doubleUnderline,
+
+  /// Curly underline
+  curlyUnderline,
+
+  /// Dotted underline
+  dottedUnderline,
+
+  /// Dashed underline
+  dashedUnderline,
+
   /// Blink
   blink,
 
@@ -35,6 +47,10 @@ const _boldSeq = '1';
 const _faintSeq = '2';
 const _italicSeq = '3';
 const _underlineSeq = '4';
+const _doubleUnderlineSeq = '4:2';
+const _curlyUnderlineSeq = '4:3';
+const _dottedUnderlineSeq = '4:4';
+const _dashedUnderlineSeq = '4:5';
 const _blinkSeq = '5';
 const _reverseSeq = '7';
 const _crossOutSeq = '9';
@@ -96,7 +112,40 @@ class Style {
   void italic() => _styles.add(_italicSeq);
 
   /// Sets the underline style.
-  void underline() => _styles.add(_underlineSeq);
+  void underline([Color? color]) {
+    _styles.add(_underlineSeq);
+  }
+
+  /// Sets the double underline style.
+  void doubleUnderline([Color? color]) {
+    if (color case final ucolor?) underlineColor(ucolor);
+    _styles.add(_doubleUnderlineSeq);
+  }
+
+  /// Sets the curly underline style.
+  void curlyUnderline([Color? color]) {
+    if (color case final ucolor?) underlineColor(ucolor);
+    return _styles.add(_curlyUnderlineSeq);
+  }
+
+  /// Sets the dotted underline style.
+  void dottedUnderline([Color? color]) {
+    if (color case final ucolor?) underlineColor(ucolor);
+    _styles.add(_dottedUnderlineSeq);
+  }
+
+  /// Sets the dashed underline style.
+  void dashedUnderline([Color? color]) {
+    if (color case final ucolor?) underlineColor(ucolor);
+    _styles.add(_dashedUnderlineSeq);
+  }
+
+  /// Set underline color
+  void underlineColor(Color color) {
+    var colorSeq = color.convert(_profile).sequence();
+    if (colorSeq.isNotEmpty) colorSeq = '5${colorSeq.substring(1)}';
+    return _styles.add(colorSeq);
+  }
 
   /// Sets the blink style.
   void blink() => _styles.add(_blinkSeq);
@@ -117,6 +166,10 @@ class Style {
       TextStyle.faint => faint(),
       TextStyle.italic => italic(),
       TextStyle.underline => underline(),
+      TextStyle.doubleUnderline => doubleUnderline(),
+      TextStyle.curlyUnderline => curlyUnderline(),
+      TextStyle.dottedUnderline => dottedUnderline(),
+      TextStyle.dashedUnderline => dashedUnderline(),
       TextStyle.blink => blink(),
       TextStyle.reverse => reverse(),
       TextStyle.crossOut => crossout(),

@@ -27,6 +27,10 @@ void main() {
     [center('faint', 15), TextStyle.faint],
     [center('italic', 15), TextStyle.italic],
     [center('underline', 15), TextStyle.underline],
+    [center('doubleUnderline', 15), TextStyle.doubleUnderline],
+    [center('curlyUnderline', 15), TextStyle.curlyUnderline],
+    [center('dottedUnderline', 15), TextStyle.dottedUnderline],
+    [center('dashedUnderline', 15), TextStyle.dashedUnderline],
     [center('blink', 15), TextStyle.blink],
     [center('inverse', 15), TextStyle.reverse],
     [center('crossOut', 15), TextStyle.crossOut],
@@ -36,6 +40,12 @@ void main() {
   for (final style in styles) {
     t.writeln(' ${t.style(style[0] as String)..apply(style[1] as TextStyle)}');
   }
+
+  t
+    ..writeln(' ${t.style('underline color')
+      ..fg(Ansi256Color(160))
+      ..curlyUnderline(Ansi256Color(120))}')
+    ..writeln(' ${t.style('underline color')..dottedUnderline(Ansi256Color(196))}');
 }
 
 String center(String text, int length) {
