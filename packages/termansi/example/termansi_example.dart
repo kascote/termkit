@@ -61,9 +61,11 @@ void main() {
     ..writeln(' ${Text.dashedUnderline}Dashed Underline${Text.resetDashedUnderline}')
     ..writeln()
     ..writeln(
-        ' ${Text.doubleUnderline}${Color.underlineColor256(120)}Double Underline Color${Text.resetDashedUnderline}${Color.resetUnderlineColor}')
+      ' ${Text.doubleUnderline}${Color.underlineColor256(120)}Double Underline Color${Text.resetDashedUnderline}${Color.resetUnderlineColor}',
+    )
     ..writeln(
-        ' ${Text.curlyUnderline}${Color.underlineTrueColor(255, 0, 0)}Curly Underline Color${Text.resetCurlyUnderline}${Color.resetUnderlineColor}')
+      ' ${Text.curlyUnderline}${Color.underlineTrueColor(255, 0, 0)}Curly Underline Color${Text.resetCurlyUnderline}${Color.resetUnderlineColor}',
+    )
     ..writeln()
     ..writeln(Term.hyperLink('https://github.com/kascote/termkit', 'Link to project'))
     ..writeln(Term.notify('TermKit', 'Hello from TermAnsi'));
