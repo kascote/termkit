@@ -58,7 +58,7 @@ extension TermUtils on TermLib {
   Future<SyncUpdateStatus?> querySyncUpdate() async {
     return withRawModeAsync<SyncUpdateStatus?>(() async {
       write(ansi.Term.querySyncUpdate);
-      final event = await readEvent<QuerySyncUpdateEvent>();
+      final event = await readEvent<QuerySyncUpdateEvent>(timeout: 500);
       return (event is QuerySyncUpdateEvent) ? event.value : null;
     });
   }
@@ -67,7 +67,7 @@ extension TermUtils on TermLib {
   Future<String> queryTerminalVersion() async {
     return withRawModeAsync<String>(() async {
       write(ansi.Term.requestTermVersion);
-      final event = await readEvent<NameAndVersionEvent>();
+      final event = await readEvent<NameAndVersionEvent>(timeout: 500);
       return (event is NameAndVersionEvent) ? event.value : '';
     });
   }
@@ -76,7 +76,7 @@ extension TermUtils on TermLib {
   Future<TrueColor?> queryOSCStatus(int status) async {
     return withRawModeAsync<TrueColor?>(() async {
       write(ansi.Term.queryOSCColors(status));
-      final event = await readEvent<ColorQueryEvent>();
+      final event = await readEvent<ColorQueryEvent>(timeout: 500);
       return (event is ColorQueryEvent) ? TrueColor(event.r, event.g, event.b) : null;
     });
   }
@@ -132,4 +132,58 @@ extension TermUtils on TermLib {
       return (event is ClipboardCopyEvent) ? event : null;
     });
   }
+
+  /// Request keyboard capabilities
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities() async {
+    return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
+      write(ansi.Term.requestKeyboardCapabilities);
+
+      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
+      return (event is KeyboardEnhancementFlagsEvent) ? event : null;
+    });
+  }
+
+  /// Set keyboard flags
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  void setKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
+      write(ansi.Term.setKeyboardCapabilities(flags.flags, flags.mode));
+
+  /// Push keyboard flags to the stack
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  void pushKeyboardFlags(KeyboardEnhancementFlagsEvent flags) => write(ansi.Term.pushKeyboardCapabilities(flags.flags));
+
+  /// Enable keyboard enhancement
+  void enableKeyboardEnhancement() {
+    const keyFlags = KeyboardEnhancementFlagsEvent(
+      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
+          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportEventTypes,
+    );
+    setKeyboardFlags(keyFlags);
+  }
+
+  /// Enable keyboard enhancement with all parameters
+  void enableKeyboardEnhancementFull() {
+    const keyFlags = KeyboardEnhancementFlagsEvent(
+      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
+          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportEventTypes |
+          KeyboardEnhancementFlagsEvent.reportAssociatedText,
+    );
+    setKeyboardFlags(keyFlags);
+  }
+
+  /// Disable keyboard enhancements
+  void disableKeyboardEnhancement() => setKeyboardFlags(const KeyboardEnhancementFlagsEvent(0));
+
+  /// Pop keyboard flags from the stack
+  ///
+  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
+  void popKeyboardFlags([int entries = 1]) => write(ansi.Term.popKeyboardCapabilities(entries));
 }
