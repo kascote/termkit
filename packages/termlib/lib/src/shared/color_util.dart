@@ -61,36 +61,33 @@ TrueColor? oscColor(String color) {
   return result;
 }
 
+// Maximum possible distance in RGB color space using Redmean approximation.
+const double _maxRedmeanDistance = 764.8339663572415; // Precomputed for efficiency
+
 /// Returns the distance between two TrueColors utilizing the
 /// "red mean" formula.
 ///
 /// The return value is between 0 and 1. 0 means the colors are identical.
 /// ref: https://en.wikipedia.org/wiki/Color_difference
 double calculateRedMeanDistance(TrueColor color1, TrueColor color2) {
-  final r1 = _linearize(color1.r);
-  final g1 = _linearize(color1.g);
-  final b1 = _linearize(color1.b);
+  // Calculate the average of the red components.
+  final redMean = (color1.r + color2.r) / 2.0;
 
-  final r2 = _linearize(color2.r);
-  final g2 = _linearize(color2.g);
-  final b2 = _linearize(color2.b);
+  // Calculate the square differences for each color channel with redmean adjustment.
+  final redWeight = 2 + redMean / 256;
+  final blueWeight = 2 + (255 - redMean) / 256;
 
-  // Calculate squared differences
-  final rDiff = (r1 - r2) * (r1 - r2);
-  final gDiff = (g1 - g2) * (g1 - g2);
-  final bDiff = (b1 - b2) * (b1 - b2);
+  final redDiff = color2.r - color1.r;
+  final greenDiff = color2.g - color1.g;
+  final blueDiff = color2.b - color1.b;
 
-  final distance = math.sqrt(((0.299 * rDiff) + (0.587 * gDiff) + (0.114 * bDiff)) / 3);
+  final redComponent = redWeight * redDiff * redDiff;
+  final greenComponent = 4 * greenDiff * greenDiff;
+  final blueComponent = blueWeight * blueDiff * blueDiff;
 
-  return distance;
-}
+  // Calculate the Redmean distance.
+  final distance = math.sqrt(redComponent + greenComponent + blueComponent);
 
-// Helper function for linearization
-double _linearize(int colorComponent) {
-  const a = 0.055;
-  if (colorComponent <= 0.03928) {
-    return colorComponent / 12.92;
-  } else {
-    return math.pow((colorComponent + a) / (1 + a), 2.4) * 1.0;
-  }
+  // Normalize the distance to a range between 0 and 1.
+  return distance / _maxRedmeanDistance;
 }
