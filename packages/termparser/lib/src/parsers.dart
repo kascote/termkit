@@ -80,6 +80,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
 /// Parse an Operating System Command sequence
 Event parseOscSequence(List<String> parameters, int ignoredParameterCount, String char) {
   return switch (parameters) {
+    ['10', ...] => _parserColorSequence(parameters),
     ['11', ...] => _parserColorSequence(parameters),
     ['52', ...] => _parseClipboardSequence(parameters),
     _ => const NoneEvent(),
