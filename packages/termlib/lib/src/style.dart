@@ -78,6 +78,9 @@ class Style {
   /// Creates a new Style.
   Style(this.text, {ProfileEnum profile = ProfileEnum.ansi256}) : _profile = profile;
 
+  /// The profile used by the Style.
+  ProfileEnum get profile => _profile;
+
   /// Allows calling directly the Style to set the text value.
   ///
   /// ex:
@@ -113,6 +116,7 @@ class Style {
 
   /// Sets the underline style.
   void underline([Color? color]) {
+    if (color case final ucolor?) underlineColor(ucolor);
     _styles.add(_underlineSeq);
   }
 
