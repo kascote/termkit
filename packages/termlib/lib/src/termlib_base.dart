@@ -11,6 +11,7 @@ import './extensions/term.dart';
 import './ffi/termos.dart';
 import './readline.dart';
 import './style.dart';
+import 'shared/terminal_overrides.dart';
 
 /// Type similar to Platform.environment, used for dependency injection
 typedef EnvironmentData = Map<String, String>;
@@ -33,7 +34,7 @@ enum ProfileEnum {
   trueColor,
 }
 
-final _broadcastStream = stdin.asBroadcastStream();
+final _bStream = stdin.asBroadcastStream();
 
 /// Terminal library
 class TermLib {
@@ -41,6 +42,7 @@ class TermLib {
   late Stdout _stdout;
   late EnvironmentData _env;
   bool _isRawMode = false;
+  Stream<List<int>>? _mockStdin;
 
   /// The current terminal profile to use.
   /// The profile is resolved when the [TermLib] instance is created.
@@ -52,13 +54,20 @@ class TermLib {
   /// If no [profile] is provided, it will use the value returned by the
   /// [envColorProfile] function. That means that the default profile will be
   /// resolved based on the environment settings.
-  ///
-  /// [env] and [stdoutAdapter] are used for dependency injection for testing purposes.
-  TermLib({ProfileEnum? profile, EnvironmentData? env, Stdout? stdoutAdapter}) {
-    _stdout = stdoutAdapter ?? stdout;
-    _env = env ?? Platform.environment;
-    _termOs = TermOs(); // terminalAdapter ?? termAdapter(stdoutAdapter: stdoutAdapter, env: env);
+  TermLib({ProfileEnum? profile}) {
+    final overrides = TerminalOverrides.current;
+    _stdout = overrides?.stdout ?? stdout;
+    _env = overrides?.environmentData ?? Platform.environment;
+    _termOs = overrides?.termOs ?? TermOs();
     this.profile = profile ?? envColorProfile();
+  }
+
+  Stream<List<int>> get _broadcastStream {
+    final overrides = TerminalOverrides.current;
+    if (overrides?.stdin != null && _mockStdin == null) {
+      _mockStdin = overrides!.stdin.asBroadcastStream();
+    }
+    return _mockStdin ?? _bStream;
   }
 
   /// Returns true if the terminal is attached to an interactive terminal session.
@@ -86,17 +95,6 @@ class TermLib {
 
   /// Disables raw mode.
   void disableRawMode() => _setRawMode(false);
-
-  bool _setRawMode(bool value) {
-    final original = _isRawMode;
-    _isRawMode = value;
-    if (value) {
-      _termOs.enableRawMode();
-    } else {
-      _termOs.disableRawMode();
-    }
-    return original;
-  }
 
   /// Returns a [Style] object for the current profile
   Style style([String content = '']) => Style(content, profile: profile);
@@ -156,18 +154,14 @@ class TermLib {
   ///    CLICOLOR https://bixense.com/clicolors/
   bool envNoColor() {
     if (_env.containsKey('NO_COLOR')) return true;
-    if (_env['CLICOLOR'] == '0' && !isColorForced()) return true;
-    return false;
+    if (_env['CLICOLOR'] != null || isColorForced) return false;
+    return isNotInteractive;
   }
 
   /// Returns true if the terminal is forced to support colors
   ///
-  /// `CLICOLOR_FORCE` environment variable is set to a value different from '0'
-  bool isColorForced() {
-    final forced = _env['CLICOLOR_FORCE'];
-    if (forced != null && forced != '0') return true;
-    return false;
-  }
+  /// `CLICOLOR_FORCE` environment variable is set
+  bool get isColorForced => _env['CLICOLOR_FORCE'] != null;
 
   /// Returns the color profile based on environment variables inspection.
   ///
@@ -180,7 +174,7 @@ class TermLib {
   ProfileEnum envColorProfile() {
     if (envNoColor()) return ProfileEnum.noColor;
     final cp = colorProfile();
-    if (isColorForced() && cp == ProfileEnum.noColor) {
+    if (isColorForced && cp == ProfileEnum.noColor) {
       return ProfileEnum.ansi16;
     }
 
@@ -207,32 +201,48 @@ class TermLib {
   /// If the [rawKeys] parameter is set to true, it will return [RawKeyEvent] events
   /// for each key press. This is useful for debugging propouses.
   ///
-  /// If the timout is reached, it will return a [NoneEvent] instance.
+  /// If the timeout is reached, it will return a [NoneEvent] instance.
   Future<Event> readEvent<T extends Event>({int timeout = 100, bool rawKeys = false}) async {
     final timeoutDuration = Duration(milliseconds: timeout);
     final completer = Completer<Event>();
     final parser = Parser();
-    StreamSubscription<Event>? subscription;
+    StreamSubscription<Event> subscription;
 
-    final eventTransformer = StreamTransformer<List<int>, T>.fromHandlers(
+    final eventTransformer = StreamTransformer<List<int>, Event>.fromHandlers(
       handleData: (data, syncSink) {
-        if (rawKeys) return syncSink.add(RawKeyEvent(data) as T);
+        if (rawKeys) return syncSink.add(RawKeyEvent(data));
 
         parser.advance(data);
-        if (parser.moveNext()) {
-          final evt = parser.current;
-          if (evt is T) syncSink.add(evt);
+
+        while (parser.moveNext()) {
+          syncSink.add(parser.current);
         }
       },
     );
 
-    final timer = Timer(timeoutDuration, () async {
-      await subscription!.cancel();
+    late Timer timer;
+
+    subscription = _broadcastStream.transform(eventTransformer).skipWhile((evt) => evt is! T).listen(null);
+    subscription
+      ..onDone(() async {
+        await subscription.cancel();
+        timer.cancel();
+        completer.complete(const NoneEvent());
+      })
+      // ignore: avoid_types_on_closure_parameters
+      ..onError((Object e) async {
+        await subscription.cancel();
+        timer.cancel();
+        completer.completeError(e);
+      });
+
+    timer = Timer(timeoutDuration, () async {
+      await subscription.cancel();
       completer.complete(const NoneEvent());
     });
 
-    subscription = _broadcastStream.transform(eventTransformer).listen((event) async {
-      await subscription!.cancel();
+    subscription.onData((event) async {
+      await subscription.cancel();
       timer.cancel();
       completer.complete(event);
     });
@@ -257,61 +267,6 @@ class TermLib {
     final original = _setRawMode(true);
     return fn().whenComplete(() => _setRawMode(original));
   }
-
-  /// Request keyboard capabilities
-  ///
-  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities() async {
-    return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
-      _stdout.write(ansi.Term.requestKeyboardCapabilities);
-
-      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
-      return (event is KeyboardEnhancementFlagsEvent) ? event : null;
-    });
-  }
-
-  /// Set keyboard flags
-  ///
-  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void setKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
-      _stdout.write(ansi.Term.setKeyboardCapabilities(flags.flags, flags.mode));
-
-  /// Push keyboard flags to the stack
-  ///
-  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void pushKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
-      _stdout.write(ansi.Term.pushKeyboardCapabilities(flags.flags));
-
-  /// Enable keyboard enhancement
-  void enableKeyboardEnhancement() {
-    const keyFlags = KeyboardEnhancementFlagsEvent(
-      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
-          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportEventTypes,
-    );
-    setKeyboardFlags(keyFlags);
-  }
-
-  /// Enable keyboard enhancement with all parameters
-  void enableKeyboardEnhancementFull() {
-    const keyFlags = KeyboardEnhancementFlagsEvent(
-      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
-          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportEventTypes |
-          KeyboardEnhancementFlagsEvent.reportAssociatedText,
-    );
-    setKeyboardFlags(keyFlags);
-  }
-
-  /// Disable keyboard enhancements
-  void disableKeyboardEnhancement() => setKeyboardFlags(const KeyboardEnhancementFlagsEvent(0));
-
-  /// Pop keyboard flags from the stack
-  ///
-  /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void popKeyboardFlags([int entries = 1]) => _stdout.write(ansi.Term.popKeyboardCapabilities(entries));
 
   /// Resolves the current terminal profile checking different environment variables.
   ProfileEnum colorProfile() {
@@ -406,6 +361,17 @@ class TermLib {
   /// exited already. This is useful to prevent Future chains from proceeding
   /// after you've decided to exit.
   Future<void> flushThenExit(int status) {
-    return Future.wait<void>([stdout.close(), stderr.close()]).then<void>((_) => exit(status));
+    return Future.wait<void>([_stdout.close(), stderr.close()]).then<void>((_) => exit(status));
+  }
+
+  bool _setRawMode(bool value) {
+    final original = _isRawMode;
+    _isRawMode = value;
+    if (value) {
+      _termOs.enableRawMode();
+    } else {
+      _termOs.disableRawMode();
+    }
+    return original;
   }
 }
