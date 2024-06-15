@@ -48,9 +48,14 @@ void main() {
   });
 
   group('calculateRedMeanDistance', () {
-    test('', () {
-      final x = calculateRedMeanDistance(TrueColor(0, 0, 0), TrueColor(255, 255, 255));
-      expect(x, equals(303078.1932290478));
+    test('calculate color difference', () {
+      expect(calculateRedMeanDistance(TrueColor(0, 0, 0), TrueColor(0, 0, 0)), equals(0.0));
+      expect(calculateRedMeanDistance(TrueColor(255, 255, 255), TrueColor(255, 255, 255)), equals(0.0));
+      expect(calculateRedMeanDistance(TrueColor(0, 0, 0), TrueColor(255, 255, 255)), equals(1));
+      expect(calculateRedMeanDistance(TrueColor(255, 255, 255), TrueColor(0, 0, 0)), equals(1));
+      expect(calculateRedMeanDistance(TrueColor(128, 128, 128), TrueColor(0, 0, 0)), equals(0.50196078431372551));
+      expect(calculateRedMeanDistance(TrueColor(0, 0, 0), TrueColor(128, 128, 128)), equals(0.50196078431372551));
+      expect(calculateRedMeanDistance(TrueColor(255, 0, 0), TrueColor(0, 0, 255)), equals(0.7452265229848835));
     });
   });
 }

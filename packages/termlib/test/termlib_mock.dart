@@ -1,28 +1,54 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show IOSink, Stdout;
+import 'dart:io' show IOSink, Stdin, Stdout, systemEncoding;
 
-import 'package:termlib/termlib.dart';
+import 'package:termlib/src/ffi/termos.dart';
 
-class TermMock {
-  late ProfileEnum _colorProfile;
+class TermOsMock implements TermOs {
+  List<String> callStack = [];
 
-  TermMock({ProfileEnum? colorProfile}) {
-    _colorProfile = colorProfile ?? ProfileEnum.ansi256;
+  void clearCallStack() => callStack.clear();
+
+  @override
+  int setWindowHeight(int height) {
+    callStack.add('setWindowHeight($height)');
+    return height;
   }
 
-  Color backgroundColor() => Ansi256Color(243);
-
-  Color foregroundColor() => Ansi16Color(4);
-
-  ProfileEnum colorProfile() => _colorProfile;
-
-  String? termStatusReport(int status) {
-    if (status == 10) return 'rgb:1000/A000/B000';
-    if (status == 11) return 'rgb:1100/C000/D000';
-
-    return null;
+  @override
+  int setWindowWidth(int width) {
+    callStack.add('setWindowWidth($width)');
+    return width;
   }
+
+  @override
+  void enableRawMode() => callStack.add('enableRawMode');
+
+  @override
+  void disableRawMode() => callStack.add('disableRawMode');
 }
+
+// class TermMock extends TermLib {
+//   late ProfileEnum _colorProfile;
+
+//   TermMock({ProfileEnum? colorProfile}) {
+//     _colorProfile = colorProfile ?? ProfileEnum.ansi256;
+//   }
+
+//   @override
+//   Future<Color> get backgroundColor => Future.value(Ansi256Color(243));
+
+//   Color foregroundColor() => Ansi16Color(4);
+
+//   ProfileEnum colorProfile() => _colorProfile;
+
+//   String? termStatusReport(int status) {
+//     if (status == 10) return 'rgb:1000/A000/B000';
+//     if (status == 11) return 'rgb:1100/C000/D000';
+
+//     return null;
+//   }
+// }
 
 ///
 // https://github.com/filiph/linkcheck/blob/8ab5f5b516701f98c18cb2f16a73e5f93ebf7f12/test/e2e_test.dart#L218
@@ -48,8 +74,10 @@ class MockStdout implements Stdout {
   @override
   final Encoding encoding = const Utf8Codec();
 
-  ///
-  MockStdout();
+  @override
+  String get lineTerminator => '';
+  @override
+  set lineTerminator(String value) {}
 
   @override
   Never get done => throw UnimplementedError();
@@ -59,11 +87,14 @@ class MockStdout implements Stdout {
     throw UnimplementedError();
   }
 
+  var _hasTerminal = true;
   @override
   bool get hasTerminal {
     callStack.add('hasTerminal');
-    return true;
+    return _hasTerminal;
   }
+
+  set hasTerminal(bool value) => _hasTerminal = value;
 
   @override
   IOSink get nonBlocking {
@@ -76,13 +107,13 @@ class MockStdout implements Stdout {
   @override
   int get terminalColumns {
     callStack.add('terminalColumns');
-    return 80;
+    return 111;
   }
 
   @override
   int get terminalLines {
     callStack.add('terminalLines');
-    return 40;
+    return 33;
   }
 
   @override
@@ -143,4 +174,51 @@ class MockStdout implements Stdout {
     write(object);
     write('\n');
   }
+}
+
+///
+class _StdStream extends Stream<List<int>> {
+  final Stream<List<int>> _stream;
+
+  _StdStream(this._stream);
+
+  ///
+  @override
+  StreamSubscription<List<int>> listen(
+    void Function(List<int> event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    return _stream.listen(onData, onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+  }
+}
+
+class MockStdin extends _StdStream implements Stdin {
+  MockStdin(super.stream);
+
+  @override
+  bool get echoMode => true;
+  @override
+  set echoMode(bool value) {}
+
+  @override
+  bool echoNewlineMode = true;
+
+  @override
+  bool lineMode = true;
+
+  @override
+  bool get hasTerminal => throw UnimplementedError();
+
+  @override
+  int readByteSync() => throw UnimplementedError();
+
+  @override
+  String? readLineSync({Encoding encoding = systemEncoding, bool retainNewlines = false}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool get supportsAnsiEscapes => throw UnimplementedError();
 }

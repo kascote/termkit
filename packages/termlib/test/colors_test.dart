@@ -139,7 +139,7 @@ void main() {
     });
 
     test('should create TrueColor from short hex string without #', () {
-      final color = TrueColor.fromString('f0f');
+      final color = TrueColor.fromString('f0f')..clearColorCache();
       expect(color, isNotNull);
       expect(color.sequence(), '38;2;255;0;255');
     });
@@ -172,6 +172,14 @@ void main() {
     test('equatable', () {
       expect(TrueColor(0, 1, 2), TrueColor(0, 1, 2));
       expect(TrueColor(0, 0, 0), isNot(TrueColor(0, 0, 1)));
+    });
+
+    test('rgbDistance', () {
+      expect(TrueColor(0, 0, 0).rgbDistance(TrueColor(0, 0, 0)), 0.0);
+      expect(TrueColor(0, 0, 0).rgbDistance(TrueColor(255, 255, 255)), 1.0);
+      expect(TrueColor(0, 0, 0).rgbDistance(TrueColor(255, 0, 0)), 0.5269547279226836);
+      expect(TrueColor(0, 0, 0).rgbDistance(TrueColor(0, 255, 0)), 0.6668113897046608);
+      expect(TrueColor(0, 0, 0).rgbDistance(TrueColor(0, 0, 255)), 0.5770995198752191);
     });
   });
 

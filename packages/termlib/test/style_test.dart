@@ -103,4 +103,61 @@ void main() {
       expect(s.toString(), equals('\x1B[38;2;10;11;12;48;2;171;205;239mHello World\x1B[0m'));
     });
   });
+
+  group('Underline >', () {
+    test('single - should set underline sequence', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..underline();
+      expect(s.toString(), equals('\x1B[4mHello World\x1B[0m'));
+    });
+
+    test('single - should set underline color if specified', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..underline(TrueColor(1, 2, 3));
+      expect(s.toString(), equals('\x1B[58;2;1;2;3;4mHello World\x1B[0m'));
+    });
+
+    test('double - should set underline sequence', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..doubleUnderline();
+      expect(s.toString(), equals('\x1B[4:2mHello World\x1B[0m'));
+    });
+
+    test('double - should set underline color if specified', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..doubleUnderline(TrueColor(1, 2, 3));
+      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:2mHello World\x1B[0m'));
+    });
+
+    test('curly - should set underline sequence', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..curlyUnderline();
+      expect(s.toString(), equals('\x1B[4:3mHello World\x1B[0m'));
+    });
+
+    test('curly - should set underline color if specified', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..curlyUnderline(TrueColor(1, 2, 3));
+      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:3mHello World\x1B[0m'));
+    });
+
+    test('dotted - should set underline sequence', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dottedUnderline();
+      expect(s.toString(), equals('\x1B[4:4mHello World\x1B[0m'));
+    });
+
+    test('dotted - should set underline color if specified', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dottedUnderline(TrueColor(1, 2, 3));
+      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:4mHello World\x1B[0m'));
+    });
+
+    test('dashed - should set underline sequence', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dashedUnderline();
+      expect(s.toString(), equals('\x1B[4:5mHello World\x1B[0m'));
+    });
+
+    test('dashed - should set underline color if specified', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dashedUnderline(TrueColor(1, 2, 3));
+      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:5mHello World\x1B[0m'));
+    });
+
+    test('set underline color', () {
+      final s = Style('Hello World', profile: ProfileEnum.trueColor)..underlineColor(TrueColor(1, 2, 3));
+      expect(s.toString(), equals('\x1B[58;2;1;2;3mHello World\x1B[0m'));
+    });
+  });
 }
