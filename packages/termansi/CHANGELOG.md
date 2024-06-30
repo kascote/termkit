@@ -15,3 +15,8 @@
 ## 0.3.0
 
 - added: text style attributes
+
+## 0.3.1
+
+- fixed analysis warnings
+- updated dependencies
