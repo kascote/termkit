@@ -10,3 +10,7 @@
 
 - added: QueryTerminalWindowSizeEvent to return window size event
 - added: ClipboardCopyEvent to return clipboard content
+
+## 0.3.0
+
+- fixed: fixed OSC10 parsing
