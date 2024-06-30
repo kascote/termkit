@@ -19,3 +19,12 @@
 ## 0.3.0
 
 - added: more text styles, support curly underline with color
+
+## 0.4.0
+
+- updated: updated test cases/coverage
+- updated: keyboard handling
+- updated: export Style profile
+- updated: rgb distance function
+- new: added underline styles
+- new: example to check luminance (dart/light)
