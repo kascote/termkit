@@ -13,6 +13,10 @@ import './readline.dart';
 import './style.dart';
 import 'shared/terminal_overrides.dart';
 
+/// Send additional control codes to have mouse motion codes in default zellij
+/// configuration.
+bool zellijMouseMotionQuirk = false;
+
 /// Type similar to Platform.environment, used for dependency injection
 typedef EnvironmentData = Map<String, String>;
 

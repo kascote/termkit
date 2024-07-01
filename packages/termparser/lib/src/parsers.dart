@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:termparser/src/parser.dart';
+
 import 'events.dart';
 import 'events_types.dart';
 import 'extensions/string_extension.dart';
@@ -16,6 +18,18 @@ Event? parseChar(String char, {bool escO = false}) {
       _ => const KeyEvent(KeyCode()) // none
     };
   }
+
+  // in this case we want "return", not "enter". and instead of <C-j>
+  // mapped to "enter", we want <C-j> to have <C-j>/<C-k> for vim
+  // style navigation.
+  if (rawModeReturnQuirk) {
+    switch (char) {
+      case '\r':
+        return const KeyEvent(KeyCode(name: KeyCodeName.enter));
+      case '\n':
+        return _ctrlOrKey(char);
+    }
+  }
   return switch (char) {
     '\r' || '\n' => const KeyEvent(KeyCode(name: KeyCodeName.enter)),
     '\t' => const KeyEvent(KeyCode(name: KeyCodeName.tab)),
@@ -29,6 +43,10 @@ Event? parseChar(String char, {bool escO = false}) {
 KeyEvent _ctrlOrKey(String char) {
   final code = char.codeUnitAt(0);
   return switch (code) {
+    0x1F when ctrlQuestionMarkQuirk => const KeyEvent(
+        KeyCode(char: '?'),
+        modifiers: KeyModifiers(KeyModifiers.ctrl),
+      ),
     >= 0x01 && <= 0x1A => KeyEvent(
         KeyCode(char: String.fromCharCode(code - 0x01 + 0x61)),
         modifiers: const KeyModifiers(KeyModifiers.ctrl),
@@ -147,18 +165,22 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
     final c = StringExtension.tryFromCharCode(codePoint);
     if (c == null) return const NoneEvent();
 
-    keyCode = switch (codePoint) {
-      0x1b => const KeyCode(name: KeyCodeName.escape),
-      0xd => const KeyCode(name: KeyCodeName.enter),
-      // if the terminal is in raw mode, the enter key sends \r
-      // we need to handle this case. How to receive the raw mode status?
-      0xa => const KeyCode(name: KeyCodeName.enter),
-      0x9 => modifiers.has(KeyModifiers.shift)
-          ? const KeyCode(name: KeyCodeName.backTab)
-          : const KeyCode(name: KeyCodeName.tab),
-      0x7f => const KeyCode(name: KeyCodeName.backSpace),
-      _ => KeyCode(char: String.fromCharCode(codePoint))
-    };
+    if (rawModeReturnQuirk && codePoint == 0xa) {
+      keyCode = KeyCode(char: String.fromCharCode(codePoint));
+    } else {
+      keyCode = switch (codePoint) {
+        0x1b => const KeyCode(name: KeyCodeName.escape),
+        0xd => const KeyCode(name: KeyCodeName.enter),
+        // if the terminal is in raw mode, the enter key sends \r
+        // we need to handle this case. How to receive the raw mode status?
+        0xa => const KeyCode(name: KeyCodeName.enter),
+        0x9 => modifiers.has(KeyModifiers.shift)
+            ? const KeyCode(name: KeyCodeName.backTab)
+            : const KeyCode(name: KeyCodeName.tab),
+        0x7f => const KeyCode(name: KeyCodeName.backSpace),
+        _ => KeyCode(char: String.fromCharCode(codePoint))
+      };
+    }
     stateFromKeyCode = KeyEventState.none();
   }
 

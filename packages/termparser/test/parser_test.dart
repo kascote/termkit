@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:termparser/termparser.dart';
+import 'package:termparser/src/parser.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
@@ -662,6 +662,45 @@ void main() {
       final parser = Parser()..advance(keySequence(r'πP>|term v1-234π\\'));
       expect(parser.moveNext(), true);
       expect(parser.current, equals(const NameAndVersionEvent('term v1-234')));
+    });
+  });
+
+  group('special cases?', () {
+    test('<C-j> is mapped to <enter>', () {
+      final parser = Parser()..advance([0x0a]);
+      expect(parser.moveNext(), true);
+      expect(parser.current, const KeyEvent(KeyCode(name: KeyCodeName.enter)));
+    });
+
+    test('<C-j> is mapped to <C-j>', () {
+      rawModeReturnQuirk = true;
+      final parser = Parser()..advance([0x0a]);
+      expect(parser.moveNext(), true);
+      expect(parser.current, const KeyEvent(KeyCode(char: 'j'), modifiers: KeyModifiers(KeyModifiers.ctrl)));
+    });
+
+    test('<C-?> is mapped to <C-7> by default (why?)', () {
+      final parser = Parser()..advance([0x1f]);
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        const KeyEvent(KeyCode(char: '7'), modifiers: KeyModifiers(KeyModifiers.ctrl)),
+      );
+    });
+
+    test('<C-?> is mapped properly with quirk active', () {
+      ctrlQuestionMarkQuirk = true;
+      final parser = Parser()..advance([0x1f]);
+      expect(parser.moveNext(), true);
+      expect(
+        parser.current,
+        const KeyEvent(KeyCode(char: '?'), modifiers: KeyModifiers(KeyModifiers.ctrl)),
+      );
+    });
+
+    tearDown(() {
+      rawModeReturnQuirk = false;
+      ctrlQuestionMarkQuirk = false;
     });
   });
 }
