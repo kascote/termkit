@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'engine.dart';
 import 'events.dart';
 import 'parsers.dart' as parsers;
@@ -108,4 +110,21 @@ class _SequenceProvider implements Provider, Iterator<Event> {
     if (_index < 0 || _index >= _sequences.length) throw StateError('No current sequence');
     return _sequences[_index];
   }
+}
+
+/// A stream transformer that converts a stream of bytes into a stream of events.
+StreamTransformer<List<int>, T> eventTransformer<T extends Event>({bool rawKeys = false}) {
+  final parser = Parser();
+
+  return StreamTransformer<List<int>, T>.fromHandlers(
+    handleData: (data, syncSink) {
+      if (rawKeys) return syncSink.add(RawKeyEvent(data) as T);
+
+      parser.advance(data);
+
+      while (parser.moveNext()) {
+        syncSink.add(parser.current as T);
+      }
+    },
+  );
 }
