@@ -36,7 +36,7 @@ void main() {
       );
     });
 
-    test('foregroundColor must try to parse COLORFGBG is set and is unable to determine color', () async {
+    test('foregroundColor must try to parse COLORFGBG if is set and is unable to determine color', () async {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
@@ -50,11 +50,11 @@ void main() {
       );
     });
 
-    test('foregroundColor must return Ansi16Color 7 if unable to determine the color', () async {
+    test('foregroundColor must return null if unable to determine the color', () async {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
-          expect(await term.foregroundColor, Ansi16Color(7));
+          expect(await term.foregroundColor, null);
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
@@ -62,11 +62,11 @@ void main() {
         stdin: MockStdin(streamString('')),
       );
     });
-    test('foregroundColor must return Ansi16Color 7 if unable to parse COLORFGBG', () async {
+    test('foregroundColor must return null if unable to parse COLORFGBG', () async {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
-          expect(await term.foregroundColor, Ansi16Color(7));
+          expect(await term.foregroundColor, null);
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
@@ -101,11 +101,11 @@ void main() {
       );
     });
 
-    test('backgroundColor should return color 0 is unable to resolve it', () async {
+    test('backgroundColor should return null if is unable to resolve it', () async {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
-          expect(await term.backgroundColor, Ansi16Color(0));
+          expect(await term.backgroundColor, null);
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },

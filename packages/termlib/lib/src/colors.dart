@@ -98,7 +98,7 @@ sealed class Color {
   static Color get green => Ansi16Color(2);
 
   /// Returns yellow color on ANSI 16 profile
-  static Color yellow = Ansi16Color(3);
+  static Color get yellow => Ansi16Color(3);
 
   /// Returns blue color on ANSI 16 profile
   static Color get blue => Ansi16Color(4);

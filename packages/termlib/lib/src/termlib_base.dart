@@ -97,9 +97,12 @@ class TermLib {
   void disableRawMode() => _setRawMode(false);
 
   /// Returns a [Style] object for the current profile
+  ///
+  /// If [content] is provided, it will be used as the content of the style and
+  /// later and update element styles.
   Style style([String content = '']) => Style(content, profile: profile);
 
-  /// Returns the current newline string honoring the raw mode.
+  /// Returns the current newline terminator honoring the raw mode status.
   String get newLine => _isRawMode ? '\r\n' : '\n';
 
   /// Write the Object's string representation to the terminal.
@@ -121,13 +124,15 @@ class TermLib {
       ..write(s);
   }
 
-  /// Returns true or false depending if the background is dark or not
+  /// Returns true or false depending if the background is dark or not.
+  /// In case the color can not be determined, it will return null.
   ///
   /// The factor is a number between 0 and 1, where 0 will return true if the
   /// background is full black, and 1 will return true if the background is
   /// full white.
-  Future<bool> isBackgroundDark({double factor = 0.5}) async {
+  Future<bool?> isBackgroundDark({double factor = 0.5}) async {
     final color = await backgroundColor;
+    if (color == null) return null;
     final bgColor = color.convert(ProfileEnum.trueColor) as TrueColor;
     return colorLuminance(bgColor) < factor;
   }
@@ -311,46 +316,41 @@ class TermLib {
     return ProfileEnum.noColor;
   }
 
+  final _fgIdx = 0;
+  final _bgIdx = 1;
+
+  Color? _parseFGBG(int fgbg) {
+    assert(fgbg == _fgIdx || fgbg == _bgIdx, 'fgbg must be 0 or 1');
+
+    final envColorFgBg = _env['COLORFGBG'];
+    if (envColorFgBg == null) return null;
+
+    final colors = envColorFgBg.split(';');
+    if ((colors.length > 2) || (fgbg > colors.length - 1)) return null;
+
+    final colorFg = colors[fgbg].trim();
+    final color = int.tryParse(colorFg);
+    return color != null ? Ansi16Color(color) : null;
+  }
+
   /// Returns the terminal foreground color.
   ///
   /// Will try to resolve using OSC10 if available, if not will try to resolve
   /// using COLORFGBG environment variable if available, if not will default to
   /// Ansi color 7
-  Future<Color> get foregroundColor async {
+  Future<Color?> get foregroundColor async {
     final result = await queryOSCStatus(10);
-    if (result != null) return result;
-
-    final envColorFgBg = _env['COLORFGBG'];
-    if (envColorFgBg != null) {
-      final colorFg = envColorFgBg.split(';')[0].trim();
-      if (colorFg.isNotEmpty) {
-        final color = int.tryParse(colorFg);
-        if (color != null) return Ansi16Color(color);
-      }
-    }
-
-    return Ansi16Color(7);
+    return result ?? _parseFGBG(_fgIdx);
   }
 
   /// Returns the terminal background color.
   ///
   /// Will try to resolve using OSC11 if available, if not will try to resolve
-  /// using COLORFGBG environment variable if available, if not will default to
-  /// Ansi color 0
-  Future<Color> get backgroundColor async {
+  /// using COLORFGBG environment variable if available, if can not be determined
+  /// will return null
+  Future<Color?> get backgroundColor async {
     final result = await queryOSCStatus(11);
-    if (result != null) return result;
-
-    final envColorFgBg = _env['COLORFGBG'];
-    if (envColorFgBg != null && envColorFgBg.contains(';')) {
-      final colorBg = envColorFgBg.split(';')[1].trim();
-      if (colorBg.isNotEmpty) {
-        final color = int.tryParse(colorBg);
-        if (color != null) return Ansi16Color(color);
-      }
-    }
-
-    return Ansi16Color(0);
+    return result ?? _parseFGBG(_bgIdx);
   }
 
   /// Reads text from the input stream until ENTER or ESC is pressed.

@@ -4,7 +4,8 @@ import 'package:termlib/termlib.dart';
 
 Future<void> main() async {
   final t = TermLib();
-  final color = await t.isBackgroundDark() ? Color('yellow') : Color('blue');
+  final isDark = await t.isBackgroundDark();
+  final color = (isDark ?? false) ? Color('yellow') : Color('blue');
 
   t
     ..enableAlternateScreen()
