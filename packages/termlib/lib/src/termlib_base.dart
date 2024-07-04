@@ -191,6 +191,24 @@ class TermLib {
   /// If the terminal is not attached to a TTY, returns 25.
   int get windowHeight => isInteractive ? _stdout.terminalLines : 25;
 
+  /// Returns an Stream of events parsed from the standard input.
+  ///
+  /// The events can be filtered by type using the generic type parameter like
+  /// this:
+  ///
+  /// ```dart
+  /// terminal.eventStreamer<KeyEvent>().listen((event) {
+  ///   if (event.code.name == KeyCodeName.escape) {
+  ///     terminal.writeln('You pressed ESC');
+  ///   }
+  /// });
+  /// ```
+  ///
+  /// If the [rawKeys] parameter is set to true, it will return [RawKeyEvent]
+  /// events without using the parsing.
+  Stream<T> eventStreamer<T extends Event>({bool rawKeys = false}) =>
+      _bStream.transform(eventTransformer<T>(rawKeys: rawKeys));
+
   /// Read events from the standard input [stdin]
   /// The type parameter [T] is the type of event to read. It should be a subclass
   /// of [Event] or [Event] itself to read all the events.
@@ -205,24 +223,11 @@ class TermLib {
   Future<Event> readEvent<T extends Event>({int timeout = 100, bool rawKeys = false}) async {
     final timeoutDuration = Duration(milliseconds: timeout);
     final completer = Completer<Event>();
-    final parser = Parser();
     StreamSubscription<Event> subscription;
-
-    final eventTransformer = StreamTransformer<List<int>, Event>.fromHandlers(
-      handleData: (data, syncSink) {
-        if (rawKeys) return syncSink.add(RawKeyEvent(data));
-
-        parser.advance(data);
-
-        while (parser.moveNext()) {
-          syncSink.add(parser.current);
-        }
-      },
-    );
-
     late Timer timer;
 
-    subscription = _broadcastStream.transform(eventTransformer).skipWhile((evt) => evt is! T).listen(null);
+    subscription =
+        _broadcastStream.transform(eventTransformer(rawKeys: rawKeys)).skipWhile((evt) => evt is! T).listen(null);
     subscription
       ..onDone(() async {
         await subscription.cancel();
