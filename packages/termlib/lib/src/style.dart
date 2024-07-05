@@ -85,12 +85,12 @@ class Style {
   ///
   /// ex:
   /// ```dart
-  ///   final red = termlib.profile.style()..setFg(termlib.profile.getColor('red'));
+  ///   final red = termlib.style()..fg(Color.red);
   ///   termlib.write(red('Hello!'));
   /// ```
-  String call(String value) {
+  String call(String value, {bool reset = true}) {
     setText(value);
-    return toString();
+    return toString(reset);
   }
 
   /// Sets the Style's text value.
@@ -183,11 +183,12 @@ class Style {
 
   /// Returns the ANSI representation of the Style.
   @override
-  String toString() {
+  String toString([bool reset = true]) {
     if (_profile == ProfileEnum.noColor) return text;
     if (_styles.isEmpty) return text;
 
     final resolvedStyles = _styles.join(';');
-    return '${ansi.CSI}${resolvedStyles}m$text${ansi.CSI}${_resetSeq}m';
+    final postfix = reset ? '${ansi.CSI}${_resetSeq}m' : '';
+    return '${ansi.CSI}${resolvedStyles}m$text$postfix';
   }
 }

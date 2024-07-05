@@ -46,6 +46,19 @@ void main() {
       ..fg(Ansi256Color(160))
       ..curlyUnderline(Ansi256Color(120))}')
     ..writeln(' ${t.style('underline color')..dottedUnderline(Ansi256Color(196))}');
+
+  // final col1 = t.style()
+  //   ..fg(Color.red)
+  //   ..bg(Color.white);
+  // final col2 = t.style()
+  //   ..fg(Color.white)
+  //   ..bg(Color.red);
+
+  // t
+  //   ..writeln(col1("ba${col2('na')}${col1('nas')}"))
+  //   ..writeln(col1("ba${col2('na')}nas"))
+  //   ..writeln(col1("ba${col2('na', reset: false)}nas"))
+  //   ..writeln('bananas');
 }
 
 String center(String text, int length) {
