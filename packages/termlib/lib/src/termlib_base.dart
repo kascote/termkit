@@ -35,6 +35,8 @@ enum ProfileEnum {
 }
 
 final _bStream = stdin.asBroadcastStream();
+const _defaultColumns = 80;
+const _defaultRows = 25;
 
 /// Terminal library
 class TermLib {
@@ -189,12 +191,28 @@ class TermLib {
   /// Returns the width of the current console window in characters.
   ///
   /// If the terminal is not attached to a TTY, returns 80.
-  int get windowWidth => isInteractive ? _stdout.terminalColumns : 80;
+  /// Will honor the value of COLUMNS environment variable if set over the
+  /// reported value.
+  int get terminalColumns {
+    final envCols = int.tryParse(_env['COLUMNS'] ?? '');
+    if (isInteractive) {
+      return envCols ?? (_stdout.terminalColumns == 0 ? _defaultColumns : _stdout.terminalColumns);
+    }
+    return envCols ?? _defaultColumns;
+  }
 
   /// Returns the height of the current console window in characters.
   ///
   /// If the terminal is not attached to a TTY, returns 25.
-  int get windowHeight => isInteractive ? _stdout.terminalLines : 25;
+  /// Will honor the value of LINES environment variable if set over the
+  /// reported value.
+  int get terminalLines {
+    final envRows = int.tryParse(_env['LINES'] ?? '');
+    if (isInteractive) {
+      return envRows ?? (_stdout.terminalLines == 0 ? _defaultRows : _stdout.terminalLines);
+    }
+    return envRows ?? _defaultRows;
+  }
 
   /// Returns an Stream of events parsed from the standard input.
   ///

@@ -30,7 +30,7 @@ Future<void> main() async {
 
   t
     ..writeln('Terminal version: ${theme.green(version)}')
-    ..writeln('dimension chars: ${theme.green('${t.windowWidth}x${t.windowHeight}')}')
+    ..writeln('dimension chars: ${theme.green('${t.terminalColumns}x${t.terminalLines}')}')
     ..writeln('dimension pixels: ${theme.green('${termPixels?.width ?? ''}x${termPixels?.height ?? ''}')}')
     ..writeln('Color profile: ${theme.green(t.profile.name)}')
     ..writeln('Sync update status: ${renderValue(syncStatus?.name ?? 'unsupported', theme)}')

@@ -356,20 +356,88 @@ void main() {
       );
     });
 
-    test('windowWidth must return 80 if the terminal is not interactive', () async {
+    test('terminalColumns must return 80 if the terminal is not interactive', () async {
       final stdOut = MockStdout()..hasTerminal = false;
-      await mockedTest((_, __, ___) => expect(TermLib().windowWidth, 80), stdout: stdOut);
+      await mockedTest((_, __, ___) => expect(TermLib().terminalColumns, 80), stdout: stdOut);
     });
 
-    test('windowWidth must return the terminal columns', () async {
-      await mockedTest((_, __, ___) => expect(TermLib().windowWidth, 111));
+    test('terminalColumns must honor COLUMNS env variables if set and is not interactive', () async {
+      final stdOut = MockStdout()
+        ..setTermColumns(999)
+        ..hasTerminal = false;
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalColumns, 222),
+        stdout: stdOut,
+        env: {'COLUMNS': '222'},
+      );
+    });
+
+    test('terminalColumns must honor COLUMNS env variables if set and is interactive', () async {
+      final stdOut = MockStdout()
+        ..setTermColumns(999)
+        ..hasTerminal = true;
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalColumns, 221),
+        stdout: stdOut,
+        env: {'COLUMNS': '221'},
+      );
+    });
+
+    test('terminalColumns must return the terminal columns', () async {
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalColumns, 999),
+        stdout: MockStdout()..setTermColumns(999),
+      );
+    });
+
+    test('terminalColumns must return default value if termnalColumns is 0', () async {
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalColumns, 80),
+        stdout: MockStdout()..setTermColumns(0),
+      );
     });
 
     test('terminalLines must return 25 if the terminal is not interactive', () async {
       final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (_, __, ___) => expect(TermLib().windowHeight, 25),
+        (_, __, ___) => expect(TermLib().terminalLines, 25),
         stdout: stdOut,
+      );
+    });
+
+    test('terminalLines must honor LINES env variable if set and is not interactive', () async {
+      final stdOut = MockStdout()
+        ..setTermLines(999)
+        ..hasTerminal = false;
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalLines, 222),
+        stdout: stdOut,
+        env: {'LINES': '222'},
+      );
+    });
+
+    test('terminalLines must honor LINES env variables if set and is interactive', () async {
+      final stdOut = MockStdout()
+        ..setTermLines(999)
+        ..hasTerminal = true;
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalLines, 221),
+        stdout: stdOut,
+        env: {'LINES': '221'},
+      );
+    });
+
+    test('terminalLines must return the terminal lines', () async {
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalLines, 999),
+        stdout: MockStdout()..setTermLines(999),
+      );
+    });
+
+    test('terminalLines must return default value if termnalColumns is 0', () async {
+      await mockedTest(
+        (_, __, ___) => expect(TermLib().terminalLines, 25),
+        stdout: MockStdout()..setTermLines(0),
       );
     });
 

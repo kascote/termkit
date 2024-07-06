@@ -57,7 +57,7 @@ class MatrixApp {
   late final StreamSubscription<KeyEvent> eventStream;
 
   MatrixApp(TermLib t) {
-    matrix = Matrix(t, t.windowWidth ~/ 2, t.windowHeight);
+    matrix = Matrix(t, t.terminalColumns ~/ 2, t.terminalLines);
     completer = Completer<bool>();
     tickStream = Stream.periodic(const Duration(milliseconds: 1000 ~/ 30), (tick) => tick).listen(null);
     eventStream = t.eventStreamer<KeyEvent>().listen(null);

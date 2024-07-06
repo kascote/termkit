@@ -55,6 +55,8 @@ class TermOsMock implements TermOs {
 class MockStdout implements Stdout {
   ///
   StringBuffer buf = StringBuffer();
+  int _terminalColumns = 80;
+  int _terminalLines = 24;
 
   ///
   List<String> callStack = [];
@@ -69,6 +71,18 @@ class MockStdout implements Stdout {
 
   void clearCallStack() {
     callStack.clear();
+  }
+
+  ///
+  // ignore: use_setters_to_change_properties
+  void setTermColumns(int value) {
+    _terminalColumns = value;
+  }
+
+  ///
+  // ignore: use_setters_to_change_properties
+  void setTermLines(int value) {
+    _terminalLines = value;
   }
 
   @override
@@ -107,13 +121,13 @@ class MockStdout implements Stdout {
   @override
   int get terminalColumns {
     callStack.add('terminalColumns');
-    return 111;
+    return _terminalColumns;
   }
 
   @override
   int get terminalLines {
     callStack.add('terminalLines');
-    return 33;
+    return _terminalLines;
   }
 
   @override
