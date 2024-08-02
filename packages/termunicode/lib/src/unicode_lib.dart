@@ -1,3 +1,5 @@
+import 'package:characters/characters.dart';
+
 import './table.dart';
 
 int _getCPData(int codePoint) {
@@ -38,8 +40,19 @@ int widthCp(int codePoint, {bool cjk = false}) => _getValue(codePoint, cjk: cjk)
 ///
 /// If [cjk] is true, means that is working in a Chinese, Japanese, Korean
 /// context, on that case `ambiguous` characters are treated as `wide`.
-int widthString(String value, {bool cjk = false}) {
-  return value.runes.fold(0, (width, codePoint) => width + widthCp(codePoint, cjk: cjk));
+int widthString(String value, {bool cjk = false}) => widthChars(value.characters, cjk: cjk);
+
+/// Returns the width of a given character.
+///
+/// If [cjk] is true, means that is working in a Chinese, Japanese, Korean
+/// context, on that case `ambiguous` characters are treated as `wide`.
+///
+/// The rationale to use Characters is that it can handle grapheme clusters and
+/// surrogate pairs. We only take the first rune to calculate the width,
+/// assuming that all other codepoints work as variations of the first one, but
+/// not modify the final width.
+int widthChars(Characters value, {bool cjk = false}) {
+  return value.fold(0, (width, char) => width + widthCp(char.runes.first, cjk: cjk));
 }
 
 /// Check if a given code point is an emoji.
