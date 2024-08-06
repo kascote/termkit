@@ -65,7 +65,7 @@ void main() {
         linesStream(ucdFile),
         (row) {
           idx++;
-          stdout.writeln('OUT ${row.line}:idx$idx - ${row.fields} - ERROR: ${row.error}');
+          // stdout.writeln('OUT ${row.line}:idx$idx - ${row.fields} - ERROR: ${row.error}');
           final range = ranges[idx];
           expect(row.rangeStart, range.start, reason: '$idx:Range Start ${row.rangeStart} != ${range.start}');
           expect(row.rangeEnd, range.end, reason: '$idx:Range End ${row.rangeEnd} != ${range.end}');

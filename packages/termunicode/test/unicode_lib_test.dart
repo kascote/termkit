@@ -19,7 +19,7 @@ void main() {
     expect(isEmojiChar(''), false);
     expect(widthString('🔬'), 2); // Microscope
     expect(isEmojiChar('🔬'), true);
-    expect(widthString('👩‍🔬'), 4); // Woman scientist
+    expect(widthString('👩‍🔬'), 2); // Woman scientist
     expect(isEmojiChar('👩‍🔬'), true);
   });
 
