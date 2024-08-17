@@ -123,7 +123,7 @@ StreamTransformer<List<int>, T> eventTransformer<T extends Event>({bool rawKeys 
       parser.advance(data);
 
       while (parser.moveNext()) {
-        syncSink.add(parser.current as T);
+        if (parser.current is T) syncSink.add(parser.current as T);
       }
     },
   );
