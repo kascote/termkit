@@ -11,14 +11,17 @@ platforms:
   macos:
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  characters: ^1.3.0
 
 dev_dependencies:
   crypto: ^3.0.3
   http: ^1.2.1
-  lints: ^3.0.0
+  lints: ^4.0.0
   path: ^1.9.0
   test: ^1.24.0
-  very_good_analysis: ^5.1.0
-dependencies:
-  characters: ^1.3.0
+  very_good_analysis: ^6.0.0
