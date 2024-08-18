@@ -552,7 +552,7 @@ void main() {
       expect(parser.moveNext(), true);
       expect(
         parser.current,
-        equals(const QuerySyncUpdateEvent(SyncUpdateStatus.disabled)),
+        equals(QuerySyncUpdateEvent(2)),
       );
     });
   });

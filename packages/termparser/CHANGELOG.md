@@ -14,3 +14,9 @@
 ## 0.3.0
 
 - fixed: fixed OSC10 parsing
+
+## 0.4.0
+
+- fixed: event filter for eventTransformer
+- added: helper functions to check for single key modifiers
+- added: parser support for CSI 2027 Unicode Core

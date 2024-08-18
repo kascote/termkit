@@ -671,3 +671,29 @@ enum ClipboardSource {
   /// Clipboard source is cut buffer
   cutBuffer,
 }
+
+/// DEC Report Mode status
+///
+/// ref: https://vt100.net/docs/vt510-rm/DECRPM.html
+/// ref: https://vt100.net/docs/vt510-rm/DECRQM.html
+enum DECRPMStatus {
+  /// The requested query is not recognized
+  notRecognized(0),
+
+  /// The feature is enabled
+  enabled(1),
+
+  /// The feature is disabled
+  disabled(2),
+
+  /// The feature is permanently enabled
+  permanentlyEnabled(3),
+
+  /// The feature is permanently disabled
+  permanentlyDisabled(4);
+
+  const DECRPMStatus(this.value);
+
+  /// The value of the status
+  final int value;
+}

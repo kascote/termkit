@@ -245,33 +245,23 @@ final class NameAndVersionEvent extends Event with EquatableMixin {
   List<Object> get props => [value];
 }
 
-/// Query Sync update status Enum
-enum SyncUpdateStatus {
-  /// Sync update is enabled
-  enabled,
-
-  /// Sync update is disabled
-  disabled,
-
-  /// Unknown state
-  unknown,
-
-  /// Sync update is not supported
-  notSupported,
-}
-
 /// Query Sync update status
 ///
 /// ref: https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
 final class QuerySyncUpdateEvent extends Event with EquatableMixin {
+  /// The sync update status code reported by the terminal
+  final int code;
+
   /// The sync update status
-  final SyncUpdateStatus value;
+  late final DECRPMStatus status;
 
   /// Constructs a new instance of [QuerySyncUpdateEvent].
-  const QuerySyncUpdateEvent(this.value);
+  QuerySyncUpdateEvent(this.code) {
+    status = DECRPMStatus.values.firstWhere((e) => e.value == code, orElse: () => DECRPMStatus.notRecognized);
+  }
 
   @override
-  List<Object> get props => [value];
+  List<Object> get props => [code];
 }
 
 /// Raw Key Event
@@ -314,4 +304,21 @@ final class ClipboardCopyEvent extends Event with EquatableMixin {
 
   @override
   List<Object> get props => [source, text];
+}
+
+/// Unicode Core Event
+final class UnicodeCoreEvent extends Event with EquatableMixin {
+  /// The Unicode Core status reported by the terminal
+  final int code;
+
+  /// Get the Unicode Core status
+  late final DECRPMStatus status;
+
+  /// Constructs a new instance of [UnicodeCoreEvent].
+  UnicodeCoreEvent(this.code) {
+    status = DECRPMStatus.values.firstWhere((e) => e.value == code, orElse: () => DECRPMStatus.notRecognized);
+  }
+
+  @override
+  List<Object> get props => [code];
 }

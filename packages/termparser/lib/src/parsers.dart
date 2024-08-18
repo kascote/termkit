@@ -71,7 +71,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     'c' => _primaryDeviceAttributes(parameters, char),
     '~' => _parseSpecialKeyCode(parameters, char),
     'R' => _parseCursorPosition(parameters),
-    'y' => _parseSyncOutputStatus(parameters),
+    'y' => _parseDECRPMStatus(parameters),
     't' => _parseWindowSize(parameters),
     _ => const NoneEvent()
   };
@@ -297,17 +297,12 @@ Event _parseDCSBlock(List<String> parameters) {
   return NameAndVersionEvent(parameters[2]);
 }
 
-Event _parseSyncOutputStatus(List<String> parameters) {
+Event _parseDECRPMStatus(List<String> parameters) {
   switch (parameters) {
     case ['?', '2026', ...]:
-      {
-        return switch (parameters[2]) {
-          '1' => const QuerySyncUpdateEvent(SyncUpdateStatus.enabled) as Event,
-          '2' => const QuerySyncUpdateEvent(SyncUpdateStatus.disabled) as Event,
-          '3' => const QuerySyncUpdateEvent(SyncUpdateStatus.unknown) as Event,
-          _ => const QuerySyncUpdateEvent(SyncUpdateStatus.notSupported) as Event,
-        };
-      }
+      return QuerySyncUpdateEvent(int.tryParse(parameters[2]) ?? 0);
+    case ['?', '2027', ...]:
+      return UnicodeCoreEvent(int.tryParse(parameters[2]) ?? 0);
     default:
       return ParserErrorEvent(parameters);
   }
