@@ -20,3 +20,7 @@
 
 - fixed analysis warnings
 - updated dependencies
+
+### 0.4.0
+
+- added: CSI 2027 - unicode core

@@ -137,4 +137,19 @@ abstract class Term {
   /// If [data] is neither a base64 string nor "?", the terminal clears
   /// the clipboard.
   static String clipboard(String operation, String data) => '${OSC}52;$operation;$data$ST';
+
+  /// Enable Unicode Core
+  ///
+  /// ref:  https://github.com/contour-terminal/terminal-unicode-core
+  static String get enableUnicodeCore => '$CSI?2027h';
+
+  /// Disable Unicode Core
+  ///
+  /// ref:  https://github.com/contour-terminal/terminal-unicode-core
+  static String get disableUnicodeCore => '$CSI?2027l';
+
+  /// Query Unicode Core
+  ///
+  /// ref:  https://github.com/contour-terminal/terminal-unicode-core
+  static String get queryUnicodeCore => '$CSI?2027\$p';
 }
