@@ -25,16 +25,6 @@ class TermOsWindows implements TermOs {
   late final int outputHandle;
 
   @override
-  int setWindowHeight(int height) {
-    throw UnsupportedError('Setting window height is not supported for Windows terminals.');
-  }
-
-  @override
-  int setWindowWidth(int width) {
-    throw UnsupportedError('Setting window width is not supported for Windows terminals.');
-  }
-
-  @override
   void enableRawMode() {
     final dwMode = (~CONSOLE_MODE.ENABLE_ECHO_INPUT) &
         (~CONSOLE_MODE.ENABLE_PROCESSED_INPUT) &

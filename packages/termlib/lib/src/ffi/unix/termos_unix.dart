@@ -28,18 +28,6 @@ class TermOsUnix implements TermOs {
   late final TCSetAttrDart tcsetattr;
 
   @override
-  int setWindowHeight(int height) {
-    stdout.write('\x1b[8;$height;t');
-    return height;
-  }
-
-  @override
-  int setWindowWidth(int width) {
-    stdout.write('\x1b[8;;${width}t');
-    return width;
-  }
-
-  @override
   void enableRawMode() {
     final origTermIOS = _origTermIOSPointer.ref;
 
