@@ -28,3 +28,8 @@
 - updated: rgb distance function
 - new: added underline styles
 - new: example to check luminance (dart/light)
+
+## 0.5.0
+
+- updated: removed unused methods from FFI interface
+- added: query functions for 2027 (Unicode Core)

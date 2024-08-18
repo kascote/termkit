@@ -124,7 +124,7 @@ void main() {
         (out, _, tos) async {
           final term = TermLib();
           final status = await term.querySyncUpdate();
-          expect(status, isA<SyncUpdateStatus>());
+          expect(status, isA<QuerySyncUpdateEvent>());
           expect(out.buf.toString(), equals('\x1B[?2026\$p'));
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');

@@ -55,55 +55,55 @@ extension TermUtils on TermLib {
   void softReset() => write(ansi.Term.softTerminalReset);
 
   /// Query Sync status
-  Future<SyncUpdateStatus?> querySyncUpdate() async {
-    return withRawModeAsync<SyncUpdateStatus?>(() async {
+  Future<QuerySyncUpdateEvent?> querySyncUpdate({int timeout = 500}) async {
+    return withRawModeAsync<QuerySyncUpdateEvent?>(() async {
       write(ansi.Term.querySyncUpdate);
-      final event = await readEvent<QuerySyncUpdateEvent>(timeout: 500);
-      return (event is QuerySyncUpdateEvent) ? event.value : null;
+      final event = await readEvent<QuerySyncUpdateEvent>(timeout: timeout);
+      return (event is QuerySyncUpdateEvent) ? event : null;
     });
   }
 
   /// Request terminal name and version
-  Future<String> queryTerminalVersion() async {
+  Future<String> queryTerminalVersion({int timeout = 500}) async {
     return withRawModeAsync<String>(() async {
       write(ansi.Term.requestTermVersion);
-      final event = await readEvent<NameAndVersionEvent>(timeout: 500);
+      final event = await readEvent<NameAndVersionEvent>(timeout: timeout);
       return (event is NameAndVersionEvent) ? event.value : '';
     });
   }
 
   /// Returns the current terminal status report.
-  Future<TrueColor?> queryOSCStatus(int status) async {
+  Future<TrueColor?> queryOSCStatus(int status, {int timeout = 500}) async {
     return withRawModeAsync<TrueColor?>(() async {
       write(ansi.Term.queryOSCColors(status));
-      final event = await readEvent<ColorQueryEvent>(timeout: 500);
+      final event = await readEvent<ColorQueryEvent>(timeout: timeout);
       return (event is ColorQueryEvent) ? TrueColor(event.r, event.g, event.b) : null;
     });
   }
 
   /// Query Keyboard enhancement support
-  Future<bool> queryKeyboardEnhancementSupport() async {
+  Future<bool> queryKeyboardEnhancementSupport({int timeout = 500}) async {
     return withRawModeAsync<bool>(() async {
       write(ansi.Term.queryKeyboardEnhancementSupport);
-      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
+      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: timeout);
       return event is KeyboardEnhancementFlagsEvent;
     });
   }
 
   /// Query Primary Device Attributes
-  Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes() async {
+  Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes({int timeout = 500}) async {
     return withRawModeAsync<PrimaryDeviceAttributesEvent?>(() async {
       write(ansi.Term.queryPrimaryDeviceAttributes);
-      final event = await readEvent<PrimaryDeviceAttributesEvent>(timeout: 500);
+      final event = await readEvent<PrimaryDeviceAttributesEvent>(timeout: timeout);
       return (event is PrimaryDeviceAttributesEvent) ? event : null;
     });
   }
 
   /// Query Terminal window size in pixels
-  Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels() async {
+  Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels({int timeout = 500}) async {
     return withRawModeAsync<QueryTerminalWindowSizeEvent?>(() async {
       write(ansi.Term.queryWindowSizePixels);
-      final event = await readEvent<QueryTerminalWindowSizeEvent>(timeout: 500);
+      final event = await readEvent<QueryTerminalWindowSizeEvent>(timeout: timeout);
       return (event is QueryTerminalWindowSizeEvent) ? event : null;
     });
   }
@@ -136,11 +136,11 @@ extension TermUtils on TermLib {
   /// Request keyboard capabilities
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities() async {
+  Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities({int timeout = 500}) async {
     return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
       write(ansi.Term.requestKeyboardCapabilities);
 
-      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: 500);
+      final event = await readEvent<KeyboardEnhancementFlagsEvent>(timeout: timeout);
       return (event is KeyboardEnhancementFlagsEvent) ? event : null;
     });
   }
@@ -186,4 +186,25 @@ extension TermUtils on TermLib {
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
   void popKeyboardFlags([int entries = 1]) => write(ansi.Term.popKeyboardCapabilities(entries));
+
+  /// Enable Unicode Core
+  ///
+  /// ref:  https://github.com/contour-terminal/terminal-unicode-core
+  void enableUnicodeCore() => write(ansi.Term.enableUnicodeCore);
+
+  /// Disable Unicode Core
+  ///
+  /// ref:  https://github.com/contour-terminal/terminal-unicode-core
+  void disableUnicodeCore() => write(ansi.Term.disableUnicodeCore);
+
+  /// Query Unicode Core status
+  ///
+  /// ref:  https://github.com/contour-terminal/terminal-unicode-core
+  Future<UnicodeCoreEvent?> queryUnicodeCore({int timeout = 500}) {
+    return withRawModeAsync<UnicodeCoreEvent?>(() async {
+      write(ansi.Term.queryUnicodeCore);
+      final event = await readEvent<UnicodeCoreEvent>(timeout: timeout);
+      return (event is UnicodeCoreEvent) ? event : null;
+    });
+  }
 }

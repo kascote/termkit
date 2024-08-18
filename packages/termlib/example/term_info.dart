@@ -27,15 +27,17 @@ Future<void> main() async {
   final keyEnhanced = await t.queryKeyboardEnhancementSupport();
   final deviceAttr = await t.queryPrimaryDeviceAttributes();
   final termPixels = await t.queryWindowSizeInPixels();
+  final unicodeCore = await t.queryUnicodeCore();
 
   t
     ..writeln('Terminal version: ${theme.green(version)}')
     ..writeln('dimension chars: ${theme.green('${t.terminalColumns}x${t.terminalLines}')}')
     ..writeln('dimension pixels: ${theme.green('${termPixels?.width ?? ''}x${termPixels?.height ?? ''}')}')
     ..writeln('Color profile: ${theme.green(t.profile.name)}')
-    ..writeln('Sync update status: ${renderValue(syncStatus?.name ?? 'unsupported', theme)}')
+    ..writeln('Sync update status: ${renderValue(syncStatus?.status.name ?? 'unsupported', theme)}')
     ..writeln('Foreground color: ${theme.yellow(fgColor.toString())}')
     ..writeln('Background color: ${theme.yellow(bgColor.toString())}')
+    ..writeln('Unicode Core: ${renderValue(unicodeCore?.status.name ?? 'unsupported', theme)}')
     ..writeln('Primary device Attrs:');
   showDeviceAttr(t, deviceAttr, theme);
   t.writeln('Keyboard Enhancement support: ${renderValue(keyEnhanced.toString(), theme)}');
