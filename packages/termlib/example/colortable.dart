@@ -6,6 +6,7 @@ void main() {
   final t = TermLib();
   final black = Ansi16Color(0);
   final white = Ansi16Color(7);
+  final resetCR = '${Style('')..reset()}\n';
 
   t.writeln('How 256 colors downgrades to 16 colors\n');
 
@@ -13,7 +14,7 @@ void main() {
     final c16 = Ansi256Color(i).convert(ProfileEnum.ansi16);
     final lum16 = colorLuminance(c16.convert(ProfileEnum.trueColor) as TrueColor);
 
-    if (i % 12 == 0) t.write('\n');
+    if (i % 12 == 0) t.write(resetCR);
 
     final style16 = Style('[${c16.toString().padLeft(2)}]')
       ..bg(c16)
@@ -30,4 +31,6 @@ void main() {
       ..write(style256)
       ..write(' ');
   }
+
+  t.write(resetCR);
 }

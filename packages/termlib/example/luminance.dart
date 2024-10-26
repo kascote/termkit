@@ -62,7 +62,12 @@ void main() {
     ],
   ];
 
-  t.writeln(t.style("${'Dark'.padRight(35)}${'Light'.padRight(26)}")..underline(Color.yellow));
+  t.writeln(
+    t.style("${'Dark'.padRight(35)}${'Light'.padRight(26)}")
+      ..underline(Color.yellow)
+      ..bg(Color.resetBg)
+      ..reset(),
+  );
   for (final entry in colors) {
     showColor(t, entry[0].name, entry[0].color);
     t.write(' ' * 9);
@@ -75,8 +80,18 @@ void showColor(TermLib t, String name, String color) {
   final clr = TrueColor.fromString(color);
   final luminance = colorLuminance(clr);
   t
-    ..write(t.style(name.padRight(15))..faint())
+    ..write(
+      t.style(name.padRight(15))
+        ..faint()
+        ..bg(Color.resetBg)
+        ..reset(),
+    )
     ..write(t.style('     ')..bg(clr))
-    ..write(' ')
-    ..write(t.style(luminance.toStringAsFixed(3))..faint());
+    ..write(t.style(' ')..bg(Color.resetBg))
+    ..write(
+      t.style(luminance.toStringAsFixed(3))
+        ..faint()
+        ..bg(Color.resetBg)
+        ..reset(),
+    );
 }

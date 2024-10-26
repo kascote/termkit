@@ -2,9 +2,10 @@ import 'package:termlib/termlib.dart';
 
 void main() {
   final term = TermLib()..writeln(Style('ANSI 16 Colors:\n')..bold());
+  final resetCR = '${Style('')..reset()}\n';
 
   for (var i = 0; i < 16; i++) {
-    if (i == 8) term.write('\n');
+    if (i == 8) term.write(resetCR);
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ', profile: ProfileEnum.ansi16)
@@ -13,11 +14,18 @@ void main() {
 
     term.write(style);
   }
-
-  term.writeln(Style('\n\nANSI 256 Colors:')..bold());
+  term
+    ..write('$resetCR$resetCR')
+    ..writeln(
+      Style('ANSI 256 Colors:')
+        ..bold()
+        ..fg(Color.white)
+        ..bg(Color.resetBg)
+        ..reset(),
+    );
 
   for (var i = 16; i < 232; i++) {
-    if ((i - 16) % 12 == 0) term.write('\n');
+    if ((i - 16) % 12 == 0) term.write(resetCR);
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ')
@@ -26,11 +34,18 @@ void main() {
 
     term.write(style);
   }
-
-  term.writeln(Style('\n\nGray Scale Colors:')..bold());
+  term
+    ..write('$resetCR$resetCR')
+    ..writeln(
+      Style('Gray Scale Colors:')
+        ..bold()
+        ..fg(Color.white)
+        ..bg(Color.resetBg)
+        ..reset(),
+    );
 
   for (var i = 232; i < 256; i++) {
-    if ((i - 232) % 12 == 0) term.write('\n');
+    if ((i - 232) % 12 == 0) term.write(resetCR);
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ')
@@ -40,7 +55,15 @@ void main() {
     term.write(style);
   }
 
-  term.writeln((Style('\n\nTrue Colors:')..bold()).toString());
+  term
+    ..write('$resetCR$resetCR')
+    ..writeln(
+      Style('True Colors:')
+        ..bold()
+        ..fg(Color.white)
+        ..bg(Color.resetBg)
+        ..reset(),
+    );
 
   const cols = 80;
   const rows = 20;
@@ -56,10 +79,10 @@ void main() {
       ..fg(TrueColor(r, g, b))
       ..bg(TrueColor(255 - r, 255 - g, 255 - b));
 
-    if (i % cols == 0) term.write('\n');
+    if (i % cols == 0) term.write(resetCR);
 
     term.write(style);
   }
 
-  term.write('\n');
+  term.write(resetCR);
 }

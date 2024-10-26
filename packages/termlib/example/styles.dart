@@ -2,6 +2,7 @@ import 'package:termlib/termlib.dart';
 
 void main() {
   final t = TermLib();
+  final resetCR = '${Style('')..reset()}\n';
 
   final colors = [
     [center('black', 10), Color.black, Color.white],
@@ -15,12 +16,20 @@ void main() {
   ];
 
   for (final color in colors) {
-    t.writeln(' ${t.style(color[0] as String)..fg(color[1] as Color)} \t ${t.style(color[0] as String)
+    final lhs = t.style(color[0] as String)
+      ..fg(color[1] as Color)
+      ..bg(Color.resetBg);
+    final rhs = t.style(color[0] as String)
       ..fg(color[2] as Color)
-      ..bg(color[1] as Color)}');
+      ..bg(color[1] as Color);
+    t.writeln(
+      t.style(' $lhs \t $rhs')
+        ..bg(Color.resetBg)
+        ..reset(),
+    );
   }
 
-  t.writeln('');
+  t.writeln(resetCR);
 
   final styles = [
     [center('bold', 15), TextStyle.bold],
@@ -38,27 +47,22 @@ void main() {
   ];
 
   for (final style in styles) {
-    t.writeln(' ${t.style(style[0] as String)..apply(style[1] as TextStyle)}');
+    final s = t.style(style[0] as String)
+      ..apply(style[1] as TextStyle)
+      ..fg(Color.white)
+      ..reset();
+
+    t.writeln(s);
   }
 
   t
     ..writeln(' ${t.style('underline color')
       ..fg(Ansi256Color(160))
-      ..curlyUnderline(Ansi256Color(120))}')
-    ..writeln(' ${t.style('underline color')..dottedUnderline(Ansi256Color(196))}');
-
-  // final col1 = t.style()
-  //   ..fg(Color.red)
-  //   ..bg(Color.white);
-  // final col2 = t.style()
-  //   ..fg(Color.white)
-  //   ..bg(Color.red);
-
-  // t
-  //   ..writeln(col1("ba${col2('na')}${col1('nas')}"))
-  //   ..writeln(col1("ba${col2('na')}nas"))
-  //   ..writeln(col1("ba${col2('na', reset: false)}nas"))
-  //   ..writeln('bananas');
+      ..curlyUnderline(Ansi256Color(120))
+      ..reset()}')
+    ..writeln(' ${t.style('underline color')
+      ..dottedUnderline(Ansi256Color(196))
+      ..reset()}');
 }
 
 String center(String text, int length) {

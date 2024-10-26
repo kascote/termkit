@@ -53,15 +53,21 @@ class AsciiTable {
     final s = _term.style;
 
     colors = (
-      codes: s()..fg(Color('aqua')),
-      text: s()..fg(Color('grayWeb')),
+      codes: s()
+        ..fg(Color('aqua'))
+        ..bg(Color.resetBg),
+      text: s()
+        ..fg(Color('grayWeb'))
+        ..bg(Color.resetBg),
       cursor: s()
         ..fg(Color('white'))
         ..bg(Color('darkRed')),
       cursorSide: s()
         ..fg(Color('red'))
         ..bg(Color('darkRed')),
-      muted: s()..fg(Color('dimGray')),
+      muted: s()
+        ..fg(Color('dimGray'))
+        ..bg(Color.resetBg),
       hotKeys: s()
         ..fg(Color('white'))
         ..bg(Color('dimGray')),
@@ -117,15 +123,16 @@ class AsciiTable {
         baseCol,
         colors.muted('-' * (table.width * (blockSize + 1))),
       )
-      ..writeAt(baseLine + 1, baseCol + 15, colors.muted('dec:'))
-      ..write(' ${codePoint.toString().padLeft(3)}  ')
-      ..write(colors.muted('hex:'))
-      ..write(' ${codePoint.toRadixString(16).padLeft(2, '0')}  ')
-      ..write(colors.muted('bin:'))
-      ..write(' ${codePoint.toRadixString(2).padLeft(8, '0')}  ')
-      ..write(colors.muted('oct:'))
-      ..write(' ${codePoint.toRadixString(8).padLeft(3)} ')
-      ..write(codePoint < 33 ? lowCodes[codePoint].$2 : '')
+      ..writeAt(baseLine + 1, baseCol + 15, colors.muted('dec: '))
+      ..write(colors.text(codePoint.toString().padLeft(3)))
+      ..write(colors.muted('  hex: '))
+      ..write(colors.text(codePoint.toRadixString(16).padLeft(2, '0')))
+      ..write(colors.muted('  bin: '))
+      ..write(colors.text(codePoint.toRadixString(2).padLeft(8, '0')))
+      ..write(colors.muted('  oct: '))
+      ..write(colors.text(codePoint.toRadixString(8).padLeft(3)))
+      ..write(colors.muted('  '))
+      ..write(colors.text(codePoint < 33 ? lowCodes[codePoint].$2 : ''))
       ..eraseLineFromCursor()
       ..writeAt(
         baseLine + 2,

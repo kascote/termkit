@@ -9,6 +9,8 @@ import 'shared/string_extension.dart';
 
 const _foreground = 38;
 const _background = 48;
+const _resetFg = 39;
+const _resetBg = 49;
 
 // Keeps a cache for the colors requested/converted by the user to save time.
 // Over time this cache must be short, because the there are no many colors
@@ -39,6 +41,9 @@ sealed class Color {
 
     return c;
   }
+
+  /// Returns true if the color is a reset color.
+  bool get isReset => switch (this) { Ansi16Color(:final code) => code == _resetFg || code == _resetBg, _ => false };
 
   const Color._(this.profile);
 
@@ -135,6 +140,12 @@ sealed class Color {
 
   /// Returns bright white color on ANSI 16 profile
   static Color get brightWhite => Ansi16Color(15);
+
+  /// Reset the foreground color to default
+  static Color get resetFg => Ansi16Color(_resetFg);
+
+  /// Reset the background color to default
+  static Color get resetBg => Ansi16Color(_resetBg);
 }
 
 /// NoColor is a color representation when the terminal does not support colors.
@@ -157,7 +168,9 @@ class Ansi16Color extends Color {
 
   /// Creates a new Ansi16Color with the given color value.
   Ansi16Color(int color) : super._(ProfileEnum.ansi16) {
-    if (color < 0 || color > 15) throw ArgumentError.value(color, 'color', 'Must be between 0 and 15');
+    if ((color != _resetFg && color != _resetBg) && (color < 0 || color > 15)) {
+      throw ArgumentError.value(color, 'color', 'Must be between 0 and 15');
+    }
     code = color;
   }
 
@@ -165,6 +178,9 @@ class Ansi16Color extends Color {
   String sequence({bool background = false}) {
     if (code < 8) {
       return '${background ? code + 10 + 30 : code + 30}';
+    }
+    if (code == _resetFg || code == _resetBg) {
+      return '${background ? _resetBg : _resetFg}';
     }
     return '${background ? code + 90 + 10 - 8 : code + 90 - 8}';
   }

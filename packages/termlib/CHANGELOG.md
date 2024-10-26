@@ -33,3 +33,6 @@
 
 - updated: removed unused methods from FFI interface
 - added: query functions for 2027 (Unicode Core)
+- updated: changed how reset styles works. Now need explicit reset.
+- added: implements disable individual styles (bold off, italic off, etc)
+- 

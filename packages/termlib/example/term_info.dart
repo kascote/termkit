@@ -6,6 +6,8 @@ typedef Theme = ({
   Style magenta,
   Style yellow,
   Style error,
+  Style white,
+  Style text,
 });
 
 Future<void> main() async {
@@ -17,6 +19,8 @@ Future<void> main() async {
     green: s()..fg(Color('40')),
     yellow: s()..fg(Color('190')),
     error: s()..fg(Color('160')),
+    white: s()..fg(Color('15')),
+    text: s()..fg(Color('7')),
   );
 
   final version = await t.queryTerminalVersion();
@@ -30,17 +34,18 @@ Future<void> main() async {
   final unicodeCore = await t.queryUnicodeCore();
 
   t
-    ..writeln('Terminal version: ${theme.green(version)}')
-    ..writeln('dimension chars: ${theme.green('${t.terminalColumns}x${t.terminalLines}')}')
-    ..writeln('dimension pixels: ${theme.green('${termPixels?.width ?? ''}x${termPixels?.height ?? ''}')}')
-    ..writeln('Color profile: ${theme.green(t.profile.name)}')
-    ..writeln('Sync update status: ${renderValue(syncStatus?.status.name ?? 'unsupported', theme)}')
-    ..writeln('Foreground color: ${theme.yellow(fgColor.toString())}')
-    ..writeln('Background color: ${theme.yellow(bgColor.toString())}')
-    ..writeln('Unicode Core: ${renderValue(unicodeCore?.status.name ?? 'unsupported', theme)}')
-    ..writeln('Primary device Attrs:');
+    ..writeln('${theme.white('Terminal version: ')}${theme.green(version)}')
+    ..writeln('${theme.white('dimension chars: ')}${theme.green('${t.terminalColumns}x${t.terminalLines}')}')
+    ..writeln(
+        '${theme.white('dimension pixels: ')}${theme.green('${termPixels?.width ?? ''}x${termPixels?.height ?? ''}')}')
+    ..writeln('${theme.white('Color profile: ')}${theme.green(t.profile.name)}')
+    ..writeln('${theme.white('Sync update status: ')}${renderValue(syncStatus?.status.name ?? 'unsupported', theme)}')
+    ..writeln('${theme.white('Foreground color: ')}${theme.yellow(fgColor.toString())}')
+    ..writeln('${theme.white('Background color: ')}${theme.yellow(bgColor.toString())}')
+    ..writeln('${theme.white('Unicode Core: ')}${renderValue(unicodeCore?.status.name ?? 'unsupported', theme)}')
+    ..writeln(theme.white('Primary device Attrs:'));
   showDeviceAttr(t, deviceAttr, theme);
-  t.writeln('Keyboard Enhancement support: ${renderValue(keyEnhanced.toString(), theme)}');
+  t.writeln('${theme.white('Keyboard Enhancement support: ')}${renderValue(keyEnhanced.toString(), theme)}');
   if (keyEnhanced) showKeyboardCapabilities(t, theme, keyCap);
 
   await t.flushThenExit(0);
@@ -59,10 +64,10 @@ void showKeyboardCapabilities(TermLib t, Theme theme, KeyboardEnhancementFlagsEv
     return t.writeln(theme.error('unable to retrieve keyboard capabilities'));
   }
 
-  String showFlag(String value, String name) => '  ${renderValue(value, theme)} $name';
+  String showFlag(String value, String name) => '  ${renderValue(value, theme)} ${theme.text(name)}';
 
   t
-    ..writeln('Keyboard capabilities:')
+    ..writeln(theme.white('Keyboard capabilities:'))
     ..writeln(
       '  ${showFlag(
         flags.has(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes).toString(),
@@ -95,8 +100,8 @@ void showDeviceAttr(TermLib t, PrimaryDeviceAttributesEvent? deviceAttr, Theme t
   }
 
   t
-    ..writeln('  Type: ${theme.green(deviceAttr.type.name)}')
-    ..writeln('  Params:');
+    ..writeln('  ${theme.white('Type: ')}${theme.green(deviceAttr.type.name)}')
+    ..writeln('  ${theme.white('Params:')}');
   if (deviceAttr.params.isEmpty) {
     t.writeln('    ${theme.yellow('no params')}');
     return;

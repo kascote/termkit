@@ -7,6 +7,7 @@ import 'package:termparser/termparser_events.dart';
 
 import '../color_util.dart';
 import './colors.dart';
+import './extensions/cursor.dart';
 import './extensions/term.dart';
 import './ffi/termos.dart';
 import './readline.dart';
@@ -121,9 +122,8 @@ class TermLib {
 
   /// Write a string to the terminal at the specified position.
   void writeAt(int row, int col, Object s) {
-    _stdout
-      ..write(ansi.Cursor.moveTo(row, col))
-      ..write(s);
+    moveTo(row, col);
+    _stdout.write(s);
   }
 
   /// Returns true or false depending if the background is dark or not.

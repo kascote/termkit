@@ -245,21 +245,21 @@ class SnakeGame {
 
   Future<bool> startPage() async {
     final s = _term.style;
-    final whiteStyle = s()..fg(Color.white);
-    final grayStyle = s()..fg(Color('webGray'));
-    final redStyle = s()..fg(Color.red);
+    final white = s()..fg(Color.white);
+    final gray = s()..fg(Color('webGray'));
+    final red = s()..fg(Color.red);
 
     _term
-      ..writeAt(10, 10, whiteStyle('S N A K E S'))
-      ..writeAt(12, 10, grayStyle('press'))
-      ..writeAt(14, 10, redStyle('[ '))
-      ..write('space')
-      ..write(redStyle(' ]'))
-      ..write(' to start')
-      ..writeAt(16, 10, redStyle('[ '))
-      ..write(' esc ')
-      ..write(redStyle(' ]'))
-      ..write(' to exit');
+      ..writeAt(10, 10, white('S N A K E S'))
+      ..writeAt(12, 10, gray('press'))
+      ..writeAt(14, 10, red('[ '))
+      ..write(white('space'))
+      ..write(red(' ]'))
+      ..write(white(' to start'))
+      ..writeAt(16, 10, red('[ '))
+      ..write(white(' esc '))
+      ..write(red(' ]'))
+      ..write(white(' to exit'));
 
     while (true) {
       final event = await _term.readEvent<KeyEvent>();

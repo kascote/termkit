@@ -8,7 +8,7 @@ import './shared.dart';
 
 typedef Theme = ({
   Style aqua,
-  Style indianRed,
+  Style white,
   Style darkCyan,
   Style magenta,
   Style webGray,
@@ -37,6 +37,7 @@ Future<void> main(List<String> arguments) async {
 Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
   final cycle = Cycle(['|', '/', '-', r'\']);
   final tick = Timer.periodic(const Duration(milliseconds: 100), (timer) => timer.tick);
+  final resetCR = '${Style('')..reset()}\n';
 
   t
     ..eraseClear()
@@ -49,18 +50,32 @@ Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
 
   final s = t.style;
   final colors = (
-    aqua: s()..fg(Color('aqua')),
-    indianRed: s()..fg(Color('indianRed')),
-    darkCyan: s()..fg(Color('darkCyan')),
-    magenta: s()..fg(Color('magenta')),
-    webGray: s()..fg(Color('webGray')),
-    error: s()..fg(Color('red')),
+    aqua: s()
+      ..fg(Color('aqua'))
+      ..bg(Color.resetBg),
+    white: s()
+      ..fg(Color('white'))
+      ..bg(Color.resetBg),
+    darkCyan: s()
+      ..fg(Color('darkCyan'))
+      ..bg(Color.resetBg),
+    magenta: s()
+      ..fg(Color('magenta'))
+      ..bg(Color.resetBg),
+    webGray: s()
+      ..fg(Color('webGray'))
+      ..bg(Color.resetBg),
+    error: s()
+      ..fg(Color('red'))
+      ..bg(Color.resetBg),
   );
 
   try {
     while (true) {
-      showTick(t, tick, cycle);
+      showTick(t, tick, cycle, colors);
       final event = await t.readEvent<Event>();
+      final wg = colors.webGray;
+      final dc = colors.darkCyan;
 
       switch (event.runtimeType) {
         case NoneEvent:
@@ -82,18 +97,19 @@ Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
           final char = event.code.char.isEmpty ? (colors.webGray('none')) : (colors.magenta(event.code.char));
 
           final sb = StringBuffer()
-            ..write('modifiers: $modifiers, ')
-            ..write('char: $char, ')
-            ..write('mod ${e.modifiers.value} ')
-            ..write('key: ${e.code.name} ');
+            ..write('${wg('modifiers: ')}$modifiers, ')
+            ..write('${wg('char: ')}$char, ')
+            ..write('${wg('mod: ')}${colors.magenta(e.modifiers.value)} ')
+            ..write('${wg('key: ')}${colors.magenta(e.code.name)} ');
           if (withKitty) {
             sb
-              ..write('\n lhs: $lhsModifiers, ')
-              ..write('rhs: $rhsModifiers, ')
-              ..write('media: ${e.code.media}, ')
-              ..write('base: ${e.code.baseLayoutKey}, ')
-              ..write('state: ${e.eventState}, ')
-              ..writeln('event: ${e.eventType}');
+              ..write(resetCR)
+              ..write('${wg('  lhs: ')}$lhsModifiers, ')
+              ..write('${wg('rhs: ')}$rhsModifiers, ')
+              ..write('${wg('media: ')}${dc(e.code.media)}, ')
+              ..write('${wg('base: ')}${dc(e.code.baseLayoutKey)}, ')
+              ..write('${wg('state: ')}${dc(e.eventState)}, ')
+              ..writeln('event: ${dc(e.eventType)}');
           }
 
           t.writeln(sb);
@@ -104,10 +120,10 @@ Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
           final e = event as MouseEvent;
           final modifiers = getModifiers(colors, e.modifiers);
           final sb = StringBuffer()
-            ..write('modifiers: $modifiers, ')
-            ..write('button: ${e.button.button} / ${e.button.action}, ')
-            ..write('x: ${e.x}, ')
-            ..write('y: ${e.y}, ');
+            ..write('${wg('modifiers: ')}$modifiers, ')
+            ..write('${wg('button: ')}${dc(e.button.button)} ${wg('/')} ${dc(e.button.action)}, ')
+            ..write('${wg('x: ')}${dc(e.x)}, ')
+            ..write('${wg('y: ')}${dc(e.y)}, ');
           t.writeln(sb);
           continue;
 
@@ -131,12 +147,12 @@ Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
   }
 }
 
-void showTick(TermLib t, Timer timer, Cycle<String> cycle) {
+void showTick(TermLib t, Timer timer, Cycle<String> cycle, Theme colors) {
   t
     ..savePosition()
     ..moveTo(0, 0)
     ..eraseLine()
-    ..write('Press ESC to exit.   ')
+    ..write(colors.white('Press ESC to exit.   '))
     ..write('${cycle.cycle} ')
     ..write(timer.tick)
     ..restorePosition();
@@ -154,6 +170,8 @@ String getModifiers(Theme colors, KeyModifiers km) {
   (km.has(KeyModifiers.hyper)) ? modifiers.write(aq('H')) : modifiers.write(ad('h'));
   (km.has(KeyModifiers.meta)) ? modifiers.write(aq('M')) : modifiers.write(ad('m'));
 
+  modifiers.write(ad(' (${km.value}) '));
+
   return modifiers.toString();
 }
 
@@ -168,6 +186,8 @@ String getLHSModifiers(Theme colors, ModifierKeyCode km) {
   (km == ModifierKeyCode.leftSuper) ? modifiers.write(aq('K')) : modifiers.write(ad('k'));
   (km == ModifierKeyCode.leftHyper) ? modifiers.write(aq('H')) : modifiers.write(ad('h'));
   (km == ModifierKeyCode.leftMeta) ? modifiers.write(aq('M')) : modifiers.write(ad('m'));
+
+  modifiers.write(ad(' (${km.index}) '));
 
   return modifiers.toString();
 }
@@ -184,6 +204,7 @@ String getRHSModifiers(Theme colors, ModifierKeyCode km) {
   (km == ModifierKeyCode.rightHyper) ? modifiers.write(aq('H')) : modifiers.write(ad('h'));
   (km == ModifierKeyCode.rightMeta) ? modifiers.write(aq('M')) : modifiers.write(ad('m'));
 
+  modifiers.write(ad(' (${km.index}) '));
   return modifiers.toString();
 }
 
