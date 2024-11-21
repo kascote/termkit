@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:termunicode/term_ucd.dart';
 import 'package:test/test.dart';
