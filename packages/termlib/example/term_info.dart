@@ -15,12 +15,12 @@ Future<void> main() async {
 
   final s = t.style;
   final theme = (
-    magenta: s()..fg(Color('201')),
-    green: s()..fg(Color('40')),
-    yellow: s()..fg(Color('190')),
-    error: s()..fg(Color('160')),
-    white: s()..fg(Color('15')),
-    text: s()..fg(Color('7')),
+    magenta: s()..fg(Color.indexed(201)),
+    green: s()..fg(Color.indexed(40)),
+    yellow: s()..fg(Color.indexed(190)),
+    error: s()..fg(Color.indexed(160)),
+    white: s()..fg(Color.indexed(15)),
+    text: s()..fg(Color.indexed(7)),
   );
 
   final version = await t.queryTerminalVersion();

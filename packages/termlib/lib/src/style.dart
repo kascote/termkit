@@ -1,5 +1,6 @@
 import 'package:termansi/termansi.dart' as ansi;
 
+import '../color_util.dart';
 import './colors.dart';
 import './termlib_base.dart';
 
@@ -104,24 +105,24 @@ class Style {
 
   /// Sets the foreground color.
   void fg(Color color) {
-    if (color is Ansi16Color && color.isReset) {
-      _styles.add(color.code.toString());
+    if (color == Color.reset) {
+      _styles.add(color.sequence());
     } else {
-      _styles.add(color.convert(_profile).sequence());
+      _styles.add(color.convert(colorKindFromProfile(_profile)).sequence());
     }
   }
 
   /// Sets the background color.
   void bg(Color color) {
-    if (color is Ansi16Color && color.isReset) {
-      _styles.add(color.code.toString());
+    if (color == Color.reset) {
+      _styles.add(color.sequence(background: true));
     } else {
-      _styles.add(color.convert(_profile).sequence(background: true));
+      _styles.add(color.convert(colorKindFromProfile(_profile)).sequence(background: true));
     }
   }
 
-  /// Resets the Style.
-  void reset() => _sendReset = true;
+  /// Resets the Style. Resets all styles and colors.
+  void resetStyle() => _sendReset = true;
 
   /// Sets the bold style.
   void bold() => _styles.add(_boldSeq);
@@ -141,11 +142,11 @@ class Style {
   /// Sets the italic off style.
   void italicOff() => _styles.add(_italicSeqOff);
 
-  /// Sets the default foreground color.
-  void setFgDefault() => _styles.add(_defaultFgSeq);
+  // /// Sets the default foreground color.
+  // void setFgDefault() => _styles.add(_defaultFgSeq);
 
-  /// Sets the default background color.
-  void setBgDefault() => _styles.add(_defaultBgSeq);
+  // /// Sets the default background color.
+  // void setBgDefault() => _styles.add(_defaultBgSeq);
 
   /// Sets the underline style.
   void underline([Color? color]) {
@@ -182,7 +183,7 @@ class Style {
 
   /// Set underline color
   void underlineColor(Color color) {
-    var colorSeq = color.convert(_profile).sequence();
+    var colorSeq = color.convert(colorKindFromProfile(_profile)).sequence();
     if (colorSeq.isNotEmpty) colorSeq = '5${colorSeq.substring(1)}';
     return _styles.add(colorSeq);
   }

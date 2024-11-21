@@ -1,8 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:termlib/src/shared/string_extension.dart';
-
 import '../colors.dart';
+import './string_extension.dart';
 
 /// Find the closest ANSI color index for a given RGB color.
 int findClosestAnsiIndex(int red, int green, int blue) {
@@ -44,18 +43,18 @@ int _calculateEuclideanDistance(int rgbRed, int rgbGreen, int rgbBlue, int ansiR
 
 final _oscColorRx = RegExp(r'rgb:(\w{1,4})\/(\w{1,4})\/(\w{1,4})');
 
-/// Returns a [TrueColor] from an OSC color sequence.
+/// Returns a [Color] from an OSC color sequence.
 ///
 /// the OSC response sequence is like "rgb:1111/1111/1111"
 /// and must be convert to a TrueColor class.
-TrueColor? oscColor(String color) {
-  TrueColor? result;
+Color? oscColor(String color) {
+  Color? result;
 
   _oscColorRx.allMatches(color).forEach((match) {
     final r = match.group(1)!.padLeft(2, '0').substring(0, 2).parseHex();
     final g = match.group(2)!.padLeft(2, '0').substring(0, 2).parseHex();
     final b = match.group(3)!.padLeft(2, '0').substring(0, 2).parseHex();
-    result = TrueColor(r, g, b);
+    result = Color.fromRGBComponent(r, g, b);
   });
 
   return result;
@@ -69,17 +68,22 @@ const double _maxRedmeanDistance = 764.8339663572415; // Precomputed for efficie
 ///
 /// The return value is between 0 and 1. 0 means the colors are identical.
 /// ref: https://en.wikipedia.org/wiki/Color_difference
-double calculateRedMeanDistance(TrueColor color1, TrueColor color2) {
+double calculateRedMeanDistance(Color color1, Color color2) {
+  if (color1.kind != ColorKind.rgb) throw ArgumentError.value(color1, 'color1', 'must be an RGB color');
+  if (color2.kind != ColorKind.rgb) throw ArgumentError.value(color2, 'color2', 'must be an RGB color');
+
+  final c1 = color1.toRgbComponents();
+  final c2 = color2.toRgbComponents();
   // Calculate the average of the red components.
-  final redMean = (color1.r + color2.r) / 2.0;
+  final redMean = (c1.r + c2.r) / 2.0;
 
   // Calculate the square differences for each color channel with redmean adjustment.
   final redWeight = 2 + redMean / 256;
   final blueWeight = 2 + (255 - redMean) / 256;
 
-  final redDiff = color2.r - color1.r;
-  final greenDiff = color2.g - color1.g;
-  final blueDiff = color2.b - color1.b;
+  final redDiff = c2.r - c1.r;
+  final greenDiff = c2.g - c1.g;
+  final blueDiff = c2.b - c1.b;
 
   final redComponent = redWeight * redDiff * redDiff;
   final greenComponent = 4 * greenDiff * greenDiff;

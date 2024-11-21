@@ -73,11 +73,11 @@ extension TermUtils on TermLib {
   }
 
   /// Returns the current terminal status report.
-  Future<TrueColor?> queryOSCStatus(int status, {int timeout = 500}) async {
-    return withRawModeAsync<TrueColor?>(() async {
+  Future<Color?> queryOSCStatus(int status, {int timeout = 500}) async {
+    return withRawModeAsync<Color?>(() async {
       write(ansi.Term.queryOSCColors(status));
       final event = await readEvent<ColorQueryEvent>(timeout: timeout);
-      return (event is ColorQueryEvent) ? TrueColor(event.r, event.g, event.b) : null;
+      return (event is ColorQueryEvent) ? Color.fromRGBComponent(event.r, event.g, event.b) : null;
     });
   }
 

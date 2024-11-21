@@ -110,8 +110,8 @@ class Matrix {
   }
 }
 
-final _headColor = TrueColor.fromString('#007676');
-final _tailColor = TrueColor.fromString('#001414');
+final _headColor = Color.fromString('#007676');
+final _tailColor = Color.fromString('#001414');
 
 class Rain {
   final TermLib t;
@@ -147,7 +147,7 @@ class Rain {
     var r = 0;
     for (var i = llen; i > 0; i--) {
       final charStyle = style(tail[length - i]);
-      final char = i == llen ? (charStyle..fg(Color.white)) : (charStyle..fg(Color(cl(r / llen).hex)));
+      final char = i == llen ? (charStyle..fg(Color.white)) : (charStyle..fg(Color.fromString(cl(r / llen).hex)));
       t.writeAt(y - r, x, char);
       r++;
     }

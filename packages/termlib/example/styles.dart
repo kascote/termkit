@@ -2,7 +2,7 @@ import 'package:termlib/termlib.dart';
 
 void main() {
   final t = TermLib();
-  final resetCR = '${Style('')..reset()}\n';
+  final resetCR = '${Style('')..resetStyle()}\n';
 
   final colors = [
     [center('black', 10), Color.black, Color.white],
@@ -18,14 +18,14 @@ void main() {
   for (final color in colors) {
     final lhs = t.style(color[0] as String)
       ..fg(color[1] as Color)
-      ..bg(Color.resetBg);
+      ..bg(Color.reset);
     final rhs = t.style(color[0] as String)
       ..fg(color[2] as Color)
       ..bg(color[1] as Color);
     t.writeln(
       t.style(' $lhs \t $rhs')
-        ..bg(Color.resetBg)
-        ..reset(),
+        ..bg(Color.reset)
+        ..resetStyle(),
     );
   }
 
@@ -50,19 +50,19 @@ void main() {
     final s = t.style(style[0] as String)
       ..apply(style[1] as TextStyle)
       ..fg(Color.white)
-      ..reset();
+      ..resetStyle();
 
     t.writeln(s);
   }
 
   t
     ..writeln(' ${t.style('underline color')
-      ..fg(Ansi256Color(160))
-      ..curlyUnderline(Ansi256Color(120))
-      ..reset()}')
+      ..fg(Color.indexed(160))
+      ..curlyUnderline(Color.indexed(120))
+      ..resetStyle()}')
     ..writeln(' ${t.style('underline color')
-      ..dottedUnderline(Ansi256Color(196))
-      ..reset()}');
+      ..dottedUnderline(Color.indexed(196))
+      ..resetStyle()}');
 }
 
 String center(String text, int length) {

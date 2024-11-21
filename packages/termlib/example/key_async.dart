@@ -37,7 +37,7 @@ Future<void> main(List<String> arguments) async {
 Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
   final cycle = Cycle(['|', '/', '-', r'\']);
   final tick = Timer.periodic(const Duration(milliseconds: 100), (timer) => timer.tick);
-  final resetCR = '${Style('')..reset()}\n';
+  final resetCR = '${Style('')..resetStyle()}\n';
 
   t
     ..eraseClear()
@@ -51,23 +51,23 @@ Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
   final s = t.style;
   final colors = (
     aqua: s()
-      ..fg(Color('aqua'))
-      ..bg(Color.resetBg),
+      ..fg(Color.fromString('aqua'))
+      ..bg(Color.reset),
     white: s()
-      ..fg(Color('white'))
-      ..bg(Color.resetBg),
+      ..fg(Color.fromString('white'))
+      ..bg(Color.reset),
     darkCyan: s()
-      ..fg(Color('darkCyan'))
-      ..bg(Color.resetBg),
+      ..fg(Color.fromString('darkCyan'))
+      ..bg(Color.reset),
     magenta: s()
-      ..fg(Color('magenta'))
-      ..bg(Color.resetBg),
+      ..fg(Color.fromString('magenta'))
+      ..bg(Color.reset),
     webGray: s()
-      ..fg(Color('webGray'))
-      ..bg(Color.resetBg),
+      ..fg(Color.fromString('webGray'))
+      ..bg(Color.reset),
     error: s()
-      ..fg(Color('red'))
-      ..bg(Color.resetBg),
+      ..fg(Color.fromString('red'))
+      ..bg(Color.reset),
   );
 
   try {
@@ -97,8 +97,8 @@ Future<void> keyViewer(TermLib t, {bool withKitty = false}) async {
           final char = event.code.char.isEmpty ? (colors.webGray('none')) : (colors.magenta(event.code.char));
 
           final sb = StringBuffer()
-            ..write('${wg('modifiers: ')}$modifiers, ')
-            ..write('${wg('char: ')}$char, ')
+            ..write('${wg('modifiers: ')}$modifiers ')
+            ..write('${wg('char: ')}$char ')
             ..write('${wg('mod: ')}${colors.magenta(e.modifiers.value)} ')
             ..write('${wg('key: ')}${colors.magenta(e.code.name)} ');
           if (withKitty) {

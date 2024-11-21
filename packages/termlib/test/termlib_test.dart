@@ -27,7 +27,7 @@ void main() {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
-          expect(await term.foregroundColor, TrueColor(0xc7, 0xc7, 0xc7));
+          expect(await term.foregroundColor, Color.fromRGBComponent(0xc7, 0xc7, 0xc7));
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
@@ -40,7 +40,7 @@ void main() {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
-          expect(await term.foregroundColor, Ansi16Color(9));
+          expect(await term.foregroundColor, Color.ansi(9));
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
@@ -80,7 +80,7 @@ void main() {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
-          expect(await term.backgroundColor, TrueColor(0xab, 0xcd, 0xef));
+          expect(await term.backgroundColor, Color.fromRGBComponent(0xab, 0xcd, 0xef));
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
@@ -92,7 +92,7 @@ void main() {
       await mockedTest(
         (out, _, tos) async {
           final term = TermLib();
-          expect(await term.backgroundColor, Ansi16Color(11));
+          expect(await term.backgroundColor, Color.ansi(11));
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },

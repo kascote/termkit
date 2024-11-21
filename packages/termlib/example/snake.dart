@@ -81,8 +81,8 @@ class SnakeGame {
   final int rows;
   final List<Pos> snake = [];
   final _rnd = Random();
-  final _headColor = TrueColor.fromString('springGreen');
-  final _tailColor = TrueColor.fromString('darkGreen');
+  final _headColor = Color.fromString('springGreen');
+  final _tailColor = Color.fromString('darkGreen');
   late final TermLib _term;
   int winCol = 0;
   int winRow = 0;
@@ -190,9 +190,9 @@ class SnakeGame {
 
   void redraw() {
     final s = _term.style;
-    final dataStyle = s()..fg(Color('webGray'));
-    final fruitStyle = s(fruitIcon)..fg(Color('orangeRed'));
-    final scoreStyle = s('Score: ${score.toString().padLeft(4)}')..fg(Color('gold'));
+    final dataStyle = s()..fg(Color.fromString('webGray'));
+    final fruitStyle = s(fruitIcon)..fg(Color.fromString('orangeRed'));
+    final scoreStyle = s('Score: ${score.toString().padLeft(4)}')..fg(Color.fromString('gold'));
     final cl = colorLerp(_headColor, _tailColor);
 
     for (var i = 0; i < snake.length; i++) {
@@ -202,7 +202,7 @@ class SnakeGame {
       if (i == 0) body = snakeBody[0];
       if (i == snake.length - 1) body = snakeBody[2];
 
-      final c = Color(cl(i / (snake.length - 1)).hex);
+      final c = Color.fromString(cl(i / (snake.length - 1)).hex);
       _term.write(s(body)..fg(c));
     }
     _term
@@ -222,7 +222,7 @@ class SnakeGame {
 
   void drawBoard() {
     final ts = _term.style;
-    final c = status == Finish.lose ? Color('indianRed') : Color('webGray');
+    final c = status == Finish.lose ? Color.fromString('indianRed') : Color.fromString('webGray');
     final s = ts()..fg(c);
 
     for (var i = 0; i < cols; i++) {
@@ -246,7 +246,7 @@ class SnakeGame {
   Future<bool> startPage() async {
     final s = _term.style;
     final white = s()..fg(Color.white);
-    final gray = s()..fg(Color('webGray'));
+    final gray = s()..fg(Color.fromString('webGray'));
     final red = s()..fg(Color.red);
 
     _term

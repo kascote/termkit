@@ -3,9 +3,9 @@ import 'package:termlib/termlib.dart';
 void main() {
   final t = TermLib();
 
-  final c16 = Color('#00ffff').convert(ProfileEnum.ansi16);
-  final c256 = Color('#00ffff').convert(ProfileEnum.ansi256);
-  final ctc = Color('#00ffff');
+  final c16 = Color.fromString('#00ffff').convert(ColorKind.ansi);
+  final c256 = Color.fromString('#00ffff').convert(ColorKind.indexed);
+  final ctc = Color.fromString('#00ffff');
 
   t.writeln('ask for the true color $ctc on different profiles');
 

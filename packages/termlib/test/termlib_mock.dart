@@ -9,13 +9,11 @@ class TermOsMock implements TermOs {
 
   void clearCallStack() => callStack.clear();
 
-  @override
   int setWindowHeight(int height) {
     callStack.add('setWindowHeight($height)');
     return height;
   }
 
-  @override
   int setWindowWidth(int width) {
     callStack.add('setWindowWidth($width)');
     return width;

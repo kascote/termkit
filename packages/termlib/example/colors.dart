@@ -2,15 +2,15 @@ import 'package:termlib/termlib.dart';
 
 void main() {
   final term = TermLib()..writeln(Style('ANSI 16 Colors:\n')..bold());
-  final resetCR = '${Style('')..reset()}\n';
+  final resetCR = '${Style('')..resetStyle()}\n';
 
   for (var i = 0; i < 16; i++) {
     if (i == 8) term.write(resetCR);
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ', profile: ProfileEnum.ansi16)
-      ..bg(Ansi16Color(i))
-      ..fg(i < 7 ? Ansi16Color(7) : Ansi16Color(0));
+      ..bg(Color.ansi(i))
+      ..fg(i < 7 ? Color.gray : Color.black);
 
     term.write(style);
   }
@@ -20,8 +20,8 @@ void main() {
       Style('ANSI 256 Colors:')
         ..bold()
         ..fg(Color.white)
-        ..bg(Color.resetBg)
-        ..reset(),
+        ..bg(Color.reset)
+        ..resetStyle(),
     );
 
   for (var i = 16; i < 232; i++) {
@@ -29,8 +29,8 @@ void main() {
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ')
-      ..bg(Ansi256Color(i))
-      ..fg(i < 28 ? Ansi16Color(7) : Ansi16Color(0));
+      ..bg(Color.indexed(i))
+      ..fg(i < 28 ? Color.gray : Color.black);
 
     term.write(style);
   }
@@ -40,8 +40,8 @@ void main() {
       Style('Gray Scale Colors:')
         ..bold()
         ..fg(Color.white)
-        ..bg(Color.resetBg)
-        ..reset(),
+        ..bg(Color.reset)
+        ..resetStyle(),
     );
 
   for (var i = 232; i < 256; i++) {
@@ -49,8 +49,8 @@ void main() {
     final clrNum = i.toString().padLeft(3);
 
     final style = Style('  $clrNum  ')
-      ..bg(Ansi256Color(i))
-      ..fg(i < 244 ? Ansi16Color(7) : Ansi16Color(0));
+      ..bg(Color.indexed(i))
+      ..fg(i < 244 ? Color.gray : Color.black);
 
     term.write(style);
   }
@@ -61,8 +61,8 @@ void main() {
       Style('True Colors:')
         ..bold()
         ..fg(Color.white)
-        ..bg(Color.resetBg)
-        ..reset(),
+        ..bg(Color.reset)
+        ..resetStyle(),
     );
 
   const cols = 80;
@@ -76,8 +76,8 @@ void main() {
     if (g > 255) g = 510 - g;
 
     final style = Style('·', profile: ProfileEnum.trueColor)
-      ..fg(TrueColor(r, g, b))
-      ..bg(TrueColor(255 - r, 255 - g, 255 - b));
+      ..fg(Color.fromRGBComponent(r, g, b))
+      ..bg(Color.fromRGBComponent(255 - r, 255 - g, 255 - b));
 
     if (i % cols == 0) term.write(resetCR);
 

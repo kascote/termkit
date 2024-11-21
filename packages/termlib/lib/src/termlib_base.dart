@@ -135,7 +135,7 @@ class TermLib {
   Future<bool?> isBackgroundDark({double factor = 0.5}) async {
     final color = await backgroundColor;
     if (color == null) return null;
-    final bgColor = color.convert(ProfileEnum.trueColor) as TrueColor;
+    final bgColor = color.convert(ColorKind.rgb);
     return colorLuminance(bgColor) < factor;
   }
 
@@ -348,7 +348,7 @@ class TermLib {
 
     final colorFg = colors[fgbg].trim();
     final color = int.tryParse(colorFg);
-    return color != null ? Ansi16Color(color) : null;
+    return color != null ? Color.ansi(color) : null;
   }
 
   /// Returns the terminal foreground color.

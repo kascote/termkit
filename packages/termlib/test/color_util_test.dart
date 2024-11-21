@@ -12,7 +12,7 @@ void main() {
 
     test('convert a osc10 sequence to TrueColor color', () {
       final c = oscColor('rgb:1111/ab12/d1d1');
-      expect(c, isA<TrueColor>());
+      expect(c, isA<Color>());
       expect(c!.hex, equals('#11abd1'));
     });
   });
@@ -26,36 +26,54 @@ void main() {
 
   group('colorLerp', () {
     test('must return the correct color', () {
-      final lerp = colorLerp(TrueColor(255, 0, 0), TrueColor(0, 255, 0));
-      expect(lerp(0.5), TrueColor(0x80, 0x80, 0));
+      final lerp = colorLerp(Color.fromRGBComponent(255, 0, 0), Color.fromRGBComponent(0, 255, 0));
+      expect(lerp(0.5), Color.fromRGBComponent(0x80, 0x80, 0));
     });
   });
 
   group('rgbToHsv', () {
     test('must return the correct color', () {
-      final hsv1 = rgbToHsv(TrueColor(100, 100, 80));
+      final hsv1 = rgbToHsv(Color.fromRGBComponent(100, 100, 80));
       expect(hsv1, equals((h: 60.00000000000003, s: 20.0, v: 39.21568627450981)));
 
-      final hsv2 = rgbToHsv(TrueColor(100, 200, 80));
+      final hsv2 = rgbToHsv(Color.fromRGBComponent(100, 200, 80));
       expect(hsv2, equals((h: 109.99999999999997, s: 60.0, v: 78.43137254901961)));
 
-      final hsv3 = rgbToHsv(TrueColor(100, 100, 120));
+      final hsv3 = rgbToHsv(Color.fromRGBComponent(100, 100, 120));
       expect(hsv3, equals((h: 240.00000000000003, s: 16.666666666666664, v: 47.05882352941176)));
 
-      final hsv4 = rgbToHsv(TrueColor(200, 200, 20));
+      final hsv4 = rgbToHsv(Color.fromRGBComponent(200, 200, 20));
       expect(hsv4, equals((h: 59.999999999999986, s: 89.99999999999999, v: 78.43137254901961)));
     });
   });
 
   group('calculateRedMeanDistance', () {
     test('calculate color difference', () {
-      expect(calculateRedMeanDistance(TrueColor(0, 0, 0), TrueColor(0, 0, 0)), equals(0.0));
-      expect(calculateRedMeanDistance(TrueColor(255, 255, 255), TrueColor(255, 255, 255)), equals(0.0));
-      expect(calculateRedMeanDistance(TrueColor(0, 0, 0), TrueColor(255, 255, 255)), equals(1));
-      expect(calculateRedMeanDistance(TrueColor(255, 255, 255), TrueColor(0, 0, 0)), equals(1));
-      expect(calculateRedMeanDistance(TrueColor(128, 128, 128), TrueColor(0, 0, 0)), equals(0.50196078431372551));
-      expect(calculateRedMeanDistance(TrueColor(0, 0, 0), TrueColor(128, 128, 128)), equals(0.50196078431372551));
-      expect(calculateRedMeanDistance(TrueColor(255, 0, 0), TrueColor(0, 0, 255)), equals(0.7452265229848835));
+      expect(calculateRedMeanDistance(Color.fromRGBComponent(0, 0, 0), Color.fromRGBComponent(0, 0, 0)), equals(0.0));
+      expect(
+        calculateRedMeanDistance(Color.fromRGBComponent(255, 255, 255), Color.fromRGBComponent(255, 255, 255)),
+        equals(0.0),
+      );
+      expect(
+        calculateRedMeanDistance(Color.fromRGBComponent(0, 0, 0), Color.fromRGBComponent(255, 255, 255)),
+        equals(1),
+      );
+      expect(
+        calculateRedMeanDistance(Color.fromRGBComponent(255, 255, 255), Color.fromRGBComponent(0, 0, 0)),
+        equals(1),
+      );
+      expect(
+        calculateRedMeanDistance(Color.fromRGBComponent(128, 128, 128), Color.fromRGBComponent(0, 0, 0)),
+        equals(0.50196078431372551),
+      );
+      expect(
+        calculateRedMeanDistance(Color.fromRGBComponent(0, 0, 0), Color.fromRGBComponent(128, 128, 128)),
+        equals(0.50196078431372551),
+      );
+      expect(
+        calculateRedMeanDistance(Color.fromRGBComponent(255, 0, 0), Color.fromRGBComponent(0, 0, 255)),
+        equals(0.7452265229848835),
+      );
     });
   });
 }

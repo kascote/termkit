@@ -2,352 +2,357 @@ import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
 
 import '../color_util.dart';
-import './termlib_base.dart';
-import 'shared/color_util.dart';
-import 'shared/int_extension.dart';
 import 'shared/string_extension.dart';
+
+/// Color kind
+enum ColorKind {
+  /// No color
+  noColor,
+
+  /// ANSI color (0-15)
+  ansi,
+
+  /// Indexed color (0-255)
+  indexed,
+
+  /// RGB color
+  rgb
+}
 
 const _foreground = 38;
 const _background = 48;
 const _resetFg = 39;
 const _resetBg = 49;
+const _reset = -1;
 
 // Keeps a cache for the colors requested/converted by the user to save time.
 // Over time this cache must be short, because the there are no many colors
 // that a terminal program will use
-Map<(ProfileEnum, Color), Color> _colorCache = {};
+Map<(ColorKind, Color), Color> _colorCache = {};
 
-/// Color is the base class for all colors.
-sealed class Color {
-  /// The profile of the color.
-  final ProfileEnum profile;
-
-  /// Creates a new Color.
-  factory Color(String color, {Color defaultColor = const NoColor()}) {
-    if (color.isEmpty) return defaultColor;
-
-    final mix = ansi.x11Colors[color] ?? color;
-    Color c;
-    if (mix.startsWith('#')) {
-      c = TrueColor.fromString(mix);
-    } else {
-      final colNum = int.tryParse(mix);
-      if (colNum == null) {
-        c = defaultColor;
-      } else {
-        c = (colNum < 16 ? Ansi16Color(colNum) : Ansi256Color(colNum));
-      }
-    }
-
-    return c;
-  }
-
-  /// Returns true if the color is a reset color.
-  bool get isReset => switch (this) { Ansi16Color(:final code) => code == _resetFg || code == _resetBg, _ => false };
-
-  const Color._(this.profile);
-
-  /// Returns the ANSI sequence for the given color.
-  /// If [background] is true, the sequence will be for the background color.
-  String sequence({bool background = false});
-
-  /// Converts a color from the current profile to another profile.
-  Color convert(ProfileEnum toProfile) {
-    final cache = _colorCache[(toProfile, this)];
-    if (cache != null) return cache;
-
-    if (toProfile == ProfileEnum.noColor || profile == ProfileEnum.noColor) return const NoColor();
-    if (toProfile == profile) return this;
-
-    Color convertFromTrueColor() {
-      return switch (toProfile) {
-        ProfileEnum.ansi16 => (this as TrueColor).toAnsi16Color(),
-        ProfileEnum.ansi256 => (this as TrueColor).toAnsi256Color(),
-        _ => this,
-      };
-    }
-
-    Color convertToTrueColor() {
-      return switch (profile) {
-        ProfileEnum.ansi16 => TrueColor.fromString(ansi.ansiHex[(this as Ansi16Color).code]),
-        ProfileEnum.ansi256 => TrueColor.fromString(ansi.ansiHex[(this as Ansi256Color).code]),
-        _ => this
-      };
-    }
-
-    final result = switch (toProfile) {
-      ProfileEnum.noColor => const NoColor(),
-      ProfileEnum.ansi16 =>
-        profile == ProfileEnum.ansi256 ? (this as Ansi256Color).toAnsi16Color() : convertFromTrueColor(),
-      ProfileEnum.ansi256 =>
-        profile == ProfileEnum.ansi16 ? Ansi256Color((this as Ansi16Color).code) : convertFromTrueColor(),
-      ProfileEnum.trueColor => convertToTrueColor()
-    };
-
-    _colorCache[(toProfile, this)] = result;
-    return result;
-  }
-
-  /// Clears the color cache.
-  void clearColorCache() => _colorCache.clear();
-
-  // whe can not add static methods to extension classes
-  // and that the static method be part of the extended class
-  /// Returns black color on ANSI 16 profile
-  static Color get black => Ansi16Color(0);
-
-  /// Returns red color on ANSI 16 profile
-  static Color get red => Ansi16Color(1);
-
-  /// Returns green color on ANSI 16 profile
-  static Color get green => Ansi16Color(2);
-
-  /// Returns yellow color on ANSI 16 profile
-  static Color get yellow => Ansi16Color(3);
-
-  /// Returns blue color on ANSI 16 profile
-  static Color get blue => Ansi16Color(4);
-
-  /// Returns magenta color on ANSI 16 profile
-  static Color get magenta => Ansi16Color(5);
-
-  /// Returns cyan color on ANSI 16 profile
-  static Color get cyan => Ansi16Color(6);
-
-  /// Returns white color on ANSI 16 profile
-  static Color get white => Ansi16Color(7);
-
-  /// Returns bright black color on ANSI 16 profile
-  static Color get brightBlack => Ansi16Color(8);
-
-  /// Returns bright red color on ANSI 16 profile
-  static Color get brightRed => Ansi16Color(9);
-
-  /// Returns bright green color on ANSI 16 profile
-  static Color get brightGreen => Ansi16Color(10);
-
-  /// Returns bright yellow color on ANSI 16 profile
-  static Color get brightYellow => Ansi16Color(11);
-
-  /// Returns bright blue color on ANSI 16 profile
-  static Color get brightBlue => Ansi16Color(12);
-
-  /// Returns bright magenta color on ANSI 16 profile
-  static Color get brightMagenta => Ansi16Color(13);
-
-  /// Returns bright cyan color on ANSI 16 profile
-  static Color get brightCyan => Ansi16Color(14);
-
-  /// Returns bright white color on ANSI 16 profile
-  static Color get brightWhite => Ansi16Color(15);
-
-  /// Reset the foreground color to default
-  static Color get resetFg => Ansi16Color(_resetFg);
-
-  /// Reset the background color to default
-  static Color get resetBg => Ansi16Color(_resetBg);
-}
-
-/// NoColor is a color representation when the terminal does not support colors.
-class NoColor extends Color {
-  /// Creates a new NoColor.
-  const NoColor() : super._(ProfileEnum.noColor);
-
-  @override
-  String sequence({bool background = false}) => '';
-
-  @override
-  String toString() => '';
-}
-
-/// Color (0-15) as defined by the ANSI Standard.
+/// Color class
 @immutable
-class Ansi16Color extends Color {
-  /// The color value.
-  late final int code;
+class Color {
+  /// Color value
+  final int value;
 
-  /// Creates a new Ansi16Color with the given color value.
-  Ansi16Color(int color) : super._(ProfileEnum.ansi16) {
-    if ((color != _resetFg && color != _resetBg) && (color < 0 || color > 15)) {
-      throw ArgumentError.value(color, 'color', 'Must be between 0 and 15');
-    }
-    code = color;
-  }
+  /// Kind of Color
+  final ColorKind kind;
 
-  @override
+  /// Creates a new color object. By default, it uses ANSI color
+  const Color._(this.value, {this.kind = ColorKind.ansi});
+
+  /// Resets the foreground or background color
+  static const Color reset = Color._(_reset);
+
+  /// ANSI Color: Black.
+  static const Color black = Color._(0);
+
+  /// ANSI Color: Red.
+  static const Color red = Color._(1);
+
+  /// ANSI Color: Green.
+  static const Color green = Color._(2);
+
+  /// ANSI Color: Yellow.
+  static const Color yellow = Color._(3);
+
+  /// ANSI Color: Blue.
+  static const Color blue = Color._(4);
+
+  /// ANSI Color: Magenta.
+  static const Color magenta = Color._(5);
+
+  /// ANSI Color: Cyan.
+  static const Color cyan = Color._(6);
+
+  /// ANSI Color: White.
+  ///
+  /// Note that this is sometimes called `silver` or `white` but we use `white` for bright white
+  static const Color gray = Color._(7);
+
+  /// ANSI Color: Bright Black.
+  ///
+  /// Note that this is sometimes called `light black` or `bright black` but we use `dark gray`
+  static const Color darkGray = Color._(8);
+
+  /// ANSI Color: Bright Red.
+  static const Color brightRed = Color._(9);
+
+  /// ANSI Color: Bright Green.
+  static const Color brightGreen = Color._(10);
+
+  /// ANSI Color: Bright Yellow.
+  static const Color brightYellow = Color._(11);
+
+  /// ANSI Color: Bright Blue.
+  static const Color brightBlue = Color._(12);
+
+  /// ANSI Color: Bright Magenta.
+  static const Color brightMagenta = Color._(13);
+
+  /// ANSI Color: Bright Cyan.
+  static const Color brightCyan = Color._(14);
+
+  /// ANSI Color: Bright White.
+  /// Sometimes called `bright white` or `light white` in some terminals
+  static const Color white = Color._(15);
+
+  /// Represent a color with no color
+  static const Color noColor = Color._(0, kind: ColorKind.noColor);
+
+  /// Returns the hex value of the color
+  String get hex => '#${value.toRadixString(16).padLeft(6, '0')}';
+
+  /// Returns the ANSI sequence for color
   String sequence({bool background = false}) {
-    if (code < 8) {
-      return '${background ? code + 10 + 30 : code + 30}';
+    switch (kind) {
+      case ColorKind.ansi:
+        if (value == _reset) {
+          return '${background ? _resetBg : _resetFg}';
+        }
+        if (value < 8) {
+          return '${background ? value + 10 + 30 : value + 30}';
+        }
+        return '${background ? value + 90 + 10 - 8 : value + 90 - 8}';
+      case ColorKind.indexed:
+        return '${background ? _background : _foreground};5;$value';
+      case ColorKind.rgb:
+        return '${background ? _background : _foreground};2;${(value >> 16) & 0xff};${(value >> 8) & 0xff};${value & 0xff}';
+      case ColorKind.noColor:
+        return '';
     }
-    if (code == _resetFg || code == _resetBg) {
-      return '${background ? _resetBg : _resetFg}';
-    }
-    return '${background ? code + 90 + 10 - 8 : code + 90 - 8}';
   }
 
-  @override
-  String toString() => code.toString();
-
-  @override
-  bool operator ==(Object other) => other is Ansi16Color && other.code == code;
-
-  @override
-  int get hashCode => code.hashCode;
-}
-
-/// Color (0-255) as defined by the ANSI Standard.
-@immutable
-class Ansi256Color extends Color {
-  /// The color value.
-  late final int code;
-
-  /// Creates a new Ansi256Color with the given color value.
-  Ansi256Color(int color) : super._(ProfileEnum.ansi256) {
-    if (color < 0 || color > 255) throw ArgumentError.value(color, 'color', 'Must be between 0 and 255');
-    code = color;
+  /// Creates a color from an ANSI value (0-15)
+  factory Color.ansi(int value) {
+    if (value < 0 || value > 15) throw ArgumentError.value(value, 'value', 'must be between 0 and 15');
+    return Color._(value & 0xf);
   }
 
-  @override
-  String sequence({bool background = false}) {
-    return '${background ? _background : _foreground};5;$code';
+  /// Creates a color from an indexed value (0-255)
+  factory Color.indexed(int value) {
+    if (value < 0 || value > 255) throw ArgumentError.value(value, 'value', 'must be between 0 and 255');
+    return Color._(value & 0xff, kind: ColorKind.indexed);
   }
 
-  @override
-  String toString() => code.toString();
-
-  /// Converts an ANSI 256 color to an ANSI 16 color.
-  Ansi16Color toAnsi16Color() {
-    return switch (code) {
-      < 16 => Ansi16Color(code),
-      >= 232 && <= 243 => Ansi16Color(0),
-      >= 244 && <= 251 => Ansi16Color(7),
-      >= 252 => Ansi16Color(15),
-      _ => TrueColor.fromString(ansi.ansiHex[code]).toAnsi16Color(),
-    };
+  /// Creates a color from an RGB value (0x000000-0xFFFFFF)
+  factory Color.fromRGB(int rgb) {
+    return Color._(rgb & 0xFFFFFF, kind: ColorKind.rgb);
   }
 
-  /// Convert Ansi256Color to TrueColor
-  TrueColor toTrueColor() {
-    return TrueColor.fromString(ansi.ansiHex[code]);
+  /// Creates a color from a RGB components (0-255)
+  factory Color.fromRGBComponent(int r, int g, int b) {
+    return Color._((r << 16) | (g << 8) | b, kind: ColorKind.rgb);
   }
 
-  @override
-  bool operator ==(Object other) => other is Ansi256Color && other.code == code;
-
-  @override
-  int get hashCode => code.hashCode;
-}
-
-/// Represents a true color with RGB values.
-@immutable
-class TrueColor extends Color {
-  /// The red value.
-  late final int r;
-
-  /// The green value.
-  late final int g;
-
-  /// The blue value.
-  late final int b;
-
-  /// String that represents the color in hexadecimal notation. ex: #DECAF0
-  late final String hex;
-
-  /// Creates a new TrueColor with the given RGB values.
-  TrueColor(int red, int green, int blue) : super._(ProfileEnum.trueColor) {
-    if (red < 0 || red > 255) throw ArgumentError.value(red, 'red', 'Must be between 0 and 255');
-    if (green < 0 || green > 255) throw ArgumentError.value(green, 'green', 'Must be between 0 and 255');
-    if (blue < 0 || blue > 255) throw ArgumentError.value(blue, 'blue', 'Must be between 0 and 255');
-
-    r = red;
-    g = green;
-    b = blue;
-
-    hex = '#${red.hex2}${green.hex2}${blue.hex2}';
-  }
-
-  /// Creates a new TrueColor from a string.
+  /// Creates a new Color from a string.
   ///
   /// The string can be in the following formats:
   /// - #RGB or RGB
   /// - #RRGGBB or RRGGBB
   /// - x11 color name
-  factory TrueColor.fromString(String color) {
-    var mix = ansi.x11Colors[color] ?? color;
-    if (mix.startsWith('#')) {
-      mix = mix.substring(1);
+  /// if the String is empty, will return a NoColor
+  factory Color.fromString(String value) {
+    if (value.isEmpty) return Color.noColor;
+
+    Color convertFromString(String color) {
+      final tmp = int.tryParse(color, radix: 16);
+      if (tmp == null) throw ArgumentError.value(color, 'color', 'Invalid color format');
+
+      if (color.length == 3) {
+        final r = color.substring(0, 1).parseHex();
+        final g = color.substring(1, 2).parseHex();
+        final b = color.substring(2, 3).parseHex();
+        return Color.fromRGBComponent(r << 4 | r, g << 4 | g, b << 4 | b);
+      }
+      if (color.length == 6) {
+        final r = color.substring(0, 2).parseHex();
+        final g = color.substring(2, 4).parseHex();
+        final b = color.substring(4, 6).parseHex();
+        return Color.fromRGBComponent(r, g, b);
+      }
+      throw ArgumentError.value(color, 'color', 'Invalid color format');
     }
-    if (mix.length == 3) {
-      final r = mix.substring(0, 1).parseHex();
-      final g = mix.substring(1, 2).parseHex();
-      final b = mix.substring(2, 3).parseHex();
-      return TrueColor(r * 17, g * 17, b * 17);
-    }
-    if (mix.length == 6) {
-      final r = mix.substring(0, 2).parseHex();
-      final g = mix.substring(2, 4).parseHex();
-      final b = mix.substring(4, 6).parseHex();
-      return TrueColor(r, g, b);
-    }
-    throw ArgumentError.value(mix, 'color', 'Invalid color format');
+
+    if (value.startsWith('#')) return convertFromString(value.substring(1));
+
+    final x11 = ansi.x11Colors[value];
+    if (x11 != null) return Color.fromRGB(x11);
+
+    return convertFromString(value);
   }
 
-  /// Returns the TruColor sequence for the given color.
-  @override
-  String sequence({bool background = false}) {
-    return '${background ? _background : _foreground};2;$r;$g;$b';
+  /// Convert a color to another format
+  Color convert(ColorKind newKind) {
+    if (kind == newKind) return this;
+    if (kind == ColorKind.noColor) return this;
+    if (newKind == ColorKind.noColor) return Color.noColor;
+    if (kind == ColorKind.ansi) return this;
+
+    // final cache = _colorCache[(newKind, this)];
+    // if (cache != null) return cache;
+
+    if (kind == ColorKind.indexed) {
+      if (newKind == ColorKind.ansi) {
+        final rc = indexedToAnsiColor();
+        // _colorCache[(newKind, rc)] = rc;
+        return rc;
+      }
+      if (newKind == ColorKind.rgb) {
+        // _colorCache[(newKind, this)] = this;
+        return this;
+      }
+    }
+
+    if (kind == ColorKind.rgb) {
+      if (newKind == ColorKind.ansi) {
+        final rc = rgbToAnsiColor();
+        // _colorCache[(newKind, rc)] = rc;
+        return rc;
+      }
+      if (newKind == ColorKind.indexed) {
+        final rc = rgbToIndexedColor();
+        // _colorCache[(newKind, rc)] = rc;
+        return rc;
+      }
+    }
+
+    return this;
   }
 
-  @override
-  String toString() => hex;
+  /// Convert an indexed color to Ansi Color
+  Color indexedToAnsiColor() {
+    // grayscale range
+    if (value > 231) {
+      if (value < 237) return Color.black;
+      if (value < 250) return Color.gray;
+      return Color.white;
+    }
 
-  /// Returns the distance between the current color and the passed one.
-  /// The return a value is between 0 and 1. 0 means the colors are identical.
-  double rgbDistance(TrueColor color2) {
-    return calculateRedMeanDistance(this, color2);
+    final rgb = Color.fromRGB(ansi.ansiHex[value]);
+    return rgb.rgbToAnsiColor();
   }
 
-  /// Convert TrueColor to Ansi16Color
-  Ansi16Color toAnsi16Color() {
-    // final hsv = rgbToHsv(this);
-    // final saturation = (hsv.s / 50).round();
+  /// Convert RGB to Ansi Color
+  Color rgbToAnsiColor() {
+    if (kind != ColorKind.rgb) throw ArgumentError.value(value, 'value', 'must be an RGB color');
+
+    // Use a threshold-based approach instead of simple division
+    final cmp = toRgbComponents();
+    final r = cmp.r > 90 ? 1 : 0;
+    final g = cmp.g > 90 ? 1 : 0;
+    final b = cmp.b > 90 ? 1 : 0;
     final lum = colorLuminance(this);
 
-    // if (saturation == 0) return Ansi16Color(0);
-    if (lum < 0.01) return Ansi16Color(0);
-
-    final ansi = ((b / 255).round() << 2) | ((g / 255).round() << 1) | (r / 255).round();
-    // if (saturation == 2) return Ansi16Color(ansi + 8);
-    if (lum >= 0.21) return Ansi16Color(ansi + 8);
-
-    return Ansi16Color(ansi);
+    final ansi16 = (b << 2) | (g << 1) | r;
+    if (lum >= 0.20) return Color.ansi(ansi16 + 8);
+    return Color.ansi(ansi16);
   }
 
-  /// Convert TrueColor to Ansi256Color
-  Ansi256Color toAnsi256Color() {
-    if (r >> 4 == g >> 4 && g >> 4 == b >> 4) {
-      if (r < 8) {
-        return Ansi256Color(16);
+  /// Convert RGB to Ansi256 Color
+  Color rgbToIndexedColor() {
+    if (kind != ColorKind.rgb) throw ArgumentError.value(value, 'value', 'must be an RGB color');
+    final rgb = toRgbComponents();
+
+    if (rgb.r >> 4 == rgb.g >> 4 && rgb.g >> 4 == rgb.b >> 4) {
+      if (rgb.r < 8) {
+        return Color.indexed(16);
       }
 
-      if (r > 248) {
-        return Ansi256Color(231);
+      if (rgb.r > 248) {
+        return Color.indexed(231);
       }
 
-      return Ansi256Color((((r - 8) / 247) * 24).round() + 232);
+      return Color.indexed((((rgb.r - 8) / 247) * 24).round() + 232);
     }
 
-    final xr = 36 * (r / 255 * 5).round();
-    final xg = 6 * (g / 255 * 5).round();
-    final xb = (b / 255 * 5).round();
+    final xr = 36 * (rgb.r / 255 * 5).round();
+    final xg = 6 * (rgb.g / 255 * 5).round();
+    final xb = (rgb.b / 255 * 5).round();
     final ansi = 16 + xr + xg + xb;
 
-    return Ansi256Color(ansi);
+    return Color.indexed(ansi);
+  }
+
+  /// Returns a record with RGB components
+  ({int r, int b, int g}) toRgbComponents() {
+    if (kind != ColorKind.rgb) throw ArgumentError.value(value, 'value', 'must be an RGB color');
+    return (r: (value >> 16) & 0xFF, g: (value >> 8) & 0xFF, b: value & 0xFF);
+  }
+
+  /// Converts HSV (Hue, Saturation, Value) color values to RGB Color object.
+  ///
+  /// Parameters:
+  /// - [hue]: The hue value in degrees. Will be normalized between 0 and 360.
+  /// - [saturation]: The saturation value, clamped between 0.0 and 1.0.
+  /// - [value]: The value/brightness, clamped between 0.0 and 1.0.
+  ///
+  /// Returns a [Color] object representing the RGB color.
+  ///
+  /// Note: This is specifically for HSV color space, not HSL. The main difference is
+  /// that HSV's value parameter determines brightness (0 = black, 1 = full color),
+  /// while HSL's lightness parameter determines lightness (0 = black, 0.5 = full color, 1 = white).
+  ///
+  /// Example:
+  /// ```dart
+  /// final color = fromHSV(0, 1.0, 1.0); // Creates pure red
+  /// final color = fromHSV(0, 0.0, 1.0); // Creates white
+  /// final color = fromHSV(0, 0.0, 0.0); // Creates black
+  /// ```
+  factory Color.fromHSV(double hue, double saturation, double value) {
+    // Converts a color component value to an RGB integer value (0-255).
+    int toRGB(double value) => (value * 255).round().clamp(0, 255);
+
+    // Normalize and clamp input values
+    final h = hue % 360;
+    final s = saturation.clamp(0.0, 1.0);
+    final v = value.clamp(0.0, 1.0);
+
+    // Optimization: Early return for black (value = 0)
+    if (v <= 0.0) {
+      return Color.fromRGB(0);
+    }
+
+    // Optimization: Early return for grayscale (saturation = 0)
+    if (s <= 0.0) {
+      final gray = toRGB(v);
+      return Color.fromRGB((gray << 16) | (gray << 8) | gray);
+    }
+
+    final hSection = h / 60.0;
+    final hSectionInt = hSection.toInt();
+    final f = hSection - hSectionInt;
+
+    final p = v * (1 - s);
+    final q = v * (1 - s * f);
+    final t = v * (1 - s * (1 - f));
+
+    return switch (hSectionInt) {
+      0 => Color.fromRGB((toRGB(v) << 16) | (toRGB(t) << 8) | toRGB(p)),
+      1 => Color.fromRGB((toRGB(q) << 16) | (toRGB(v) << 8) | toRGB(p)),
+      2 => Color.fromRGB((toRGB(p) << 16) | (toRGB(v) << 8) | toRGB(t)),
+      3 => Color.fromRGB((toRGB(p) << 16) | (toRGB(q) << 8) | toRGB(v)),
+      4 => Color.fromRGB((toRGB(t) << 16) | (toRGB(p) << 8) | toRGB(v)),
+      _ => Color.fromRGB((toRGB(v) << 16) | (toRGB(p) << 8) | toRGB(q)),
+    };
   }
 
   @override
-  bool operator ==(Object other) => other is TrueColor && other.r == r && other.g == g && other.b == b;
+  String toString() {
+    if (value < 0) return 'Color(Reset)';
+    return 'Color($value, ${kind.name})';
+  }
 
   @override
-  int get hashCode => Object.hash(r.hashCode, g.hashCode, b.hashCode);
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is Color) {
+      return value == other.value && kind == other.kind;
+    }
+    return false;
+  }
+
+  @override
+  int get hashCode => Object.hash(Color, value, kind);
 }

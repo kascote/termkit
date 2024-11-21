@@ -54,23 +54,23 @@ class AsciiTable {
 
     colors = (
       codes: s()
-        ..fg(Color('aqua'))
-        ..bg(Color.resetBg),
+        ..fg(Color.fromString('aqua'))
+        ..bg(Color.reset),
       text: s()
-        ..fg(Color('grayWeb'))
-        ..bg(Color.resetBg),
+        ..fg(Color.fromString('darkGray'))
+        ..bg(Color.reset),
       cursor: s()
-        ..fg(Color('white'))
-        ..bg(Color('darkRed')),
+        ..fg(Color.fromString('white'))
+        ..bg(Color.fromString('darkRed')),
       cursorSide: s()
-        ..fg(Color('red'))
-        ..bg(Color('darkRed')),
+        ..fg(Color.fromString('red'))
+        ..bg(Color.fromString('darkRed')),
       muted: s()
-        ..fg(Color('dimGray'))
-        ..bg(Color.resetBg),
+        ..fg(Color.fromString('dimGray'))
+        ..bg(Color.reset),
       hotKeys: s()
-        ..fg(Color('white'))
-        ..bg(Color('dimGray')),
+        ..fg(Color.fromString('white'))
+        ..bg(Color.fromString('dimGray')),
     );
   }
 
