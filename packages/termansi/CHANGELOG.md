@@ -24,5 +24,7 @@
 ### 0.4.0
 
 - added: CSI 2027 - unicode core
-- refactor: Changed ansiHex and x11Colors to use integers instead of strings
-  to avoid conversion BRAKING
+- addde: CSI 2024 - bracketed paste mode
+- refactored: Changed ansiHex and x11Colors to use integers instead of strings
+  to avoid conversion BRAKING CHANGE
+- refactored: changes field definitions to const

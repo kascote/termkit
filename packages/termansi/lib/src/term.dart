@@ -14,7 +14,7 @@ abstract class Term {
   /// Request terminal capabilities
   ///
   /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
-  static String get requestKeyboardCapabilities => '$CSI?u';
+  static const String requestKeyboardCapabilities = '$CSI?u';
 
   /// Set terminal keyboard capabilities
   ///
@@ -29,10 +29,10 @@ abstract class Term {
   static String popKeyboardCapabilities([int entries = 1]) => '$CSI<${entries}u';
 
   /// Enable Alternate Screen
-  static String get enableAlternateScreen => '$CSI?1049h';
+  static const String enableAlternateScreen = '$CSI?1049h';
 
   /// Disable Alternate Screen
-  static String get disableAlternateScreen => '$CSI?1049l';
+  static const String disableAlternateScreen = '$CSI?1049l';
 
   /// Set Terminal Title
   static String setTerminalTitle(String title) => '${OSC}0;$title$BEL';
@@ -42,10 +42,10 @@ abstract class Term {
   static String queryOSCColors(int code) => '$OSC$code;?$ST';
 
   /// Enable Line Wrapping
-  static String get enableLineWrapping => '$CSI?7h';
+  static const String enableLineWrapping = '$CSI?7h';
 
   /// Disable Line Wrapping
-  static String get disableLineWrapping => '$CSI?7l';
+  static const String disableLineWrapping = '$CSI?7l';
 
   /// Scroll the terminal up a specified number of rows
   static String scrollUp(int rows) => '$CSI${rows}S';
@@ -56,34 +56,34 @@ abstract class Term {
   /// Query Sync update status
   ///
   /// https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
-  static String get querySyncUpdate => '$CSI?2026\$p';
+  static const String querySyncUpdate = '$CSI?2026\$p';
 
   /// Start Sync Update
-  static String get enableSyncUpdate => '$CSI?2026h';
+  static const String enableSyncUpdate = '$CSI?2026h';
 
   /// End Sync Update
-  static String get disableSyncUpdate => '$CSI?2026l';
+  static const String disableSyncUpdate = '$CSI?2026l';
 
   /// Start receiving focus events
-  static String get enableFocusTracking => '$CSI?1004h';
+  static const String enableFocusTracking = '$CSI?1004h';
 
   /// Stop receiving focus events
-  static String get disableFocusTracking => '$CSI?1004l';
+  static const String disableFocusTracking = '$CSI?1004l';
 
   /// Request terminal name and version
-  static String get requestTermVersion => '$CSI>0q';
+  static const String requestTermVersion = '$CSI>0q';
 
   /// Start receiving mouse events
-  static String get enableMouseEvents => '$CSI?1000;1003;1006h';
+  static const String enableMouseEvents = '$CSI?1000;1003;1006h';
 
   /// Stop receiving mouse events
-  static String get disableMouseEvents => '$CSI?1000;1003;1006l';
+  static const String disableMouseEvents = '$CSI?1000;1003;1006l';
 
   /// Start receiving mouse events as pixels
-  static String get enableMousePixelEvents => '$CSI?1000;1003;1016h';
+  static const String enableMousePixelEvents = '$CSI?1000;1003;1016h';
 
   /// Stop receiving mouse events as pixels
-  static String get disableMousePixelsEvents => '$CSI?1000;1003;1016h';
+  static const String disableMousePixelsEvents = '$CSI?1000;1003;1016h';
 
   /// Set Windows size
   ///
@@ -97,27 +97,27 @@ abstract class Term {
   ///
   /// Not all terminals support this and not all have this capability enabled
   /// by default could need to be enabled by the user
-  static String get minimizeWindow => '${CSI}2t';
+  static const String minimizeWindow = '${CSI}2t';
 
   /// Maximize terminal window
   ///
   /// Not all terminals support this and not all have this capability enabled
   /// by default could need to be enabled by the user
-  static String get maximizeWindow => '${CSI}1t';
+  static const String maximizeWindow = '${CSI}1t';
 
   /// Query Progressive Keyboard Enhancement (Kitty protocol)
-  static String get queryKeyboardEnhancementSupport => '$CSI?u';
+  static const String queryKeyboardEnhancementSupport = '$CSI?u';
 
   /// Query Primary Device Attributes
-  static String get queryPrimaryDeviceAttributes => '${CSI}c';
+  static const String queryPrimaryDeviceAttributes = '${CSI}c';
 
   /// Soft terminal reset
   ///
   /// https://vt100.net/docs/vt510-rm/DECSTR.html
-  static String get softTerminalReset => '$CSI!p';
+  static const String softTerminalReset = '$CSI!p';
 
   /// Query window window size in pixels
-  static String get queryWindowSizePixels => '${CSI}14t';
+  static const String queryWindowSizePixels = '${CSI}14t';
 
   /// Clipboard operations
   ///
@@ -141,15 +141,21 @@ abstract class Term {
   /// Enable Unicode Core
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
-  static String get enableUnicodeCore => '$CSI?2027h';
+  static const String enableUnicodeCore = '$CSI?2027h';
 
   /// Disable Unicode Core
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
-  static String get disableUnicodeCore => '$CSI?2027l';
+  static const String disableUnicodeCore = '$CSI?2027l';
 
   /// Query Unicode Core
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
-  static String get queryUnicodeCore => '$CSI?2027\$p';
+  static const String queryUnicodeCore = '$CSI?2027\$p';
+
+  /// Enable Bracketed Paste
+  static const String enableBracketedPaste = '$CSI?2004h';
+
+  /// Disable Bracketed Paste
+  static const String disableBracketedPaste = '$CSI?2004l';
 }

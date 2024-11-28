@@ -5,109 +5,109 @@ abstract class Color {
   /// Reset
   ///
   /// Will reset all colors and text attributes. Use `default` to reset only colors
-  static String get reset => '${CSI}0m';
+  static const String reset = '${CSI}0m';
 
   /// Black color.
-  static String get black => '${CSI}30m';
+  static const String black = '${CSI}30m';
 
   /// Red color.
-  static String get red => '${CSI}31m';
+  static const String red = '${CSI}31m';
 
   /// Green color.
-  static String get green => '${CSI}32m';
+  static const String green = '${CSI}32m';
 
   /// Yellow color.
-  static String get yellow => '${CSI}33m';
+  static const String yellow = '${CSI}33m';
 
   /// Blue color.
-  static String get blue => '${CSI}34m';
+  static const String blue = '${CSI}34m';
 
   /// Magenta color.
-  static String get magenta => '${CSI}35m';
+  static const String magenta = '${CSI}35m';
 
   /// Cyan color.
-  static String get cyan => '${CSI}36m';
+  static const String cyan = '${CSI}36m';
 
   /// White color.
-  static String get white => '${CSI}37m';
+  static const String white = '${CSI}37m';
 
   /// Bright black color.
-  static String get brightBlack => '${CSI}90m';
+  static const String brightBlack = '${CSI}90m';
 
   /// Bright red color.
-  static String get brightRed => '${CSI}91m';
+  static const String brightRed = '${CSI}91m';
 
   /// Bright green color.
-  static String get brightGreen => '${CSI}92m';
+  static const String brightGreen = '${CSI}92m';
 
   /// Bright yellow color.
-  static String get brightYellow => '${CSI}93m';
+  static const String brightYellow = '${CSI}93m';
 
   /// Bright blue color.
-  static String get brightBlue => '${CSI}94m';
+  static const String brightBlue = '${CSI}94m';
 
   /// Bright magenta color.
-  static String get brightMagenta => '${CSI}95m';
+  static const String brightMagenta = '${CSI}95m';
 
   /// Bright cyan color.
-  static String get brightCyan => '${CSI}96m';
+  static const String brightCyan = '${CSI}96m';
 
   /// Bright white color.
-  static String get brightWhite => '${CSI}97m';
+  static const String brightWhite = '${CSI}97m';
 
   /// Default Foreground color.
-  static String get defaultFg => '${CSI}39m';
+  static const String defaultFg = '${CSI}39m';
 
   /// Black background.
-  static String get blackBg => '${CSI}40m';
+  static const String blackBg = '${CSI}40m';
 
   /// Red background.
-  static String get redBg => '${CSI}41m';
+  static const String redBg = '${CSI}41m';
 
   /// Green background.
-  static String get greenBg => '${CSI}42m';
+  static const String greenBg = '${CSI}42m';
 
   /// Yellow background.
-  static String get yellowBg => '${CSI}43m';
+  static const String yellowBg = '${CSI}43m';
 
   /// Blue background.
-  static String get blueBg => '${CSI}44m';
+  static const String blueBg = '${CSI}44m';
 
   /// Magenta background.
-  static String get magentaBg => '${CSI}45m';
+  static const String magentaBg = '${CSI}45m';
 
   /// Cyan background.
-  static String get cyanBg => '${CSI}46m';
+  static const String cyanBg = '${CSI}46m';
 
   /// White background.
-  static String get whiteBg => '${CSI}47m';
+  static const String whiteBg = '${CSI}47m';
 
   /// Default background color
-  static String get defaultBg => '${CSI}49m';
+  static const String defaultBg = '${CSI}49m';
 
   /// Bright black color.
-  static String get brightBlackBg => '${CSI}100m';
+  static const String brightBlackBg = '${CSI}100m';
 
   /// Bright red color.
-  static String get brightRedBg => '${CSI}101m';
+  static const String brightRedBg = '${CSI}101m';
 
   /// Bright green color.
-  static String get brightGreenBg => '${CSI}102m';
+  static const String brightGreenBg = '${CSI}102m';
 
   /// Bright yellow color.
-  static String get brightYellowBg => '${CSI}103m';
+  static const String brightYellowBg = '${CSI}103m';
 
   /// Bright blue color.
-  static String get brightBlueBg => '${CSI}104m';
+  static const String brightBlueBg = '${CSI}104m';
 
   /// Bright magenta color.
-  static String get brightMagentaBg => '${CSI}105m';
+  static const String brightMagentaBg = '${CSI}105m';
 
   /// Bright cyan color.
-  static String get brightCyanBg => '${CSI}106m';
+  static const String brightCyanBg = '${CSI}106m';
 
   /// Bright white color.
-  static String get brightWhiteBg => '${CSI}107m';
+  static const String brightWhiteBg = '${CSI}107m';
 
   /// Set 256 color foreground
   static String color256Fg(int color) => '${CSI}38;5;${color}m';
@@ -128,5 +128,5 @@ abstract class Color {
   static String underlineTrueColor(int r, int g, int b) => '${CSI}58;2;$r;$g;${b}m';
 
   /// Reset underline color
-  static String get resetUnderlineColor => '${CSI}59m';
+  static const String resetUnderlineColor = '${CSI}59m';
 }

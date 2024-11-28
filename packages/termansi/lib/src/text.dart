@@ -3,83 +3,83 @@ import './escape_codes.dart';
 /// Text style escape sequences
 abstract class Text {
   /// Bold text style
-  static String get bold => '${CSI}1m';
+  static const String bold = '${CSI}1m';
 
   /// Dim text style
-  static String get dim => '${CSI}2m';
+  static const String dim = '${CSI}2m';
 
   /// Italic text style
-  static String get italic => '${CSI}3m';
+  static const String italic = '${CSI}3m';
 
   /// Underline text style
-  static String get underline => '${CSI}4m';
+  static const String underline = '${CSI}4m';
 
   /// Double underline
-  static String get doubleUnderline => '${CSI}4:2m';
+  static const String doubleUnderline = '${CSI}4:2m';
 
   /// Curly underline
-  static String get curlyUnderline => '${CSI}4:3m';
+  static const String curlyUnderline = '${CSI}4:3m';
 
   /// Dotted underline
-  static String get dottedUnderline => '${CSI}4:4m';
+  static const String dottedUnderline = '${CSI}4:4m';
 
   /// Dashed underline
-  static String get dashedUnderline => '${CSI}4:5m';
+  static const String dashedUnderline = '${CSI}4:5m';
 
   /// Blink text style
-  static String get blink => '${CSI}5m';
+  static const String blink = '${CSI}5m';
 
   /// Invert text style
-  static String get invert => '${CSI}7m';
+  static const String invert = '${CSI}7m';
 
   /// Hidden text style
-  static String get hidden => '${CSI}8m';
+  static const String hidden = '${CSI}8m';
 
   /// Strike through text style
-  static String get strikeThrough => '${CSI}9m';
+  static const String strikeThrough = '${CSI}9m';
 
   /// Overline text style
-  static String get overline => '${CSI}53m';
+  static const String overline = '${CSI}53m';
 
   /// Reset text style
-  static String get reset => '${CSI}0m';
+  static const String reset = '${CSI}0m';
 
   /// Reset bold text style
-  static String get resetBold => '${CSI}22m';
+  static const String resetBold = '${CSI}22m';
 
   /// Reset dim text style
-  static String get resetDim => '${CSI}22m';
+  static const String resetDim = '${CSI}22m';
 
   /// Reset italic text style
-  static String get resetItalic => '${CSI}23m';
+  static const String resetItalic = '${CSI}23m';
 
   /// Reset underline text style
-  static String get resetUnderline => '${CSI}24m';
+  static const String resetUnderline = '${CSI}24m';
 
   /// Reset double underline
-  static String get resetCurlyUnderline => '${CSI}4:0m';
+  static const String resetCurlyUnderline = '${CSI}4:0m';
 
   /// Reset double underline
-  static String get resetDoubleUnderline => '${CSI}4:0m';
+  static const String resetDoubleUnderline = '${CSI}4:0m';
 
   /// Reset dotted underline
-  static String get resetDottedUnderline => '${CSI}4:0m';
+  static const String resetDottedUnderline = '${CSI}4:0m';
 
   /// Reset dashed underline
-  static String get resetDashedUnderline => '${CSI}4:0m';
+  static const String resetDashedUnderline = '${CSI}4:0m';
 
   /// Reset blink text style
-  static String get resetBlink => '${CSI}25m';
+  static const String resetBlink = '${CSI}25m';
 
   /// Reset invert text style
-  static String get resetInvert => '${CSI}27m';
+  static const String resetInvert = '${CSI}27m';
 
   /// Reset hidden text style
-  static String get resetHidden => '${CSI}28m';
+  static const String resetHidden = '${CSI}28m';
 
   /// Reset strike through text style
-  static String get resetStrikeThrough => '${CSI}29m';
+  static const String resetStrikeThrough = '${CSI}29m';
 
   /// Reset overline text style
-  static String get resetOverline => '${CSI}55m';
+  static const String resetOverline = '${CSI}55m';
 }

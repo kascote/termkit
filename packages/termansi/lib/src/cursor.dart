@@ -27,7 +27,7 @@ enum CursorStyle {
 /// Cursor movement sequences.
 abstract class Cursor {
   /// Moves to home position (1,1)
-  static String get home => '${CSI}H';
+  static const String home = '${CSI}H';
 
   /// Moves the cursor to the given position (row, column)
   ///
@@ -78,27 +78,27 @@ abstract class Cursor {
   ///
   /// Will report back as `ESC[{row};{column}R`
   /// The value is 1 based, meaning 1 is the topmost row or leftmost column.
-  static String get requestPosition => '$CSI${6}n';
+  static const String requestPosition = '${CSI}6n';
 
   /// Saves the current cursor position.
-  static String get savePosition => '$ESC${7}';
+  static const String savePosition = '${ESC}7';
 
   /// Restores the cursor position.
-  static String get restorePosition => '$ESC${8}';
+  static const String restorePosition = '${ESC}8';
 
   /// Hides the cursor.
-  static String get hide => '$CSI?25l';
+  static const String hide = '$CSI?25l';
 
   /// Shows the cursor.
-  static String get show => '$CSI?25h';
+  static const String show = '$CSI?25h';
 
   /// Enables blinking of the terminal cursor.
   ///
   /// Some terminal emulators do not support this, could use [setCursorStyle] instead.
-  static String get enableBlinking => '$CSI?12h';
+  static const String enableBlinking = '$CSI?12h';
 
   /// Disables blinking of the terminal cursor.
-  static String get disableBlinking => '$CSI?12l';
+  static const String disableBlinking = '$CSI?12l';
 
   /// Sets the cursor style.
   static String setCursorStyle(CursorStyle style) => '$CSI${style.index} q';
