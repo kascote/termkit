@@ -1,4 +1,3 @@
-import 'package:termlib/color_util.dart';
 import 'package:termlib/src/colors.dart';
 import 'package:termlib/src/shared/color_util.dart';
 import 'package:test/test.dart';

@@ -1,7 +1,7 @@
 import 'package:termansi/termansi.dart' as ansi;
 
-import '../color_util.dart';
 import './colors.dart';
+import './shared/color_util.dart';
 import './termlib_base.dart';
 
 /// Text Styles that can be applied to a [Style] object.

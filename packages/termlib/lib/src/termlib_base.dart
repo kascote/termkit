@@ -5,12 +5,12 @@ import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser.dart';
 import 'package:termparser/termparser_events.dart';
 
-import '../color_util.dart';
 import './colors.dart';
 import './extensions/cursor.dart';
 import './extensions/term.dart';
 import './ffi/termos.dart';
 import './readline.dart';
+import './shared/color_util.dart';
 import './style.dart';
 import 'shared/terminal_overrides.dart';
 

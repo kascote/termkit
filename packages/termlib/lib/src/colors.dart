@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
 
-import '../color_util.dart';
+import './shared/color_util.dart';
 import 'shared/string_extension.dart';
 
 /// Color kind
