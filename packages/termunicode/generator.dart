@@ -97,22 +97,22 @@ class Tables {
   int getCPData(int cp) {
     var isEmoji = false;
     var nonPrintable = false;
-    final charWidth = getCharWidth(cp);
+    var charWidth = getCharWidth(cp);
 
     final data = uniData.find(cp);
     if (data != null && _nonPrintableCategories.contains(data.category)) nonPrintable = true;
 
-    // Emoji UCD has definitions for some lower codepoints, they are excluded
+    // Emoji UCD has definitions for some lower code points, they are excluded
     if (cp >= 0x40) {
       final emo = emoji.find(cp);
       if (emo != null) {
-        // Regional Indicator Symbols are not considered emojis for the purpose of
-        // determining character width. They are used to compose country flags.
-        if (emo.start < 0x1f1e6 || emo.end > 0x1f1ff) {
-          isEmoji = true;
-          // // only take care for Emoji_Presentation, if not use EAW
-          // if (emo.property == 'Emoji_Presentation') charWidth = 2;
-        }
+        isEmoji = true;
+        // Regional Indicator Symbols are Narrow in EAW table, but they are
+        // Wide. There are more cases that EAW table doesn't matches Emoji
+        // if (emo.start >= 0x1F1E6 && emo.end <= 0x1F1FF) charWidth = 2;
+        // all RIS (Regional Indicator Symbols) have Emoji property set and
+        // there are a couple more Emojis that are Narrow in EAW table
+        if (emo.property == 'Emoji') charWidth = 2;
       }
     }
 
