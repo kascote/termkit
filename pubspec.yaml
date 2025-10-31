@@ -1,0 +1,10 @@
+name: termkit
+publish_to: none
+environment:
+  sdk: ">=3.9.2 <4.0.0"
+
+workspace:
+  - packages/termansi
+  - packages/termlib
+  - packages/termparser
+  - packages/termunicode

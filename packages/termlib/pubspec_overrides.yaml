@@ -1,5 +1,0 @@
-dependency_overrides:
-  termansi:
-    path: ../termansi
-  termparser:
-    path: ../termparser
