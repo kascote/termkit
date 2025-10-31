@@ -50,9 +50,9 @@ class Readline {
   }
 
   /// Starts reading from the keyboard
-  Future<String> read() async => term.withRawModeAsync<String>(_read);
+  Future<String?> read() async => term.withRawModeAsync<String?>(_read);
 
-  Future<String> _read() async {
+  Future<String?> _read() async {
     var readingChars = true;
 
     if (buffer.isNotEmpty) term.writeAt(cursor.row, cursor.col, buffer.join());
@@ -70,7 +70,7 @@ class Readline {
         case 'escape':
           buffer = [];
           readingChars = false;
-          throw ArgumentError('Escape key pressed');
+          return null;
         case 'backSpace':
           if (bufferIndex > 0) {
             term

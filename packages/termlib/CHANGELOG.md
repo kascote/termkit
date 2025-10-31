@@ -4,6 +4,7 @@
   - changed how reset styles works. Now need explicit reset.
   - refactored Color class, updated examples, tests, etc.
   - export from color_util only what is needed, try to minimize public API surface.
+  - readline: changed how to handle escape key (now returns null instead of throwing)
 - updated: removed unused methods from FFI interface
 - added: query functions for 2027 (Unicode Core)
 - added: implements disable individual styles (bold off, italic off, etc)

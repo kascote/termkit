@@ -373,7 +373,8 @@ class TermLib {
 
   /// Reads text from the input stream until ENTER or ESC is pressed.
   /// Basic line editing is supported, including backspace and delete.
-  Future<String> readLine([String initBuffer = '']) async {
+  /// Returns null if user cancels with ESC.
+  Future<String?> readLine([String initBuffer = '']) async {
     return (await Readline.create(this, initBuffer)).read();
   }
 
