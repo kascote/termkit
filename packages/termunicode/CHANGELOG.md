@@ -1,6 +1,7 @@
 ## unreleased
 
 - fix: include RIS emojis as double width
+- feature: refactor generator and added smoke tests
 
 ## 0.2.0
 

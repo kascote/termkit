@@ -2,6 +2,7 @@
 .vscode
 .dart_tool/
 .packages
+cspell.json
 pubspec.lock
 
 build/

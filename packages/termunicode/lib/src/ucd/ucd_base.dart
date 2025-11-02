@@ -30,24 +30,6 @@ class UcdBase<T> {
   /// Finds a codePoint or return a default item as 'N" (Neutral) category
   T? find(int target) {
     return findIn(codePoints, target);
-
-    // var left = 0;
-    // var right = codePoints.length - 1;
-    //
-    // while (left <= right) {
-    //   final middle = (left + right) ~/ 2;
-    //   final middleRange = codePoints[middle] as UcdItemBase;
-    //
-    //   if (target < middleRange.start) {
-    //     right = middle - 1;
-    //   } else if (target > middleRange.end) {
-    //     left = middle + 1;
-    //   } else {
-    //     return codePoints[middle];
-    //   }
-    // }
-    //
-    // return null;
   }
 
   /// Sort the codepoints
@@ -55,7 +37,7 @@ class UcdBase<T> {
     codePoints.sort((a, b) => (a as UcdItemBase).start.compareTo((b as UcdItemBase).start));
   }
 
-  /// Find codepoint in an abritrary list of items
+  /// Find codepoint in an arbitrary list of items
   T? findIn(List<T> items, int target) {
     var left = 0;
     var right = items.length - 1;
