@@ -2,20 +2,25 @@ import 'package:characters/characters.dart';
 
 import './table.dart';
 
+const _asciiPrintableStart = 0x20;
+const _asciiPrintableEnd = 0x7F;
+const _asciiControlEnd = 0xA0;
+const int _maxCodePoints = 0x10FFFF;
+
 int _getCPData(int codePoint) {
   return stage3[stage2[stage1[codePoint >> 8] + (codePoint & 0xff)]];
 }
 
 /// Retrieve the encoded value for a given code point.
 int _getValue(int codePoint, {bool cjk = false}) {
-  if (codePoint < 0x7F) {
+  if (codePoint < _asciiPrintableEnd) {
     // U+0020 to U+007F (exclusive) are single-width ASCII codepoints
-    if (codePoint >= 0x20) return 1;
+    if (codePoint >= _asciiPrintableStart) return 1;
     // U+0000 *is* a control code, but it's special-cased
     if (codePoint == 0) return 0;
     // U+0001 to U+0020 (exclusive) are control codes
     return 0;
-  } else if (codePoint >= 0xA0) {
+  } else if (codePoint >= _asciiControlEnd) {
     final value = _getCPData(codePoint);
     // if value is 3, means that is a ambiguous character
     // in a cjk context will be `wide` if not is `normal`
@@ -34,15 +39,27 @@ String unicodeVersion() => unicodeUCD;
 ///
 /// If [cjk] is true, means that is working in a Chinese, Japanese, Korean
 /// context, on that case `ambiguous` characters are treated as `wide`.
-int widthCp(int codePoint, {bool cjk = false}) => _getValue(codePoint, cjk: cjk) & 0x3;
+int widthCp(int codePoint, {bool cjk = false}) {
+  if (codePoint < 0 || codePoint > _maxCodePoints) {
+    throw ArgumentError.value(codePoint, 'codePoint', 'Must be 0-0x10FFFF');
+  }
+  return _getValue(codePoint, cjk: cjk) & 0x3;
+}
 
-/// Returns the width of a given string.
+/// Returns the terminal display width of a given string.
 ///
 /// If [cjk] is true, means that is working in a Chinese, Japanese, Korean
 /// context, on that case `ambiguous` characters are treated as `wide`.
-int widthString(String value, {bool cjk = false}) => widthChars(value.characters, cjk: cjk);
+///
+/// For string literals or variables, use this function.
+/// If you're already working with [Characters], use [widthChars]
+/// to avoid an unnecessary conversion.
+int widthString(String value, {bool cjk = false}) {
+  if (value.isEmpty) return 0;
+  return widthChars(value.characters, cjk: cjk);
+}
 
-/// Returns the width of a given character.
+/// Returns the display width of a given character.
 ///
 /// If [cjk] is true, means that is working in a Chinese, Japanese, Korean
 /// context, on that case `ambiguous` characters are treated as `wide`.
@@ -52,6 +69,7 @@ int widthString(String value, {bool cjk = false}) => widthChars(value.characters
 /// assuming that all other codepoints work as variations of the first one, but
 /// not modify the final width.
 int widthChars(Characters value, {bool cjk = false}) {
+  if (value.isEmpty) return 0;
   return value.fold(0, (width, char) => width + widthCp(char.runes.first, cjk: cjk));
 }
 
@@ -89,13 +107,13 @@ bool isNonPrintableChar(String value) => value.isNotEmpty && isNonPrintableCp(va
 
 /// Check if a given code point is a non-character.
 ///
-/// For a reference what is considred a nonCharacters check this reference
+/// For a reference what is considered a nonCharacters check this reference
 /// https://www.unicode.org/faq/private_use.html#noncharacters
 bool isNonCharCp(int codePoint) => _getCPData(codePoint) & 0x10 == 0x10;
 
 /// Check if the first character in the string is a non-character one.
 ///
-/// For a reference what is considred a nonCharacters check this reference
+/// For a reference what is considered a nonCharacters check this reference
 /// https://www.unicode.org/faq/private_use.html#noncharacters
 bool isNonChar(String value) => value.isNotEmpty && isNonCharCp(value.runes.first);
 

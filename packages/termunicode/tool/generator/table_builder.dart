@@ -84,11 +84,11 @@ class Tables {
   /// Smoke test validation - verify known codepoints have expected properties
   void _validateTables() {
     // Bit masks for property extraction
-    const widthMask = 0x3;      // bits 0-1
-    const emojiMask = 0x4;      // bit 2
-    const nonPrintMask = 0x8;   // bit 3
-    const nonCharMask = 0x10;   // bit 4
-    const privateMask = 0x20;   // bit 5
+    const widthMask = 0x3; // bits 0-1
+    const emojiMask = 0x4; // bit 2
+    const nonPrintMask = 0x8; // bit 3
+    const nonCharMask = 0x10; // bit 4
+    const privateMask = 0x20; // bit 5
 
     // U+0000 NULL - control char, width 0, non-printable
     final nullData = getCPData(0x00);

@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:termunicode/termunicode.dart';
 
 void main() async {
-  final withEsc = 'Hola \x1bmundo\x1b'
-      .runes
+  final withEsc = 'Hola \x1bmundo\x1b'.runes
       .fold(
         StringBuffer(),
         (sb, rune) => isNonPrintableCp(rune) ? (sb..write('')) : (sb..write(String.fromCharCode(rune))),

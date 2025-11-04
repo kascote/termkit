@@ -84,6 +84,37 @@ This project is based on work from other projects, like:
 - <https://github.com/unicode-rs/unicode-width>
 - <https://cs.opensource.google/go/x/text/+/master:internal/ucd/ucd.go>
 
+## Internal Structure
+
+### Property Encoding
+
+Each codepoint's properties are encoded in a single byte in stage3:
+
+```
+Bits 0-1: Width (0=zero, 1=narrow, 2=wide, 3=ambiguous)
+Bit 2:    Emoji flag
+Bit 3:    Non-printable (Cc, Cf, Cs, Cn, Co, Zl, Zp categories)
+Bit 4:    Non-character (FDD0..FDEF, *FFFE, *FFFF)
+Bit 5:    Private-use (Co category)
+Bits 6-7: Reserved
+```
+
+Width values 0-3 are interpreted in context: ambiguous (3) treated as wide (2) when `cjk=true`, narrow (1) otherwise.
+
+### Table Lookup
+
+```
+codepoint (e.g., 0x4E00)
+  ↓ high byte (0x4E)
+stage1[0x4E] → offset into stage2
+  ↓ low byte (0x00)
+stage2[offset + 0x00] → index into stage3
+  ↓
+stage3[index] → property byte (0b00000110 = width:2, emoji:false, ...)
+```
+
+Property access: O(1) with 3 array lookups. Memory optimized via block deduplication (~45% savings).
+
 ## Contributing
 
 Contributions to `term_unicode` are welcome. Please submit a pull request or
