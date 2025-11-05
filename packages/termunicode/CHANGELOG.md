@@ -2,6 +2,8 @@
 
 - fix: include RIS emojis as double width
 - feature: refactor generator and added smoke tests
+- feature: improve tests for ucd parsers
+- chore: update unicode data to 16.0.0
 
 ## 0.2.0
 

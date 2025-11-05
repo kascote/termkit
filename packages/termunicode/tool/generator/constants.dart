@@ -1,5 +1,5 @@
 const String baseUrl = 'https://www.unicode.org/Public/';
-const String version = '15.1.0';
+const String version = '16.0.0';
 
 const int maxCodePoints = 0x10FFFF;
 const List<String> nonPrintableCategories = ['Cc', 'Cf', 'Zl', 'Zp', 'Cs', 'Cn', 'Co', 'C'];
