@@ -124,5 +124,231 @@ void main() {
 
       await p.parse();
     });
+
+    test('error field - invalid boolean', () async {
+      const testData = '0041;InvalidBool;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getBool(1);
+          expect(result, false); // Returns false on error
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('invalid boolean value'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - invalid unsigned integer', () async {
+      const testData = '0041;NotANumber;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getUint(1);
+          expect(result, -1); // Returns -1 on error
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('invalid unsigned integer value'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - negative value for unsigned integer', () async {
+      const testData = '0041;-123;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getUint(1);
+          expect(result, -1); // Returns -1 on error
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('invalid unsigned integer value'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - invalid integer', () async {
+      const testData = '0041;NotAnInt;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getInt(1);
+          expect(result, -1); // Returns -1 on error
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('invalid integer value'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - invalid float', () async {
+      const testData = '0041;NotAFloat;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getFloat(1);
+          expect(result, -1); // Returns -1 on error
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('invalid float value'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - invalid rune format', () async {
+      const testData = 'ZZZZ;Name;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          row.getRange(0);
+          expect(row.rangeStart, -1); // Returns -1 on error
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('failed to parse rune'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - invalid rune with U+ prefix', () async {
+      const testData = 'U+GGGG;Name;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getRune(0);
+          expect(result, -1); // Returns -1 on error
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('failed to parse rune'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - valid rune with U+ prefix', () async {
+      const testData = 'U+0041;Name;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getRune(0);
+          expect(result, 0x0041); // Should parse correctly
+          expect(row.error, isEmpty);
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
+
+    test('error field - error can be cleared', () async {
+      const testData = '0041;NotANumber;123;# Test\n';
+      var errorCleared = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          // First, cause an error
+          row.getUint(1);
+          expect(row.error, isNotEmpty);
+
+          // Clear the error
+          row.error = '';
+          expect(row.error, isEmpty);
+
+          // Try a valid operation
+          final validResult = row.getUint(2);
+          expect(validResult, 123);
+          expect(row.error, isEmpty);
+          errorCleared = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorCleared, true);
+    });
+
+    test('error field - multiple errors overwrite', () async {
+      const testData = '0041;NotANumber;NotAFloat;# Test\n';
+      var tested = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          // First error
+          row.getUint(1);
+          final firstError = row.error;
+          expect(firstError, contains('invalid unsigned integer value'));
+
+          // Second error overwrites
+          row.getFloat(2);
+          final secondError = row.error;
+          expect(secondError, contains('invalid float value'));
+          expect(secondError, isNot(equals(firstError)));
+          tested = true;
+        },
+      );
+
+      await parser.parse();
+      expect(tested, true);
+    });
+
+    test('error field - getRunes with invalid rune', () async {
+      const testData = '0041;0042 ZZZZ 0044;# Test\n';
+      var errorSet = false;
+
+      final parser = UcdParser.parseStream(
+        linesStream(testData),
+        (row) {
+          final result = row.getRunes(1);
+          // Should still return a list, but with -1 for invalid values
+          expect(result.length, 3);
+          expect(result[0], 0x0042); // Valid
+          expect(result[1], -1); // Invalid
+          expect(result[2], 0x0044); // Valid
+          expect(row.error, isNotEmpty);
+          expect(row.error, contains('failed to parse rune'));
+          errorSet = true;
+        },
+      );
+
+      await parser.parse();
+      expect(errorSet, true);
+    });
   });
 }
