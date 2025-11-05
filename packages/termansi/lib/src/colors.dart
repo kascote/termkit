@@ -110,22 +110,46 @@ abstract class Color {
   static const String brightWhiteBg = '${CSI}107m';
 
   /// Set 256 color foreground
-  static String color256Fg(int color) => '${CSI}38;5;${color}m';
+  static String color256Fg(int color) {
+    assert(color >= 0 && color <= 255, 'color must be 0-255, got $color');
+    return '${CSI}38;5;${color}m';
+  }
 
   /// Set 256 color background
-  static String color256Bg(int color) => '${CSI}48;5;${color}m';
+  static String color256Bg(int color) {
+    assert(color >= 0 && color <= 255, 'color must be 0-255, got $color');
+    return '${CSI}48;5;${color}m';
+  }
 
   /// Foreground True Color
-  static String trueColor(int r, int g, int b) => '${CSI}38;2;$r;$g;${b}m';
+  static String trueColorFg(int r, int g, int b) {
+    assert(r >= 0 && r <= 255, 'r must be 0-255, got $r');
+    assert(g >= 0 && g <= 255, 'g must be 0-255, got $g');
+    assert(b >= 0 && b <= 255, 'b must be 0-255, got $b');
+    return '${CSI}38;2;$r;$g;${b}m';
+  }
 
   /// Background True Color
-  static String trueColorBg(int r, int g, int b) => '${CSI}48;2;$r;$g;${b}m';
+  static String trueColorBg(int r, int g, int b) {
+    assert(r >= 0 && r <= 255, 'r must be 0-255, got $r');
+    assert(g >= 0 && g <= 255, 'g must be 0-255, got $g');
+    assert(b >= 0 && b <= 255, 'b must be 0-255, got $b');
+    return '${CSI}48;2;$r;$g;${b}m';
+  }
 
   /// Set 256 underline color
-  static String underlineColor256(int color) => '${CSI}58;5;${color}m';
+  static String underlineColor256(int color) {
+    assert(color >= 0 && color <= 255, 'color must be 0-255, got $color');
+    return '${CSI}58;5;${color}m';
+  }
 
   /// Set TrueColor underline color
-  static String underlineTrueColor(int r, int g, int b) => '${CSI}58;2;$r;$g;${b}m';
+  static String underlineTrueColor(int r, int g, int b) {
+    assert(r >= 0 && r <= 255, 'r must be 0-255, got $r');
+    assert(g >= 0 && g <= 255, 'g must be 0-255, got $g');
+    assert(b >= 0 && b <= 255, 'b must be 0-255, got $b');
+    return '${CSI}58;2;$r;$g;${b}m';
+  }
 
   /// Reset underline color
   static const String resetUnderlineColor = '${CSI}59m';

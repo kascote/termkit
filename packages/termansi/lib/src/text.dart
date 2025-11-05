@@ -45,9 +45,15 @@ abstract class Text {
   static const String reset = '${CSI}0m';
 
   /// Reset bold text style
+  ///
+  /// Note: SGR 22 resets both bold and dim intensity. Using either
+  /// [resetBold] or [resetDim] will reset both attributes.
   static const String resetBold = '${CSI}22m';
 
   /// Reset dim text style
+  ///
+  /// Note: SGR 22 resets both bold and dim intensity. Using either
+  /// [resetBold] or [resetDim] will reset both attributes.
   static const String resetDim = '${CSI}22m';
 
   /// Reset italic text style
@@ -57,16 +63,7 @@ abstract class Text {
   static const String resetUnderline = '${CSI}24m';
 
   /// Reset double underline
-  static const String resetCurlyUnderline = '${CSI}4:0m';
-
-  /// Reset double underline
-  static const String resetDoubleUnderline = '${CSI}4:0m';
-
-  /// Reset dotted underline
-  static const String resetDottedUnderline = '${CSI}4:0m';
-
-  /// Reset dashed underline
-  static const String resetDashedUnderline = '${CSI}4:0m';
+  static const String resetUnderlineStyle = '${CSI}4:0m';
 
   /// Reset blink text style
   static const String resetBlink = '${CSI}25m';

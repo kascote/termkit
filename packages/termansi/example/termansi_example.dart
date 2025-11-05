@@ -55,16 +55,16 @@ void main() {
     ..writeln(' ${Text.dim}Dim${Text.resetDim}')
     ..writeln(' ${Text.italic}Italic${Text.resetItalic}')
     ..writeln(' ${Text.underline}Underline${Text.resetUnderline}')
-    ..writeln(' ${Text.doubleUnderline}Double Underline${Text.resetDoubleUnderline}')
-    ..writeln(' ${Text.curlyUnderline}Curly Underline${Text.resetCurlyUnderline}')
-    ..writeln(' ${Text.dottedUnderline}Dotted Underline${Text.resetDottedUnderline}')
-    ..writeln(' ${Text.dashedUnderline}Dashed Underline${Text.resetDashedUnderline}')
+    ..writeln(' ${Text.doubleUnderline}Double Underline${Text.resetUnderlineStyle}')
+    ..writeln(' ${Text.curlyUnderline}Curly Underline${Text.resetUnderlineStyle}')
+    ..writeln(' ${Text.dottedUnderline}Dotted Underline${Text.resetUnderlineStyle}')
+    ..writeln(' ${Text.dashedUnderline}Dashed Underline${Text.resetUnderlineStyle}')
     ..writeln()
     ..writeln(
-      ' ${Text.doubleUnderline}${Color.underlineColor256(120)}Double Underline Color${Text.resetDashedUnderline}${Color.resetUnderlineColor}',
+      ' ${Text.doubleUnderline}${Color.underlineColor256(120)}Double Underline Color${Text.resetUnderlineStyle}${Color.resetUnderlineColor}',
     )
     ..writeln(
-      ' ${Text.curlyUnderline}${Color.underlineTrueColor(255, 0, 0)}Curly Underline Color${Text.resetCurlyUnderline}${Color.resetUnderlineColor}',
+      ' ${Text.curlyUnderline}${Color.underlineTrueColor(255, 0, 0)}Curly Underline Color${Text.resetUnderlineStyle}${Color.resetUnderlineColor}',
     )
     ..writeln()
     ..writeln(Term.hyperLink('https://github.com/kascote/termkit', 'Link to project'))

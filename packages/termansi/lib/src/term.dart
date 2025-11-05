@@ -19,14 +19,24 @@ abstract class Term {
   /// Set terminal keyboard capabilities
   ///
   /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
-  static String setKeyboardCapabilities(int flags, [int mode = 1]) => '$CSI=$flags;${mode}u';
+  static String setKeyboardCapabilities(int flags, [int mode = 1]) {
+    assert(flags >= 0, 'flags should be >= 0, got $flags');
+    assert(mode >= 0, 'mode should be >= 0, got $mode');
+    return '$CSI=$flags;${mode}u';
+  }
 
   /// Push terminal capabilities
-  static String pushKeyboardCapabilities(int flags) => '$CSI>${flags}u';
+  static String pushKeyboardCapabilities(int flags) {
+    assert(flags >= 0, 'flags should be >= 0, got $flags');
+    return '$CSI>${flags}u';
+  }
 
   /// Pop terminal capabilities
   /// entries determine the number of entries to remove from the stack, default 1
-  static String popKeyboardCapabilities([int entries = 1]) => '$CSI<${entries}u';
+  static String popKeyboardCapabilities([int entries = 1]) {
+    assert(entries >= 1, 'entries should be >= 1, got $entries');
+    return '$CSI<${entries}u';
+  }
 
   /// Enable Alternate Screen
   static const String enableAlternateScreen = '$CSI?1049h';
@@ -39,7 +49,10 @@ abstract class Term {
 
   /// Query the terminal for colors settings
   /// reference https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
-  static String queryOSCColors(int code) => '$OSC$code;?$ST';
+  static String queryOSCColors(int code) {
+    assert(code >= 0, 'code should be >= 0, got $code');
+    return '$OSC$code;?$ST';
+  }
 
   /// Enable Line Wrapping
   static const String enableLineWrapping = '$CSI?7h';
@@ -48,10 +61,16 @@ abstract class Term {
   static const String disableLineWrapping = '$CSI?7l';
 
   /// Scroll the terminal up a specified number of rows
-  static String scrollUp(int rows) => '$CSI${rows}S';
+  static String scrollUp(int rows) {
+    assert(rows >= 1, 'rows should be >= 1, got $rows');
+    return '$CSI${rows}S';
+  }
 
   /// Scroll the terminal down a specified number of rows
-  static String scrollDown(int rows) => '$CSI${rows}T';
+  static String scrollDown(int rows) {
+    assert(rows >= 1, 'rows should be >= 1, got $rows');
+    return '$CSI${rows}T';
+  }
 
   /// Query Sync update status
   ///
@@ -83,7 +102,7 @@ abstract class Term {
   static const String enableMousePixelEvents = '$CSI?1000;1003;1016h';
 
   /// Stop receiving mouse events as pixels
-  static const String disableMousePixelsEvents = '$CSI?1000;1003;1016h';
+  static const String disableMousePixelsEvents = '$CSI?1000;1003;1016l';
 
   /// Set Windows size
   ///
@@ -91,7 +110,11 @@ abstract class Term {
   /// by default could need to be enabled by the user.
   ///
   /// ref: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
-  static String setWindowSize(int rows, int cols) => '${CSI}8;$rows;${cols}t';
+  static String setWindowSize(int rows, int cols) {
+    assert(rows >= 1, 'rows should be >= 1, got $rows');
+    assert(cols >= 1, 'cols should be >= 1, got $cols');
+    return '${CSI}8;$rows;${cols}t';
+  }
 
   /// Minimize terminal window
   ///

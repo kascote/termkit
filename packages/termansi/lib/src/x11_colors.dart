@@ -1,5 +1,3 @@
-// ignore_for_file: public_member_api_docs
-
 /// X11 colors
 /// https://en.wikipedia.org/wiki/X11_color_names
 const x11Colors = <String, int>{

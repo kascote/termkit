@@ -32,47 +32,78 @@ abstract class Cursor {
   /// Moves the cursor to the given position (row, column)
   ///
   /// The value is 1 based, meaning 1 is the topmost row or leftmost column.
-  static String moveTo(int y, int x) => '$CSI$y;${x}H';
+  /// Values < 1 are treated as 1 by the terminal.
+  static String moveTo(int y, int x) {
+    assert(y >= 1, 'y should be >= 1 (1-based), got $y');
+    assert(x >= 1, 'x should be >= 1 (1-based), got $x');
+    return '$CSI$y;${x}H';
+  }
 
   /// Moves the cursor down the given number of lines.
   ///
   /// If no value is given, it will move down by 1 line.
-  static String moveToNextLine([int n = 1]) => '$CSI${n}E';
+  static String moveToNextLine([int n = 1]) {
+    assert(n >= 1, 'n should be >= 1, got $n');
+    return '$CSI${n}E';
+  }
 
   /// Moves the cursor up the given number of lines.
   ///
   /// If no value is given, it will move up by 1 line.
-  static String moveToPrevLine([int n = 1]) => '$CSI${n}F';
+  static String moveToPrevLine([int n = 1]) {
+    assert(n >= 1, 'n should be >= 1, got $n');
+    return '$CSI${n}F';
+  }
 
   /// Moves the cursor to the given column on the current row.
   ///
-  /// The value is 0 based, meaning 0 is the leftmost column.
-  static String moveToColumn(int n) => '$CSI${n}G';
+  /// The value is 1 based, meaning 1 is the leftmost column.
+  /// Values < 1 are treated as 1 by the terminal.
+  static String moveToColumn(int n) {
+    assert(n >= 1, 'n should be >= 1 (1-based), got $n');
+    return '$CSI${n}G';
+  }
 
   /// Moves the cursor to the given row on the current column.
   ///
-  /// The value is 0 based, meaning 0 is the topmost row.
-  static String moveToRow(int n) => '$CSI${n}d';
+  /// The value is 1 based, meaning 1 is the topmost row.
+  /// Values < 1 are treated as 1 by the terminal.
+  static String moveToRow(int n) {
+    assert(n >= 1, 'n should be >= 1 (1-based), got $n');
+    return '$CSI${n}d';
+  }
 
   /// Moves the cursor up [n] cells.
   ///
   /// If no value is given, it will move up by 1 cell.
-  static String moveUp([int n = 1]) => '$CSI${n}A';
+  static String moveUp([int n = 1]) {
+    assert(n >= 1, 'n should be >= 1, got $n');
+    return '$CSI${n}A';
+  }
 
   /// Moves the cursor right [n] cells.
   ///
   /// If no value is given, it will move right by 1 cell.
-  static String moveRight([int n = 1]) => '$CSI${n}C';
+  static String moveRight([int n = 1]) {
+    assert(n >= 1, 'n should be >= 1, got $n');
+    return '$CSI${n}C';
+  }
 
   /// Moves the cursor down [n] cells.
   ///
   /// If no value is given, it will move down by 1 cell.
-  static String moveDown([int n = 1]) => '$CSI${n}B';
+  static String moveDown([int n = 1]) {
+    assert(n >= 1, 'n should be >= 1, got $n');
+    return '$CSI${n}B';
+  }
 
   /// Moves the cursor left [n] cells.
   ///
   /// If no value is given, it will move left by 1 cell.
-  static String moveLeft([int n = 1]) => '$CSI${n}D';
+  static String moveLeft([int n = 1]) {
+    assert(n >= 1, 'n should be >= 1, got $n');
+    return '$CSI${n}D';
+  }
 
   /// Request cursor position
   ///
