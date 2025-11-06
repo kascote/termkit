@@ -13,7 +13,7 @@ Event? parseChar(String char, {bool escO = false}) {
       'Q' => const KeyEvent(KeyCode(name: KeyCodeName.f2)),
       'R' => const KeyEvent(KeyCode(name: KeyCodeName.f3)),
       'S' => const KeyEvent(KeyCode(name: KeyCodeName.f4)),
-      _ => const KeyEvent(KeyCode()) // none
+      _ => const KeyEvent(KeyCode()), // none
     };
   }
   return switch (char) {
@@ -22,7 +22,7 @@ Event? parseChar(String char, {bool escO = false}) {
     '\x7f' => const KeyEvent(KeyCode(name: KeyCodeName.backSpace)),
     '\x1b' => const KeyEvent(KeyCode(name: KeyCodeName.escape)),
     '\x00' => const KeyEvent(KeyCode()), // none
-    _ => _ctrlOrKey(char)
+    _ => _ctrlOrKey(char),
   };
 }
 
@@ -30,13 +30,13 @@ KeyEvent _ctrlOrKey(String char) {
   final code = char.codeUnitAt(0);
   return switch (code) {
     >= 0x01 && <= 0x1A => KeyEvent(
-        KeyCode(char: String.fromCharCode(code - 0x01 + 0x61)),
-        modifiers: const KeyModifiers(KeyModifiers.ctrl),
-      ),
+      KeyCode(char: String.fromCharCode(code - 0x01 + 0x61)),
+      modifiers: const KeyModifiers(KeyModifiers.ctrl),
+    ),
     >= 0x1C && <= 0x1F => KeyEvent(
-        KeyCode(char: String.fromCharCode(code - 0x1C + 0x34)),
-        modifiers: const KeyModifiers(KeyModifiers.ctrl),
-      ),
+      KeyCode(char: String.fromCharCode(code - 0x1C + 0x34)),
+      modifiers: const KeyModifiers(KeyModifiers.ctrl),
+    ),
     _ => KeyEvent(KeyCode(char: char)),
   };
 }
@@ -73,7 +73,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     'R' => _parseCursorPosition(parameters),
     'y' => _parseDECRPMStatus(parameters),
     't' => _parseWindowSize(parameters),
-    _ => const NoneEvent()
+    _ => const NoneEvent(),
   };
 }
 
@@ -97,7 +97,11 @@ Event parseDcsSequence(List<String> parameters, int ignoredParameterCount, Strin
 
 Event _parseKeyAndModifiers(KeyCodeName name, String parameters) {
   final (modifier, event) = modifierAndEventParser(parameters);
-  return KeyEvent(KeyCode(name: name), modifiers: modifier, eventType: event);
+  return KeyEvent(
+    KeyCode(name: name),
+    modifiers: modifier,
+    eventType: event,
+  );
 }
 
 // This function parses `CSI … u` sequences. These are sequences defined in either
@@ -153,11 +157,12 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
       // if the terminal is in raw mode, the enter key sends \r
       // we need to handle this case. How to receive the raw mode status?
       0xa => const KeyCode(name: KeyCodeName.enter),
-      0x9 => modifiers.has(KeyModifiers.shift)
-          ? const KeyCode(name: KeyCodeName.backTab)
-          : const KeyCode(name: KeyCodeName.tab),
+      0x9 =>
+        modifiers.has(KeyModifiers.shift)
+            ? const KeyCode(name: KeyCodeName.backTab)
+            : const KeyCode(name: KeyCodeName.tab),
       0x7f => const KeyCode(name: KeyCodeName.backSpace),
-      _ => KeyCode(char: String.fromCharCode(codePoint))
+      _ => KeyCode(char: String.fromCharCode(codePoint)),
     };
     stateFromKeyCode = KeyEventState.none();
   }
@@ -169,7 +174,7 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
     ModifierKeyCode.leftSuper || ModifierKeyCode.rightSuper => modifiers.add(KeyModifiers.superKey),
     ModifierKeyCode.leftHyper || ModifierKeyCode.rightHyper => modifiers.add(KeyModifiers.hyper),
     ModifierKeyCode.leftMeta || ModifierKeyCode.rightMeta => modifiers.add(KeyModifiers.meta),
-    _ => modifiers
+    _ => modifiers,
   };
 
   if (modifiers.has(KeyModifiers.shift)) {
@@ -262,7 +267,7 @@ Event _parseSpecialKeyCode(List<String> parameters, String char) {
     32 => KeyCodeName.f18,
     33 => KeyCodeName.f19,
     34 => KeyCodeName.f20,
-    _ => null
+    _ => null,
   };
 
   if (key == null) return const NoneEvent();

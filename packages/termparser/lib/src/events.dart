@@ -203,7 +203,7 @@ final class PrimaryDeviceAttributesEvent extends Event with EquatableMixin {
       ['63', ...] => PrimaryDeviceAttributesEvent(DeviceAttributeType.vt320, _genParams(params.sublist(1))),
       ['64', ...] => PrimaryDeviceAttributesEvent(DeviceAttributeType.vt420, _genParams(params.sublist(1))),
       ['65', ...] => PrimaryDeviceAttributesEvent(DeviceAttributeType.vt500, _genParams(params.sublist(1))),
-      _ => const PrimaryDeviceAttributesEvent(DeviceAttributeType.unknown, [])
+      _ => const PrimaryDeviceAttributesEvent(DeviceAttributeType.unknown, []),
     };
   }
 
@@ -213,8 +213,10 @@ final class PrimaryDeviceAttributesEvent extends Event with EquatableMixin {
   static List<DeviceAttributeParams> _genParams(List<String> params) {
     return params.fold(<DeviceAttributeParams>[], (acc, p) {
       if (p.isEmpty) return acc;
-      final code = DeviceAttributeParams.values
-          .firstWhere((e) => e.value == int.parse(p), orElse: () => DeviceAttributeParams.unknown);
+      final code = DeviceAttributeParams.values.firstWhere(
+        (e) => e.value == int.parse(p),
+        orElse: () => DeviceAttributeParams.unknown,
+      );
       if (code != DeviceAttributeParams.unknown) return acc..add(code);
       return acc;
     });

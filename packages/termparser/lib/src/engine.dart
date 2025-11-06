@@ -77,47 +77,53 @@ enum State {
 
 ///
 class Engine {
-  final parameters = List<String>.filled(_maxParameters, _defaultParameterValue);
-  int parametersCount = 0;
-  final List<int> parameter = [];
-  int ignoredParametersCount = 0;
-  State state = State.ground;
-  final utf8Points = List<int>.filled(_maxUtf8CodePoints, 0);
-  int utf8PointsCount = 0;
-  int utf8PointsExpectedCount = 0;
-  bool inTextBlock = false;
+  final _parameters = List<String>.filled(_maxParameters, _defaultParameterValue);
+  int _parametersCount = 0;
+  final List<int> _parameter = [];
+  int _ignoredParametersCount = 0;
+  State _state = State.ground;
+  final _utf8Points = List<int>.filled(_maxUtf8CodePoints, 0);
+  int _utf8PointsCount = 0;
+  int _utf8PointsExpectedCount = 0;
+  bool _inTextBlock = false;
+
+  /// Read-only access to current state (for testing/debugging)
+  State get currentState => _state;
+
+  /// Check if engine is in intermediate state (for testing/debugging)
+  bool get isIntermediateState => _state != State.ground;
 
   Engine() {
-    parameters.fillRange(0, parameters.length, _defaultParameterValue);
-    parametersCount = 0;
-    parameter.clear();
-    ignoredParametersCount = 0;
-    state = State.ground;
-    utf8Points.fillRange(0, utf8Points.length, 0);
-    utf8PointsCount = 0;
-    utf8PointsExpectedCount = 0;
+    _parameters.fillRange(0, _parameters.length, _defaultParameterValue);
+    _parametersCount = 0;
+    _parameter.clear();
+    _ignoredParametersCount = 0;
+    _state = State.ground;
+    _utf8Points.fillRange(0, _utf8Points.length, 0);
+    _utf8PointsCount = 0;
+    _utf8PointsExpectedCount = 0;
   }
 
-  void setState(State newState) {
+  void _setState(State newState) {
     if (newState == State.ground) {
-      parametersCount = 0;
-      parameter.clear();
-      ignoredParametersCount = 0;
-      utf8PointsCount = 0;
-      utf8PointsExpectedCount = 0;
+      _parametersCount = 0;
+      _parameter.clear();
+      _ignoredParametersCount = 0;
+      _utf8PointsCount = 0;
+      _utf8PointsExpectedCount = 0;
     }
-    state = newState;
+    _state = newState;
   }
 
   void storeParameter() {
-    if (parametersCount < _maxParameters) {
-      final param = utf8.decode(parameter, allowMalformed: true);
-      parameters[parametersCount] = param.isEmpty ? _defaultParameterValue : param;
-      parametersCount++;
+    if (_parametersCount < _maxParameters) {
+      final param = utf8.decode(_parameter, allowMalformed: true);
+      _parameters[_parametersCount] = param.isEmpty ? _defaultParameterValue : param;
+      _parametersCount++;
     } else {
-      ignoredParametersCount++;
+      _ignoredParametersCount++;
     }
-    parameter.clear();
+    _parameter.clear();
   }
 
   bool handlePossibleEsc(Provider provider, int byte, {bool more = false}) {
@@ -125,10 +131,10 @@ class Engine {
       return false;
     }
 
-    switch ((state, more)) {
+    switch ((_state, more)) {
       // More input means possible Esc sequence, just switch state and wait
       case (State.ground, true):
-        setState(State.escape);
+        _setState(State.escape);
       // No more input means Esc key, dispatch it
       case (State.ground, false):
         provider.provideChar('\x1b');
@@ -139,24 +145,24 @@ class Engine {
       case (State.escape, false):
         provider.provideChar('\x1b');
         provider.provideChar('\x1b');
-        setState(State.ground);
+        _setState(State.ground);
       case (State.oscParameter, true):
-        setState(State.oscFinal);
+        _setState(State.oscFinal);
         return false;
 
       case (State.textBlock, true):
-        setState(State.textBlockFinal);
+        _setState(State.textBlockFinal);
         return false;
 
       // Discard any state
       // More input means possible Esc sequence
       case (_, true):
-        setState(State.escape);
+        _setState(State.escape);
       // Discard any state
       // No more input means Esc key, dispatch it
       case (_, false):
         provider.provideChar('\x1b');
-        setState(State.ground);
+        _setState(State.ground);
     }
 
     return true;
@@ -167,22 +173,22 @@ class Engine {
       provider.provideChar(String.fromCharCode(byte));
       return true;
     } else if (byte & 0xe0 == 0xc0) {
-      utf8PointsCount = 1;
-      utf8Points[0] = byte;
-      utf8PointsExpectedCount = 2;
-      setState(State.utf8);
+      _utf8PointsCount = 1;
+      _utf8Points[0] = byte;
+      _utf8PointsExpectedCount = 2;
+      _setState(State.utf8);
       return true;
     } else if (byte & 0xf0 == 0xe0) {
-      utf8PointsCount = 1;
-      utf8Points[0] = byte;
-      utf8PointsExpectedCount = 3;
-      setState(State.utf8);
+      _utf8PointsCount = 1;
+      _utf8Points[0] = byte;
+      _utf8PointsExpectedCount = 3;
+      _setState(State.utf8);
       return true;
     } else if (byte & 0xf8 == 0xf0) {
-      utf8PointsCount = 1;
-      utf8Points[0] = byte;
-      utf8PointsExpectedCount = 4;
-      setState(State.utf8);
+      _utf8PointsCount = 1;
+      _utf8Points[0] = byte;
+      _utf8PointsExpectedCount = 4;
+      _setState(State.utf8);
       return true;
     } else {
       return false;
@@ -208,24 +214,24 @@ class Engine {
         throw Exception('Unexpected Esc byte in Advance State');
       // Intermediate bytes to collect
       case >= 0x20 && <= 0x2F:
-        setState(State.escapeIntermediate);
+        _setState(State.escapeIntermediate);
 
       // DCS
       case 0x50:
-        setState(State.dcsEntry);
+        _setState(State.dcsEntry);
 
       // Escape followed by '[' (0x5B) -> CSI sequence start
       case 0x5B:
-        setState(State.csiEntry);
+        _setState(State.csiEntry);
 
       // Escape followed by ']' (0x5D) -> OSC sequence start
       case 0x5D:
-        setState(State.oscEntry);
+        _setState(State.oscEntry);
 
       // Escape sequence final character
       case (>= 0x30 && <= 0x4F) || (>= 0x51 && <= 0x57) || 0x59 || 0x5A || 0x5C || (>= 0x60 && <= 0x7E):
         provider.provideESCSequence(String.fromCharCode(byte));
-        setState(State.ground);
+        _setState(State.ground);
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
@@ -238,7 +244,7 @@ class Engine {
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -254,12 +260,12 @@ class Engine {
       // Escape followed by '[' (0x5B)
       //   -> CSI sequence start
       case 0x5B:
-        setState(State.csiEntry);
+        _setState(State.csiEntry);
 
       // Escape sequence final character
       case (>= 0x30 && <= 0x5A) || (>= 0x5C && <= 0x7E):
         provider.provideESCSequence(String.fromCharCode(byte));
-        setState(State.ground);
+        _setState(State.ground);
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
@@ -272,7 +278,7 @@ class Engine {
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -283,32 +289,32 @@ class Engine {
 
       // '0' ..= '9' = parameter value
       case >= 0x30 && <= 0x39:
-        parameter.add(byte);
-        setState(State.csiParameter);
+        _parameter.add(byte);
+        _setState(State.csiParameter);
 
       // ';' = parameter delimiter
       case 0x3B:
         storeParameter();
-        setState(State.csiParameter);
+        _setState(State.csiParameter);
 
       // '<' SGR Mouse
       case 0x3C:
-        setState(State.csiParameter);
+        _setState(State.csiParameter);
 
       // ':' sequence delimiter
       case 0x3A:
-        setState(State.csiIgnore);
+        _setState(State.csiIgnore);
 
       // CSI sequence final character
       //   -> dispatch CSI sequence
       case >= 0x40 && <= 0x7E:
         provider.provideCSISequence(
-          parameters.sublist(0, parametersCount),
-          ignoredParametersCount,
+          _parameters.sublist(0, _parametersCount),
+          _ignoredParametersCount,
           String.fromCharCode(byte),
         );
 
-        setState(State.ground);
+        _setState(State.ground);
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
@@ -321,7 +327,7 @@ class Engine {
 
       // Collect rest as parameters
       default:
-        parameter.add(byte);
+        _parameter.add(byte);
         storeParameter();
     }
   }
@@ -341,11 +347,11 @@ class Engine {
         {}
 
       case (>= 0x40 && <= 0x7E):
-        setState(State.ground);
+        _setState(State.ground);
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -356,11 +362,11 @@ class Engine {
 
       // '0' ..= '9' = parameter value
       case (>= 0x30 && <= 0x39):
-        parameter.add(byte);
+        _parameter.add(byte);
 
       // ':' sequence delimiter
       case 0x3A:
-        parameter.add(byte);
+        _parameter.add(byte);
 
       // ';' parameter delimiter
       case 0x3B:
@@ -369,41 +375,41 @@ class Engine {
       // `~`
       case 0x7E:
         storeParameter();
-        if (parameters[0] == '200' && !inTextBlock) {
-          inTextBlock = true;
-          setState(State.textBlock);
+        if (_parameters[0] == '200' && !_inTextBlock) {
+          _inTextBlock = true;
+          _setState(State.textBlock);
         } else {
           provider.provideCSISequence(
-            parameters.sublist(0, parametersCount),
-            ignoredParametersCount,
+            _parameters.sublist(0, _parametersCount),
+            _ignoredParametersCount,
             String.fromCharCode(byte),
           );
-          inTextBlock = false;
-          setState(State.ground);
+          _inTextBlock = false;
+          _setState(State.ground);
         }
 
       // CSI sequence final character
       //   -> dispatch CSI sequence
       case (>= 0x40 && <= 0x7D):
         storeParameter();
-        if (!inTextBlock || (inTextBlock && parameters[parametersCount - 1] == '201')) {
+        if (!_inTextBlock || (_inTextBlock && _parameters[_parametersCount - 1] == '201')) {
           provider.provideCSISequence(
-            parameters.sublist(0, parametersCount),
-            ignoredParametersCount,
+            _parameters.sublist(0, _parametersCount),
+            _ignoredParametersCount,
             String.fromCharCode(byte),
           );
         }
 
-        setState(State.ground);
+        _setState(State.ground);
 
       // Intermediates to collect
       case (>= 0x20 && <= 0x2F):
         storeParameter();
-        setState(State.csiIntermediate);
+        _setState(State.csiIntermediate);
 
       // Ignore
       case (>= 0x3C && <= 0x3F):
-        setState(State.csiIgnore);
+        _setState(State.csiIgnore);
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
@@ -416,7 +422,7 @@ class Engine {
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -433,12 +439,12 @@ class Engine {
       //   -> dispatch CSI sequence
       case (>= 0x40 && <= 0x7E):
         provider.provideCSISequence(
-          parameters.sublist(0, parametersCount),
-          ignoredParametersCount,
+          _parameters.sublist(0, _parametersCount),
+          _ignoredParametersCount,
           String.fromCharCode(byte),
         );
 
-        setState(State.ground);
+        _setState(State.ground);
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         provider.provideChar(String.fromCharCode(byte));
@@ -450,7 +456,7 @@ class Engine {
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -458,11 +464,11 @@ class Engine {
     switch (byte) {
       // block finish with a escape sequence
       case 0x1b:
-        setState(State.textBlockFinal);
+        _setState(State.textBlockFinal);
 
       // Other bytes are considered as valid
       default:
-        parameter.add(byte);
+        _parameter.add(byte);
     }
   }
 
@@ -475,21 +481,21 @@ class Engine {
       case 0x5c:
         storeParameter();
         provider.provideDcsSequence(
-          parameters.sublist(0, parametersCount),
-          ignoredParametersCount,
+          _parameters.sublist(0, _parametersCount),
+          _ignoredParametersCount,
           '',
         );
-        setState(State.ground);
+        _setState(State.ground);
 
       // bracketed paste finish with a CSI sequence
       case 0x5b:
         storeParameter();
-        setState(State.csiEntry);
+        _setState(State.csiEntry);
 
       // cancel the sequence?, or return to block mode and continue capturing?
       // this way we could accept escape characters inside the block
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -497,25 +503,25 @@ class Engine {
     switch (byte) {
       case 0x1b:
         provider.provideCSISequence(
-          parameters.sublist(0, parametersCount),
-          ignoredParametersCount,
+          _parameters.sublist(0, _parametersCount),
+          _ignoredParametersCount,
           'M',
         );
-        setState(State.ground);
+        _setState(State.ground);
 
       default:
-        parameter.add(byte);
+        _parameter.add(byte);
         storeParameter();
     }
 
     // ESC [ M Cb Cx Cy are only 6 characters, 3 of which are params
-    if (parametersCount == 3) {
+    if (_parametersCount == 3) {
       provider.provideCSISequence(
-        parameters.sublist(0, parametersCount),
-        ignoredParametersCount,
+        _parameters.sublist(0, _parametersCount),
+        _ignoredParametersCount,
         'M',
       );
-      setState(State.ground);
+      _setState(State.ground);
     }
   }
 
@@ -527,15 +533,15 @@ class Engine {
       // Semicolon = parameter delimiter
       case 0x3B:
         storeParameter();
-        setState(State.oscParameter);
+        _setState(State.oscParameter);
 
       case >= 0x30 && <= 0x39:
-        parameter.add(byte);
-        setState(State.oscParameter);
+        _parameter.add(byte);
+        _setState(State.oscParameter);
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -543,7 +549,7 @@ class Engine {
     switch (byte) {
       // '0' ..= '9' = parameter value
       case >= 0x30 && <= 0x39:
-        parameter.add(byte);
+        _parameter.add(byte);
 
       // ';' = parameter delimiter
       case 0x3B:
@@ -551,10 +557,10 @@ class Engine {
 
       // '/' || ':' => '~'
       case 0x2F || (>= 0x3A && <= 0x7E):
-        parameter.add(byte);
+        _parameter.add(byte);
 
       // default:
-      //   setState(State.oscBlock);
+      //   _setState(State.oscBlock);
     }
   }
 
@@ -568,16 +574,16 @@ class Engine {
       case 0x5C:
         storeParameter();
         provider.provideOscSequence(
-          parameters.sublist(0, parametersCount),
-          ignoredParametersCount,
+          _parameters.sublist(0, _parametersCount),
+          _ignoredParametersCount,
           '',
         );
 
-        setState(State.ground);
+        _setState(State.ground);
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
-        setState(State.ground);
+        _setState(State.ground);
     }
   }
 
@@ -588,19 +594,19 @@ class Engine {
 
       // <=>?
       case >= 0x3C && <= 0x3F:
-        parameter.add(byte);
+        _parameter.add(byte);
         storeParameter();
 
       case >= 40 && <= 0x7E:
-        parameter.add(byte);
+        _parameter.add(byte);
         storeParameter();
-        setState(State.textBlock);
+        _setState(State.textBlock);
 
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         {}
 
       case (>= 0x20 && <= 0x2F):
-        parameter.add(byte);
+        _parameter.add(byte);
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -615,16 +621,16 @@ class Engine {
 
   void advanceUtf8State(Provider provider, int byte) {
     if (byte & 0xC0 != 0x80) {
-      setState(State.ground);
+      _setState(State.ground);
       return;
     }
-    utf8Points[utf8PointsCount] = byte;
-    utf8PointsCount++;
+    _utf8Points[_utf8PointsCount] = byte;
+    _utf8PointsCount++;
 
-    if (utf8PointsCount == utf8PointsExpectedCount) {
-      final data = utf8.decode(utf8Points.sublist(0, utf8PointsCount));
+    if (_utf8PointsCount == _utf8PointsExpectedCount) {
+      final data = utf8.decode(_utf8Points.sublist(0, _utf8PointsCount));
       provider.provideChar(data);
-      setState(State.ground);
+      _setState(State.ground);
     }
   }
 
@@ -634,7 +640,7 @@ class Engine {
       return;
     }
 
-    return switch (state) {
+    return switch (_state) {
       State.ground => advanceGroundState(provider, byte),
       State.escape => advanceEscapeState(provider, byte),
       State.escapeIntermediate => advanceEscapeIntermediateState(provider, byte),

@@ -221,7 +221,7 @@ KeyEventState modifiersToStateParser(int? modifierMask) {
     57452 => const KeyCode(modifiers: ModifierKeyCode.rightMeta),
     57453 => const KeyCode(modifiers: ModifierKeyCode.isoLevel3Shift),
     57454 => const KeyCode(modifiers: ModifierKeyCode.isoLevel5Shift),
-    _ => null
+    _ => null,
   };
 
   if (keyCode != null) return (keyCode, KeyEventState.none());

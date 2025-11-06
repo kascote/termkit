@@ -29,9 +29,7 @@ final class Parser implements Iterator<Event> {
   final _SequenceProvider _provider;
 
   ///
-  Parser()
-      : _engine = Engine(),
-        _provider = _SequenceProvider();
+  Parser() : _engine = Engine(), _provider = _SequenceProvider();
 
   /// Advances parser state machine with additional input data.
   ///
