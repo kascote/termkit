@@ -2,7 +2,11 @@ import 'dart:async';
 
 import 'engine.dart';
 import 'events.dart';
-import 'parsers.dart' as parsers;
+import 'parsers/char_parser.dart';
+import 'parsers/csi_parser.dart';
+import 'parsers/dcs_parser.dart';
+import 'parsers/esc_parser.dart';
+import 'parsers/osc_parser.dart';
 import 'provider.dart';
 
 /// The ANSI escape sequence parser
@@ -55,7 +59,7 @@ class _SequenceProvider implements Provider, Iterator<Event> {
 
   @override
   void provideChar(String char) {
-    final seq = parsers.parseChar(char, escO: _escO);
+    final seq = parseChar(char, escO: _escO);
     if (seq != null) _sequences.add(seq);
     _escO = false;
   }
@@ -68,7 +72,7 @@ class _SequenceProvider implements Provider, Iterator<Event> {
       // F1-F4 keys. We store Esc O flag only which is then used in the dispatch_char method.
       _escO = true;
     } else {
-      final seq = parsers.parseESCSequence(char);
+      final seq = parseESCSequence(char);
       if (seq != null) _sequences.add(seq);
       _escO = false;
     }
@@ -76,21 +80,21 @@ class _SequenceProvider implements Provider, Iterator<Event> {
 
   @override
   void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char) {
-    final seq = parsers.parseCSISequence(parameters, ignoredParameterCount, char);
+    final seq = parseCSISequence(parameters, ignoredParameterCount, char);
     _sequences.add(seq);
     _escO = false;
   }
 
   @override
   void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char) {
-    final seq = parsers.parseOscSequence(parameters, ignoredParameterCount, char);
+    final seq = parseOscSequence(parameters, ignoredParameterCount, char);
     _sequences.add(seq);
     _escO = false;
   }
 
   @override
   void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char) {
-    final seq = parsers.parseDcsSequence(parameters, ignoredParameterCount, char);
+    final seq = parseDcsSequence(parameters, ignoredParameterCount, char);
     _sequences.add(seq);
     _escO = false;
   }

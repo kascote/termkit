@@ -1,52 +1,7 @@
-import 'dart:convert';
-
-import 'events.dart';
-import 'events_types.dart';
-import 'extensions/string_extension.dart';
-import 'sequences/key_parser.dart';
-
-/// Parse a single character
-Event? parseChar(String char, {bool escO = false}) {
-  if (escO) {
-    return switch (char) {
-      'P' => const KeyEvent(KeyCode(name: KeyCodeName.f1)),
-      'Q' => const KeyEvent(KeyCode(name: KeyCodeName.f2)),
-      'R' => const KeyEvent(KeyCode(name: KeyCodeName.f3)),
-      'S' => const KeyEvent(KeyCode(name: KeyCodeName.f4)),
-      _ => const KeyEvent(KeyCode()), // none
-    };
-  }
-  return switch (char) {
-    '\r' || '\n' => const KeyEvent(KeyCode(name: KeyCodeName.enter)),
-    '\t' => const KeyEvent(KeyCode(name: KeyCodeName.tab)),
-    '\x7f' => const KeyEvent(KeyCode(name: KeyCodeName.backSpace)),
-    '\x1b' => const KeyEvent(KeyCode(name: KeyCodeName.escape)),
-    '\x00' => const KeyEvent(KeyCode()), // none
-    _ => _ctrlOrKey(char),
-  };
-}
-
-KeyEvent _ctrlOrKey(String char) {
-  final code = char.codeUnitAt(0);
-  return switch (code) {
-    >= 0x01 && <= 0x1A => KeyEvent(
-      KeyCode(char: String.fromCharCode(code - 0x01 + 0x61)),
-      modifiers: const KeyModifiers(KeyModifiers.ctrl),
-    ),
-    >= 0x1C && <= 0x1F => KeyEvent(
-      KeyCode(char: String.fromCharCode(code - 0x1C + 0x34)),
-      modifiers: const KeyModifiers(KeyModifiers.ctrl),
-    ),
-    _ => KeyEvent(KeyCode(char: char)),
-  };
-}
-
-/// Parse an escape sequence
-Event? parseESCSequence(String char) {
-  // EscO[P-S] is handled in the Performer, see parse_char & esc_o argument
-  // No need to handle other cases here? It's just Alt+$char
-  return KeyEvent(KeyCode(char: char), modifiers: const KeyModifiers(KeyModifiers.alt));
-}
+import '../events.dart';
+import '../events_types.dart';
+import '../extensions/string_extension.dart';
+import '../sequences/key_parser.dart';
 
 /// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
@@ -73,24 +28,6 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     'R' => _parseCursorPosition(parameters),
     'y' => _parseDECRPMStatus(parameters),
     't' => _parseWindowSize(parameters),
-    _ => const NoneEvent(),
-  };
-}
-
-/// Parse an Operating System Command sequence
-Event parseOscSequence(List<String> parameters, int ignoredParameterCount, String char) {
-  return switch (parameters) {
-    ['10', ...] => _parserColorSequence(parameters),
-    ['11', ...] => _parserColorSequence(parameters),
-    ['52', ...] => _parseClipboardSequence(parameters),
-    _ => const NoneEvent(),
-  };
-}
-
-/// Parse a Device Control String sequence
-Event parseDcsSequence(List<String> parameters, int ignoredParameterCount, String char) {
-  return switch (parameters) {
-    ['>', '|', ...] => _parseDCSBlock(parameters),
     _ => const NoneEvent(),
   };
 }
@@ -193,32 +130,6 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   );
 }
 
-Event _parserColorSequence(List<String> parameters) {
-  if (parameters.length < 2) return const NoneEvent();
-  final buffer = parameters[1];
-  // has malformed data
-  if (buffer.length < 12 || buffer.contains('�') || !buffer.startsWith('rgb:')) {
-    return ParserErrorEvent(parameters);
-  }
-
-  final parts = buffer.substring(4).split('/');
-
-  if (parts.length != 3) return const NoneEvent();
-
-  final r = _tryParseInt(parts[0]);
-  final g = _tryParseInt(parts[1]);
-  final b = _tryParseInt(parts[2]);
-
-  if (r == null || g == null || b == null) return const NoneEvent();
-
-  return ColorQueryEvent(r, g, b);
-}
-
-int? _tryParseInt(String value) {
-  if (value.isEmpty || value.length > 4) return null;
-  return value.padLeft(2, '0').substring(0, 2).tryParseHex();
-}
-
 Event _primaryDeviceAttributes(List<String> parameters, String char) {
   if (parameters.isEmpty) return const NoneEvent();
 
@@ -290,18 +201,6 @@ Event _parseCursorPosition(List<String> parameters) {
   return CursorPositionEvent(x, y);
 }
 
-Event _parseBracketedPaste(List<String> parameters, String char) {
-  if (parameters.length < 3 || parameters[2] != '201') {
-    return ParserErrorEvent(parameters, char: char);
-  }
-  return PasteEvent(parameters[1]);
-}
-
-Event _parseDCSBlock(List<String> parameters) {
-  if (parameters.length < 2) return const NoneEvent();
-  return NameAndVersionEvent(parameters[2]);
-}
-
 Event _parseDECRPMStatus(List<String> parameters) {
   switch (parameters) {
     case ['?', '2026', ...]:
@@ -324,22 +223,9 @@ Event _parseWindowSize(List<String> parameters) {
   }
 }
 
-Event _parseClipboardSequence(List<String> parameters) {
-  final encoded = parameters.elementAtOrNull(2);
-  if (encoded == null) return const NoneEvent();
-
-  final result = switch (encoded) {
-    '' || '0' => '',
-    _ => utf8.decode(base64Decode(encoded), allowMalformed: true),
-  };
-  final source = switch (parameters[1]) {
-    'c' => ClipboardSource.clipboard,
-    'p' => ClipboardSource.primary,
-    'q' => ClipboardSource.secondary,
-    's' => ClipboardSource.selection,
-    '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' => ClipboardSource.cutBuffer,
-    _ => ClipboardSource.unknown,
-  };
-
-  return ClipboardCopyEvent(source, result);
+Event _parseBracketedPaste(List<String> parameters, String char) {
+  if (parameters.length < 3 || parameters[2] != '201') {
+    return ParserErrorEvent(parameters, char: char);
+  }
+  return PasteEvent(parameters[1]);
 }
