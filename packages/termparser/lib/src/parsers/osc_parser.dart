@@ -19,7 +19,7 @@ Event _parserColorSequence(List<String> parameters) {
   final buffer = parameters[1];
   // has malformed data
   if (buffer.length < 12 || buffer.contains('�') || !buffer.startsWith('rgb:')) {
-    return ParserErrorEvent(parameters);
+    return const NoneEvent();
   }
 
   final parts = buffer.substring(4).split('/');

@@ -1,13 +1,13 @@
-// ignore_for_file: public_member_api_docs
-
 import 'dart:convert';
 
+import 'package:termparser/src/events.dart';
 import 'package:termparser/src/provider.dart';
 
 class MockProvider extends Provider {
   final List<List<String>> params = [];
   final List<String> _chars = [];
   final List<int> _block = [];
+  final List<Event> events = [];
 
   List<String> get chars => _chars;
   String get block => utf8.decode(_block, allowMalformed: true);
@@ -37,5 +37,10 @@ class MockProvider extends Provider {
     params.add(parameters);
     if (char.isNotEmpty) chars.add(char);
     if (block != null) _block.addAll(block);
+  }
+
+  @override
+  void addEvent(Event event) {
+    events.add(event);
   }
 }

@@ -208,7 +208,7 @@ Event _parseDECRPMStatus(List<String> parameters) {
     case ['?', '2027', ...]:
       return UnicodeCoreEvent(int.tryParse(parameters[2]) ?? 0);
     default:
-      return ParserErrorEvent(parameters);
+      return const NoneEvent();
   }
 }
 
@@ -219,13 +219,13 @@ Event _parseWindowSize(List<String> parameters) {
       final height = int.tryParse(parameters[2]) ?? -1;
       return QueryTerminalWindowSizeEvent(width, height);
     default:
-      return ParserErrorEvent(parameters);
+      return const NoneEvent();
   }
 }
 
 Event _parseBracketedPaste(List<String> parameters, String char) {
   if (parameters.length < 3 || parameters[2] != '201') {
-    return ParserErrorEvent(parameters, char: char);
+    return const NoneEvent();
   }
   return PasteEvent(parameters[1]);
 }

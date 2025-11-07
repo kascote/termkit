@@ -1,4 +1,4 @@
-import 'package:termparser/src/engine.dart';
+import 'package:termparser/src/engine/engine.dart';
 import 'package:termparser/src/provider.dart';
 import 'package:test/test.dart';
 
@@ -274,6 +274,23 @@ void main() {
       stringAdvance(eng, cp, '\x1b[200~o\x1b[2D\x1b[201~');
       expect(cp.params[0], ['201']);
       expect(cp.chars[0], '~');
+    });
+
+    test('paste content not accumulated in sequence bytes', () {
+      final eng = Engine();
+      final cp = MockProvider();
+
+      const startPasteSeq = [0x1b, 0x5b, 0x32, 0x30, 0x30, 0x7E]; // ESC [ 2 0 0 ~
+      const pasteContent = [0x61, 0x62, 0x63, 0x64, 0x65]; // "abcde"
+
+      listAdvance(eng, cp, startPasteSeq);
+      expect(eng.currentState.toString().contains('textBlock'), true);
+
+      final bytesBeforePaste = eng.currentSequenceBytes.length;
+      listAdvance(eng, cp, pasteContent);
+
+      // Sequence bytes should NOT have grown with paste content
+      expect(eng.currentSequenceBytes.length, bytesBeforePaste);
     });
   });
 

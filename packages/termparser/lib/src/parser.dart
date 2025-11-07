@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'engine.dart';
+import 'engine/engine.dart';
 import 'events.dart';
 import 'parsers/char_parser.dart';
 import 'parsers/csi_parser.dart';
@@ -97,6 +97,11 @@ class _SequenceProvider implements Provider, Iterator<Event> {
     final seq = parseDcsSequence(parameters, ignoredParameterCount, char);
     _sequences.add(seq);
     _escO = false;
+  }
+
+  @override
+  void addEvent(Event event) {
+    _sequences.add(event);
   }
 
   @override

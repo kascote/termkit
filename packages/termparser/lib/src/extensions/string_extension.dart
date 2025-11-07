@@ -20,7 +20,7 @@ extension StringExtension on String {
   static String? tryFromCharCode(int charCode) {
     try {
       return String.fromCharCode(charCode);
-    } catch (e) {
+    } on Object catch (_) {
       return null;
     }
   }
