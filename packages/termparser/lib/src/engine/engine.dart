@@ -1,5 +1,10 @@
 import '../events.dart';
-import '../provider.dart';
+import '../parsers/char_parser.dart';
+import '../parsers/csi_parser.dart';
+import '../parsers/dcs_parser.dart';
+import '../parsers/esc_parser.dart';
+import '../parsers/osc_parser.dart';
+import './event_queue.dart';
 import './parameter_accumulator.dart';
 import './utf8_decoder.dart';
 
@@ -83,21 +88,22 @@ class Engine {
   final _utf8 = Utf8Decoder();
   State _state = State.ground;
   bool _inTextBlock = false;
+  bool _escO = false;
   final List<int> _sequenceBytes = [];
 
-  /// Read-only access to current state (for testing/debugging)
+  /// Read-only access to current state
   State get currentState => _state;
 
-  /// Check if engine is in intermediate state (for testing/debugging)
+  /// Check if engine is in intermediate state
   bool get isIntermediateState => _state != State.ground;
 
-  /// Get human-readable name of current state (for debugging)
+  /// Get human-readable name of current state
   String get currentStateName => _state.toString().split('.').last;
 
-  /// Get defensive copy of current sequence bytes (for debugging)
+  /// Get defensive copy of current sequence bytes
   List<int> get currentSequenceBytes => List.from(_sequenceBytes);
 
-  /// Get collected parameters so far (for debugging)
+  /// Get collected parameters so far
   List<String> get collectedParameters => _params.getParameters();
 
   /// Get full engine state dump for debugging
@@ -116,15 +122,24 @@ class Engine {
   Engine();
 
   void _setState(State newState) {
+    // Clear on ground for UTF-8 and sequence bytes tracking
     if (newState == State.ground) {
-      _params.clear();
       _utf8.reset();
       _sequenceBytes.clear();
+    }
+    // Clear params on entry to new sequence types (not on ground)
+    // This preserves params after sequence completes for debugging
+    else if ((newState == State.escape ||
+            newState == State.csiEntry ||
+            newState == State.oscEntry ||
+            newState == State.dcsEntry) &&
+        !_inTextBlock) {
+      _params.clear();
     }
     _state = newState;
   }
 
-  void _handleError(Provider provider, String message, EngineErrorType type) {
+  void _handleError(EventQueue queue, String message, EngineErrorType type) {
     final errorEvent = EngineErrorEvent(
       [],
       message: message,
@@ -133,29 +148,29 @@ class Engine {
       stateAtError: _state.toString(),
       partialParameters: _params.getParameters(),
     );
-    provider.addEvent(errorEvent);
+    queue.add(errorEvent);
     _setState(State.ground);
   }
 
-  bool _handlePossibleEsc(Provider provider, int byte, {bool more = false}) {
+  bool _handlePossibleEsc(EventQueue queue, int byte, {bool hasMore = false}) {
     if (byte != 0x1b) {
       return false;
     }
 
-    switch ((_state, more)) {
+    switch ((_state, hasMore)) {
       // More input means possible Esc sequence, just switch state and wait
       case (State.ground, true):
         _setState(State.escape);
       // No more input means Esc key, dispatch it
       case (State.ground, false):
-        provider.provideChar('\x1b');
+        _provideChar(queue, '\x1b');
       // More input means possible Esc sequence, dispatch the previous Esc char
       case (State.escape, true):
-        provider.provideChar('\x1b');
+        _provideChar(queue, '\x1b');
       // No more input means Esc key, dispatch the previous & current Esc char
       case (State.escape, false):
-        provider.provideChar('\x1b');
-        provider.provideChar('\x1b');
+        _provideChar(queue, '\x1b');
+        _provideChar(queue, '\x1b');
         _setState(State.ground);
       case (State.oscParameter, true):
         _setState(State.oscFinal);
@@ -165,6 +180,10 @@ class Engine {
         _setState(State.textBlockFinal);
         return false;
 
+      // CSI states should handle ESC themselves
+      case (State.csiEntry, _):
+        return false;
+
       // Discard any state
       // More input means possible Esc sequence
       case (_, true):
@@ -172,16 +191,51 @@ class Engine {
       // Discard any state
       // No more input means Esc key, dispatch it
       case (_, false):
-        provider.provideChar('\x1b');
+        _provideChar(queue, '\x1b');
         _setState(State.ground);
     }
 
     return true;
   }
 
-  bool _handlePossibleUtf8CodePoints(Provider provider, int byte) {
+  void _provideChar(EventQueue queue, String char) {
+    final event = parseChar(char, escO: _escO);
+    if (event != null) queue.add(event);
+    _escO = false;
+  }
+
+  void _provideESCSequence(EventQueue queue, String char) {
+    if (char == 'O') {
+      // Exception: Esc O is followed by single character (P-S) representing F1-F4 keys
+      _escO = true;
+    } else {
+      final event = parseESCSequence(char);
+      if (event != null) queue.add(event);
+      _escO = false;
+    }
+  }
+
+  void _provideCSISequence(EventQueue queue, List<String> parameters, int ignoredParameterCount, String char) {
+    final event = parseCSISequence(parameters, ignoredParameterCount, char);
+    queue.add(event);
+    _escO = false;
+  }
+
+  void _provideOscSequence(EventQueue queue, List<String> parameters, int ignoredParameterCount, String char) {
+    final event = parseOscSequence(parameters, ignoredParameterCount, char);
+    queue.add(event);
+    _escO = false;
+  }
+
+  void _provideDcsSequence(EventQueue queue, List<String> parameters, int ignoredParameterCount, String char) {
+    final event = parseDcsSequence(parameters, ignoredParameterCount, char);
+    queue.add(event);
+    _escO = false;
+  }
+
+  bool _handlePossibleUtf8CodePoints(EventQueue queue, int byte) {
     if (byte & 0x80 == 0) {
-      provider.provideChar(String.fromCharCode(byte));
+      _provideChar(queue, String.fromCharCode(byte));
       return true;
     } else if (byte & 0xe0 == 0xc0) {
       _utf8.start2Byte(byte);
@@ -200,23 +254,23 @@ class Engine {
     }
   }
 
-  void _advanceGroundState(Provider provider, int byte) {
-    if (_handlePossibleUtf8CodePoints(provider, byte)) return;
+  void _advanceGroundState(EventQueue queue, int byte) {
+    if (_handlePossibleUtf8CodePoints(queue, byte)) return;
 
     return switch (byte) {
-      0x1b => _handleError(provider, 'Unexpected Esc byte in ground state', EngineErrorType.unexpectedEscape),
+      0x1b => _handleError(queue, 'Unexpected Esc byte in ground state', EngineErrorType.unexpectedEscape),
       // Execute
-      (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F) => provider.provideChar(String.fromCharCode(byte)),
+      (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F) => _provideChar(queue, String.fromCharCode(byte)),
       // get char
-      >= 0x20 && <= 0x7F => provider.provideChar(String.fromCharCode(byte)),
+      >= 0x20 && <= 0x7F => _provideChar(queue, String.fromCharCode(byte)),
       _ => {},
     };
   }
 
-  void _advanceEscapeState(Provider provider, int byte) {
+  void _advanceEscapeState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in Advance State', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in Advance State', EngineErrorType.unexpectedEscape);
       // Intermediate bytes to collect
       case >= 0x20 && <= 0x2F:
         _setState(State.escapeIntermediate);
@@ -235,12 +289,12 @@ class Engine {
 
       // Escape sequence final character
       case (>= 0x30 && <= 0x4F) || (>= 0x51 && <= 0x57) || 0x59 || 0x5A || 0x5C || (>= 0x60 && <= 0x7E):
-        provider.provideESCSequence(String.fromCharCode(byte));
+        _provideESCSequence(queue, String.fromCharCode(byte));
         _setState(State.ground);
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
-        provider.provideChar(String.fromCharCode(byte));
+        _provideChar(queue, String.fromCharCode(byte));
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -253,10 +307,10 @@ class Engine {
     }
   }
 
-  void _advanceEscapeIntermediateState(Provider provider, int byte) {
+  void _advanceEscapeIntermediateState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in ESC Intermediate', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in ESC Intermediate', EngineErrorType.unexpectedEscape);
 
       // Intermediate bytes to collect
       case >= 0x20 && <= 0x2F:
@@ -269,12 +323,12 @@ class Engine {
 
       // Escape sequence final character
       case (>= 0x30 && <= 0x5A) || (>= 0x5C && <= 0x7E):
-        provider.provideESCSequence(String.fromCharCode(byte));
+        _provideESCSequence(queue, String.fromCharCode(byte));
         _setState(State.ground);
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
-        provider.provideChar(String.fromCharCode(byte));
+        _provideChar(queue, String.fromCharCode(byte));
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -287,10 +341,10 @@ class Engine {
     }
   }
 
-  void _advanceCsiEntryState(Provider provider, int byte) {
+  void _advanceCsiEntryState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in CSI Entry state', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in CSI Entry state', EngineErrorType.unexpectedEscape);
 
       // '0' ..= '9' = parameter value
       case >= 0x30 && <= 0x39:
@@ -302,10 +356,6 @@ class Engine {
         _params.store();
         _setState(State.csiParameter);
 
-      // '<' SGR Mouse
-      case 0x3C:
-        _setState(State.csiParameter);
-
       // ':' sequence delimiter
       case 0x3A:
         _setState(State.csiIgnore);
@@ -313,7 +363,9 @@ class Engine {
       // CSI sequence final character
       //   -> dispatch CSI sequence
       case >= 0x40 && <= 0x7E:
-        provider.provideCSISequence(
+        _params.store();
+        _provideCSISequence(
+          queue,
           _params.getParameters(),
           _params.getIgnoredCount(),
           String.fromCharCode(byte),
@@ -323,7 +375,7 @@ class Engine {
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
-        provider.provideChar(String.fromCharCode(byte));
+        _provideChar(queue, String.fromCharCode(byte));
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -338,14 +390,14 @@ class Engine {
     }
   }
 
-  void _advanceCsiIgnoreState(Provider provider, int byte) {
+  void _advanceCsiIgnoreState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in CSI Ignore', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in CSI Ignore', EngineErrorType.unexpectedEscape);
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
-        provider.provideChar(String.fromCharCode(byte));
+        _provideChar(queue, String.fromCharCode(byte));
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -361,10 +413,10 @@ class Engine {
     }
   }
 
-  void _advanceCsiParameterState(Provider provider, int byte) {
+  void _advanceCsiParameterState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in CSI Param', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in CSI Param', EngineErrorType.unexpectedEscape);
 
       // '0' ..= '9' = parameter value
       case (>= 0x30 && <= 0x39):
@@ -385,7 +437,8 @@ class Engine {
           _inTextBlock = true;
           _setState(State.textBlock);
         } else {
-          provider.provideCSISequence(
+          _provideCSISequence(
+            queue,
             _params.getParameters(),
             _params.getIgnoredCount(),
             String.fromCharCode(byte),
@@ -399,14 +452,17 @@ class Engine {
       case (>= 0x40 && <= 0x7D):
         _params.store();
         if (!_inTextBlock || (_inTextBlock && _params[_params.getCount() - 1] == '201')) {
-          provider.provideCSISequence(
+          _provideCSISequence(
+            queue,
             _params.getParameters(),
             _params.getIgnoredCount(),
             String.fromCharCode(byte),
           );
+          _setState(State.ground);
+        } else {
+          // In textBlock but not end marker - return to textBlock to continue accumulating
+          _setState(State.textBlock);
         }
-
-        _setState(State.ground);
 
       // Intermediates to collect
       case (>= 0x20 && <= 0x2F):
@@ -419,7 +475,7 @@ class Engine {
 
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
-        provider.provideChar(String.fromCharCode(byte));
+        _provideChar(queue, String.fromCharCode(byte));
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -432,10 +488,10 @@ class Engine {
     }
   }
 
-  void _advanceCsiIntermediateState(Provider provider, int byte) {
+  void _advanceCsiIntermediateState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in CSI intermediate', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in CSI intermediate', EngineErrorType.unexpectedEscape);
 
       // Intermediates to collect
       case (>= 0x20 && <= 0x2F):
@@ -444,7 +500,8 @@ class Engine {
       // CSI sequence final character
       //   -> dispatch CSI sequence
       case (>= 0x40 && <= 0x7E):
-        provider.provideCSISequence(
+        _provideCSISequence(
+          queue,
           _params.getParameters(),
           _params.getIgnoredCount(),
           String.fromCharCode(byte),
@@ -453,7 +510,7 @@ class Engine {
         _setState(State.ground);
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
-        provider.provideChar(String.fromCharCode(byte));
+        _provideChar(queue, String.fromCharCode(byte));
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -466,7 +523,7 @@ class Engine {
     }
   }
 
-  void _advanceTextBlockState(Provider provider, int byte) {
+  void _advanceTextBlockState(EventQueue queue, int byte) {
     switch (byte) {
       // block finish with a escape sequence
       case 0x1b:
@@ -478,7 +535,7 @@ class Engine {
     }
   }
 
-  void _advanceTextBlockFinalState(Provider provider, int byte) {
+  void _advanceTextBlockFinalState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
         {}
@@ -486,7 +543,8 @@ class Engine {
       // '\' final ST sequence
       case 0x5c:
         _params.store();
-        provider.provideDcsSequence(
+        _provideDcsSequence(
+          queue,
           _params.getParameters(),
           _params.getIgnoredCount(),
           '',
@@ -505,36 +563,10 @@ class Engine {
     }
   }
 
-  void _advanceCsiXtermMouseState(Provider provider, int byte) {
+  void _advanceOscEntryState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        provider.provideCSISequence(
-          _params.getParameters(),
-          _params.getIgnoredCount(),
-          'M',
-        );
-        _setState(State.ground);
-
-      default:
-        _params.add(byte);
-        _params.store();
-    }
-
-    // ESC [ M Cb Cx Cy are only 6 characters, 3 of which are params
-    if (_params.getCount() == 3) {
-      provider.provideCSISequence(
-        _params.getParameters(),
-        _params.getIgnoredCount(),
-        'M',
-      );
-      _setState(State.ground);
-    }
-  }
-
-  void _advanceOscEntryState(Provider provider, int byte) {
-    switch (byte) {
-      case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in OSC', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in OSC', EngineErrorType.unexpectedEscape);
 
       // Semicolon = parameter delimiter
       case 0x3B:
@@ -551,7 +583,7 @@ class Engine {
     }
   }
 
-  void _advanceOscParameterState(Provider provider, int byte) {
+  void _advanceOscParameterState(EventQueue queue, int byte) {
     switch (byte) {
       // '0' ..= '9' = parameter value
       case >= 0x30 && <= 0x39:
@@ -570,7 +602,7 @@ class Engine {
     }
   }
 
-  void _advanceOscFinalState(Provider provider, int byte) {
+  void _advanceOscFinalState(EventQueue queue, int byte) {
     switch (byte) {
       // ignore this ESC, is the final sequence ESC \
       case 0x1b:
@@ -579,7 +611,8 @@ class Engine {
       // '\'
       case 0x5C:
         _params.store();
-        provider.provideOscSequence(
+        _provideOscSequence(
+          queue,
           _params.getParameters(),
           _params.getIgnoredCount(),
           '',
@@ -593,10 +626,10 @@ class Engine {
     }
   }
 
-  void _advanceDcsEntryState(Provider provider, int byte) {
+  void _advanceDcsEntryState(EventQueue queue, int byte) {
     switch (byte) {
       case 0x1b:
-        _handleError(provider, 'Unexpected Esc byte in DCS entry', EngineErrorType.unexpectedEscape);
+        _handleError(queue, 'Unexpected Esc byte in DCS entry', EngineErrorType.unexpectedEscape);
 
       // <=>?
       case >= 0x3C && <= 0x3F:
@@ -627,7 +660,7 @@ class Engine {
     }
   }
 
-  void _advanceUtf8State(Provider provider, int byte) {
+  void _advanceUtf8State(EventQueue queue, int byte) {
     if (byte & 0xC0 != 0x80) {
       _setState(State.ground);
       return;
@@ -636,7 +669,7 @@ class Engine {
 
     if (_utf8.isComplete()) {
       final data = _utf8.getCodePoint();
-      provider.provideChar(data);
+      _provideChar(queue, data);
       _setState(State.ground);
     }
   }
@@ -644,37 +677,37 @@ class Engine {
   /// Advance the state machine with a single input byte.
   ///
   /// Processes the byte through state transitions and emits parsed sequences
-  /// via the [provider]. Tracks sequence bytes for error reporting.
+  /// via the [queue]. Tracks sequence bytes for error reporting.
   ///
-  /// The [more] parameter indicates if more input is immediately available,
+  /// The [hasMore] parameter indicates if more input is immediately available,
   /// which helps distinguish between ESC key press and ESC sequence start.
-  void advance(Provider provider, int byte, {bool more = false}) {
+  void advance(EventQueue queue, int byte, {bool hasMore = false}) {
     // Accumulate bytes when not in ground state (building a sequence)
     // Skip textBlock state to avoid accumulating large paste content
     if (_state != State.ground && _state != State.textBlock) {
       _sequenceBytes.add(byte);
     }
 
-    // print('advance: $state $byte/${byte.toHexString()} ${byte.isPrintable ? String.fromCharCode(byte) : ''} $more');
-    if (_handlePossibleEsc(provider, byte, more: more)) {
+    // print('advance: $state $byte/${byte.toHexString()} ${byte.isPrintable ? String.fromCharCode(byte) : ''} $hasMore');
+    if (_handlePossibleEsc(queue, byte, hasMore: hasMore)) {
       return;
     }
 
     return switch (_state) {
-      State.ground => _advanceGroundState(provider, byte),
-      State.escape => _advanceEscapeState(provider, byte),
-      State.escapeIntermediate => _advanceEscapeIntermediateState(provider, byte),
-      State.csiEntry => _advanceCsiEntryState(provider, byte),
-      State.csiIgnore => _advanceCsiIgnoreState(provider, byte),
-      State.csiParameter => _advanceCsiParameterState(provider, byte),
-      State.csiIntermediate => _advanceCsiIntermediateState(provider, byte),
-      State.textBlock => _advanceTextBlockState(provider, byte),
-      State.textBlockFinal => _advanceTextBlockFinalState(provider, byte),
-      State.oscEntry => _advanceOscEntryState(provider, byte),
-      State.oscParameter => _advanceOscParameterState(provider, byte),
-      State.oscFinal => _advanceOscFinalState(provider, byte),
-      State.dcsEntry => _advanceDcsEntryState(provider, byte),
-      State.utf8 => _advanceUtf8State(provider, byte),
+      State.ground => _advanceGroundState(queue, byte),
+      State.escape => _advanceEscapeState(queue, byte),
+      State.escapeIntermediate => _advanceEscapeIntermediateState(queue, byte),
+      State.csiEntry => _advanceCsiEntryState(queue, byte),
+      State.csiIgnore => _advanceCsiIgnoreState(queue, byte),
+      State.csiParameter => _advanceCsiParameterState(queue, byte),
+      State.csiIntermediate => _advanceCsiIntermediateState(queue, byte),
+      State.textBlock => _advanceTextBlockState(queue, byte),
+      State.textBlockFinal => _advanceTextBlockFinalState(queue, byte),
+      State.oscEntry => _advanceOscEntryState(queue, byte),
+      State.oscParameter => _advanceOscParameterState(queue, byte),
+      State.oscFinal => _advanceOscFinalState(queue, byte),
+      State.dcsEntry => _advanceDcsEntryState(queue, byte),
+      State.utf8 => _advanceUtf8State(queue, byte),
     };
   }
 }

@@ -1,13 +1,8 @@
 import 'dart:async';
 
 import 'engine/engine.dart';
+import 'engine/event_queue.dart';
 import 'events.dart';
-import 'parsers/char_parser.dart';
-import 'parsers/csi_parser.dart';
-import 'parsers/dcs_parser.dart';
-import 'parsers/esc_parser.dart';
-import 'parsers/osc_parser.dart';
-import 'provider.dart';
 
 /// The ANSI escape sequence parser
 ///
@@ -15,108 +10,55 @@ import 'provider.dart';
 /// data coming from the terminal (stdin) and dispatching events based on the
 /// input.
 ///
-/// Data is feed to the parser using the [advance] method and later can check
-/// if there is available events using the [moveNext] method. If there are
-/// events available, they can be retrieved using the [current] property.
+/// Data is fed to the parser using the [advance] method. Events can be
+/// retrieved using [nextEvent], [peekEvent], or [drainEvents].
 ///
 /// ```dart
 ///   final parser = Parser();
 ///   // ESC [ 20 ; 10 R
 ///   parser.advance([0x1B, 0x5B, 0x32, 0x30, 0x3B, 0x31, 0x30, 0x52]);
-///   assert(parser.moveNext(), 'move next');
-///   assert(parser.current == const CursorPositionEvent(20, 10), 'retrieve event');
-///   assert(parser.moveNext() == false, 'no more events');
+///   assert(parser.hasEvents, 'has events');
+///   final event = parser.nextEvent();
+///   assert(event == const CursorPositionEvent(20, 10), 'retrieve event');
 /// ```
 ///
-final class Parser implements Iterator<Event> {
+final class Parser {
   final Engine _engine;
-  final _SequenceProvider _provider;
+  final EventQueue _queue;
 
-  ///
-  Parser() : _engine = Engine(), _provider = _SequenceProvider();
+  /// Creates a new parser instance.
+  Parser() : _engine = Engine(), _queue = EventQueue();
 
   /// Advances parser state machine with additional input data.
   ///
   /// [buffer] - input data (stdin in raw mode, etc.)
-  /// [more] - more input data available right now
-  void advance(List<int> buffer, {bool more = false}) {
+  /// [hasMore] - more input data available right now
+  void advance(List<int> buffer, {bool hasMore = false}) {
     for (var i = 0; i < buffer.length; i++) {
-      _engine.advance(_provider, buffer[i], more: i < buffer.length - 1 || more);
+      _engine.advance(_queue, buffer[i], hasMore: i < buffer.length - 1 || hasMore);
     }
   }
 
-  @override
-  bool moveNext() => _provider.moveNext();
+  /// Whether the parser has pending events.
+  bool get hasEvents => _queue.hasEvents;
 
-  @override
-  Event get current => _provider.current;
-}
+  /// The number of pending events.
+  int get eventCount => _queue.count;
 
-class _SequenceProvider implements Provider, Iterator<Event> {
-  bool _escO = false;
-  final List<Event> _sequences = [];
-  int _index = -1;
+  /// Retrieves and removes the next event from the queue.
+  ///
+  /// Returns `null` if there are no pending events.
+  Event? nextEvent() => _queue.poll();
 
-  @override
-  void provideChar(String char) {
-    final seq = parseChar(char, escO: _escO);
-    if (seq != null) _sequences.add(seq);
-    _escO = false;
-  }
+  /// Retrieves the next event without removing it from the queue.
+  ///
+  /// Returns `null` if there are no pending events.
+  Event? peekEvent() => _queue.peek();
 
-  @override
-  void provideESCSequence(String char) {
-    if (char == 'O') {
-      // Exception
-      // Esc O - dispatched as an escape sequence followed by single character (P-S) representing
-      // F1-F4 keys. We store Esc O flag only which is then used in the dispatch_char method.
-      _escO = true;
-    } else {
-      final seq = parseESCSequence(char);
-      if (seq != null) _sequences.add(seq);
-      _escO = false;
-    }
-  }
-
-  @override
-  void provideCSISequence(List<String> parameters, int ignoredParameterCount, String char) {
-    final seq = parseCSISequence(parameters, ignoredParameterCount, char);
-    _sequences.add(seq);
-    _escO = false;
-  }
-
-  @override
-  void provideOscSequence(List<String> parameters, int ignoredParameterCount, String char) {
-    final seq = parseOscSequence(parameters, ignoredParameterCount, char);
-    _sequences.add(seq);
-    _escO = false;
-  }
-
-  @override
-  void provideDcsSequence(List<String> parameters, int ignoredParameterCount, String char) {
-    final seq = parseDcsSequence(parameters, ignoredParameterCount, char);
-    _sequences.add(seq);
-    _escO = false;
-  }
-
-  @override
-  void addEvent(Event event) {
-    _sequences.add(event);
-  }
-
-  @override
-  bool moveNext() {
-    if (_sequences.isEmpty) return false;
-    if (_index == _sequences.length - 1) return false;
-    _index++;
-    return _index < _sequences.length;
-  }
-
-  @override
-  Event get current {
-    if (_index < 0 || _index >= _sequences.length) throw StateError('No current sequence');
-    return _sequences[_index];
-  }
+  /// Retrieves all pending events and clears the queue.
+  ///
+  /// Returns an empty list if there are no pending events.
+  List<Event> drainEvents() => _queue.drain();
 }
 
 /// A stream transformer that converts a stream of bytes into a stream of events.
@@ -129,8 +71,8 @@ StreamTransformer<List<int>, T> eventTransformer<T extends Event>({bool rawKeys 
 
       parser.advance(data);
 
-      while (parser.moveNext()) {
-        if (parser.current is T) syncSink.add(parser.current as T);
+      for (final event in parser.drainEvents()) {
+        if (event is T) syncSink.add(event);
       }
     },
   );

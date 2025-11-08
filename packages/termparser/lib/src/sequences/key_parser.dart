@@ -52,7 +52,10 @@ const _mouseWheelRight = 0x43; // 0100_0011;
 
 /// Parse SGR mouse
 Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParameterCount) {
-  if (parameters.length > 4) return const NoneEvent();
+  // SGR mouse format: ESC [ < Pb ; Px ; Py M/m
+  // parameters[0] = '<', parameters[1] = button, parameters[2] = x, parameters[3] = y
+  // Can have trailing semicolon: ESC [ < Pb ; Px ; Py ; M (5 params, last empty)
+  if (parameters.length < 4 || parameters.length > 5) return const NoneEvent();
 
   var action = switch (charFinal) {
     'M' => MouseButtonAction.down,
@@ -60,7 +63,7 @@ Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParam
     _ => MouseButtonAction.none,
   };
 
-  final p1 = parameters[0].parseInt();
+  final p1 = parameters[1].parseInt();
   final btn = p1 & _buttonBits;
   var mods = 0;
 
@@ -80,8 +83,8 @@ Event sgrMouseParser(List<String> parameters, String charFinal, int ignoredParam
   };
 
   return MouseEvent(
-    parameters[1].parseInt(),
     parameters[2].parseInt(),
+    parameters[3].parseInt(),
     MouseButton(button, action),
     modifiers: KeyModifiers(mods),
   );

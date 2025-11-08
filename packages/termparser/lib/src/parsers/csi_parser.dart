@@ -6,8 +6,6 @@ import '../sequences/key_parser.dart';
 /// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
 Event parseCSISequence(List<String> parameters, int ignoredParameterCount, String char) {
-  // print('parseCSISequence: $parameters, $ignoredParameterCount, $char);
-
   return switch (char) {
     'A' => _parseKeyAndModifiers(KeyCodeName.up, parameters.length == 2 ? parameters[1] : ''),
     'B' => _parseKeyAndModifiers(KeyCodeName.down, parameters.length == 2 ? parameters[1] : ''),
@@ -19,7 +17,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
     'Q' => _parseKeyAndModifiers(KeyCodeName.f2, parameters.length == 2 ? parameters[1] : ''),
     'S' => _parseKeyAndModifiers(KeyCodeName.f4, parameters.length == 2 ? parameters[1] : ''),
     'Z' => _parseKeyAndModifiers(KeyCodeName.backTab, parameters.length == 2 ? parameters[1] : ''),
-    'M' || 'm' => sgrMouseParser(parameters, char, ignoredParameterCount),
+    'M' || 'm' when parameters.firstOrNull == '<' => sgrMouseParser(parameters, char, ignoredParameterCount),
     'I' => const FocusEvent(),
     'O' => const FocusEvent(hasFocus: false),
     'u' => _parseKeyboardEnhancedMode(parameters, char),
@@ -224,8 +222,12 @@ Event _parseWindowSize(List<String> parameters) {
 }
 
 Event _parseBracketedPaste(List<String> parameters, String char) {
-  if (parameters.length < 3 || parameters[2] != '201') {
-    return const NoneEvent();
-  }
-  return PasteEvent(parameters[1]);
+  if (parameters.length < 3 || parameters.last != '201') return const NoneEvent();
+
+  // Extract paste content from parameters[1] to parameters[length-2]
+  // Join all content parameters
+  final contentParams = parameters.sublist(1, parameters.length - 1);
+  final content = contentParams.join('');
+
+  return PasteEvent(content);
 }
