@@ -654,15 +654,52 @@ void main() {
     test('with escape codes', () {
       final parser = Parser()..advance(keySequence('π[200~oπ[2Dπ[201~'));
       expect(parser.hasEvents, true);
-      expect(parser.nextEvent(), isA<PasteEvent>());
+      final event = parser.nextEvent();
+      expect(event, isA<PasteEvent>());
+      // Verify embedded ANSI sequence is preserved as literal characters
+      expect((event! as PasteEvent).text, equals('o\x1b[2D'));
+    });
+
+    test('large paste without truncation', () {
+      const largeContent = '''
+void main() {
+\t// Test function with UTF-8: 🎨 ✓ café
+\tprint("Hello\\nWorld");
+\tfor (var i = 0; i < 10; i++) {
+\t\tif (i % 2 == 0) continue;
+\t}
+}''';
+      final sequence = keySequence('π[200~$largeContentπ[201~');
+      final parser = Parser()..advance(sequence);
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as PasteEvent;
+      expect(event.text.length, greaterThan(30));
+      expect(event.text, equals(largeContent));
+    });
+
+    test('UTF-8 multibyte chars in paste', () {
+      final parser = Parser()..advance(keySequence('π[200~añc🩷π[201~'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as PasteEvent;
+      expect(event.text, equals('añc🩷'));
+    });
+
+    test('paste with multiple lines', () {
+      // Paste content containing newlines
+      final parser = Parser()..advance(keySequence('π[200~line1\nline2\rline3π[201~'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as PasteEvent;
+      expect(event.text, equals('line1\nline2\rline3'));
     });
   });
 
   group('parse DCS', () {
     test('text block', () {
-      final parser = Parser()..advance(keySequence(r'πP>|term v1-234π\\'));
+      const longName = 'Very Long Terminal Name That Exceeds Thirty Characters v1.2.3-build456';
+      final parser = Parser()..advance(keySequence('πP>|$longNameπ\\\\'));
       expect(parser.hasEvents, true);
-      expect(parser.nextEvent(), equals(const NameAndVersionEvent('term v1-234')));
+      final event = parser.nextEvent()! as NameAndVersionEvent;
+      expect(event.value, equals(longName));
     });
   });
 }

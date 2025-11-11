@@ -89,6 +89,15 @@ class Engine {
   State _state = State.ground;
   bool _inTextBlock = false;
   bool _escO = false;
+
+  /// Accumulates all bytes of the current sequence being processed (cleared on ground state).
+  ///
+  /// Serves two purposes:
+  /// 1. **Error Reporting**: Provides full raw byte sequence context in [EngineErrorEvent]
+  ///    when parsing errors occur.
+  /// 2. **Content Extraction**: For textBlock sequences (DCS and bracketed paste),
+  ///    parsers extract opaque content directly from this buffer using known offsets,
+  ///    avoiding the 30-parameter limit and preserving embedded escape sequences.
   final List<int> _sequenceBytes = [];
 
   /// Read-only access to current state
@@ -227,8 +236,14 @@ class Engine {
     _escO = false;
   }
 
-  void _provideDcsSequence(EventQueue queue, List<String> parameters, int ignoredParameterCount, String char) {
-    final event = parseDcsSequence(parameters, ignoredParameterCount, char);
+  void _provideDcsSequence(
+    EventQueue queue,
+    List<String> parameters,
+    int ignoredParameterCount,
+    String char,
+    List<int> sequenceBytes,
+  ) {
+    final event = parseDcsSequence(parameters, ignoredParameterCount, char, sequenceBytes);
     queue.add(event);
     _escO = false;
   }
@@ -436,6 +451,12 @@ class Engine {
         if (_params[0] == '200' && !_inTextBlock) {
           _inTextBlock = true;
           _setState(State.textBlock);
+        } else if (_inTextBlock && _params[0] == '201') {
+          // End of bracketed paste - extract content from _sequenceBytes
+          final event = parseBracketedPaste(_sequenceBytes);
+          queue.add(event);
+          _inTextBlock = false;
+          _setState(State.ground);
         } else {
           _provideCSISequence(
             queue,
@@ -529,9 +550,14 @@ class Engine {
       case 0x1b:
         _setState(State.textBlockFinal);
 
-      // Other bytes are considered as valid
+      // Content bytes accumulate in _sequenceBytes (via advance() method)
+      // This state handles opaque content for:
+      // - Bracketed paste: CSI 200~ [content] ESC CSI 201~
+      // - DCS sequences: ESC P>| [content] ESC \
+      // Content is NOT parsed here - stays as raw bytes until end marker.
+      // Parser functions extract content from _sequenceBytes using known offsets.
       default:
-        _params.add(byte);
+        {}
     }
   }
 
@@ -542,18 +568,19 @@ class Engine {
 
       // '\' final ST sequence
       case 0x5c:
-        _params.store();
         _provideDcsSequence(
           queue,
           _params.getParameters(),
           _params.getIgnoredCount(),
           '',
+          _sequenceBytes,
         );
         _setState(State.ground);
 
       // bracketed paste finish with a CSI sequence
       case 0x5b:
-        _params.store();
+        // Clear params for the new CSI sequence (end marker)
+        if (_inTextBlock) _params.clear();
         _setState(State.csiEntry);
 
       // cancel the sequence?, or return to block mode and continue capturing?
@@ -683,8 +710,7 @@ class Engine {
   /// which helps distinguish between ESC key press and ESC sequence start.
   void advance(EventQueue queue, int byte, {bool hasMore = false}) {
     // Accumulate bytes when not in ground state (building a sequence)
-    // Skip textBlock state to avoid accumulating large paste content
-    if (_state != State.ground && _state != State.textBlock) {
+    if (_state != State.ground) {
       _sequenceBytes.add(byte);
     }
 

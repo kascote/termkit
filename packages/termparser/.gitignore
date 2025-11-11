@@ -1,7 +1,7 @@
 .vscode/
 .dart_tool/
 doc/
+coverage/
 pubspec.lock
 
 example/scratch.dart
-

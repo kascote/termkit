@@ -284,7 +284,7 @@ void main() {
       expect(event, isA<PasteEvent>());
     });
 
-    test('paste content not accumulated in sequence bytes', () {
+    test('paste content IS accumulated in sequence bytes', () {
       final eng = Engine();
       final queue = EventQueue();
 
@@ -297,8 +297,7 @@ void main() {
       final bytesBeforePaste = eng.currentSequenceBytes.length;
       listAdvance(eng, queue, pasteContent);
 
-      // Sequence bytes should NOT have grown with paste content
-      expect(eng.currentSequenceBytes.length, bytesBeforePaste);
+      expect(eng.currentSequenceBytes.length, bytesBeforePaste + pasteContent.length);
     });
   });
 

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../events.dart';
 import '../events_types.dart';
 import '../extensions/string_extension.dart';
@@ -139,9 +141,6 @@ Event _primaryDeviceAttributes(List<String> parameters, String char) {
 
 Event _parseSpecialKeyCode(List<String> parameters, String char) {
   if (parameters.isEmpty) return const NoneEvent();
-  if (parameters.isNotEmpty && parameters[0] == '200') {
-    return _parseBracketedPaste(parameters, char);
-  }
 
   final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
   final modifier = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
@@ -221,13 +220,15 @@ Event _parseWindowSize(List<String> parameters) {
   }
 }
 
-Event _parseBracketedPaste(List<String> parameters, String char) {
-  if (parameters.length < 3 || parameters.last != '201') return const NoneEvent();
-
-  // Extract paste content from parameters[1] to parameters[length-2]
-  // Join all content parameters
-  final contentParams = parameters.sublist(1, parameters.length - 1);
-  final content = contentParams.join('');
-
-  return PasteEvent(content);
+/// Parse bracketed paste from raw sequence bytes.
+///
+/// Extracts content between CSI 200~ and CSI 201~ markers.
+/// State machine guarantees both markers are present.
+/// Note: Initial ESC is not in sequenceBytes (starts with '['),
+/// but ESC before end marker IS included.
+Event parseBracketedPaste(List<int> sequenceBytes) {
+  // sequenceBytes = [ '[', '2', '0', '0', '~', ...content..., ESC, '[', '2', '0', '1', '~' ]
+  final content = sequenceBytes.sublist(5, sequenceBytes.length - 6);
+  final text = utf8.decode(content, allowMalformed: true);
+  return PasteEvent(text);
 }
