@@ -132,11 +132,35 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
 
 Event _primaryDeviceAttributes(List<String> parameters, String char) {
   if (parameters.isEmpty) return const NoneEvent();
+  if (parameters[0] != '?') return const NoneEvent();
 
-  return switch (parameters) {
-    ['?', ...] => PrimaryDeviceAttributesEvent.fromParams(parameters.sublist(1)) as Event,
-    _ => const NoneEvent(),
+  final params = parameters.sublist(1);
+
+  // Parse device type and capabilities
+  final (type, capabilities) = switch (params) {
+    ['1', '0'] => (DeviceAttributeType.vt101WithNoOptions, <DeviceAttributeParams>[]),
+    ['6'] => (DeviceAttributeType.vt102, <DeviceAttributeParams>[]),
+    ['1', '2'] => (DeviceAttributeType.vt100WithAdvancedVideoOption, <DeviceAttributeParams>[]),
+    ['62', ...] => (DeviceAttributeType.vt220, _parseDeviceParams(params.sublist(1))),
+    ['63', ...] => (DeviceAttributeType.vt320, _parseDeviceParams(params.sublist(1))),
+    ['64', ...] => (DeviceAttributeType.vt420, _parseDeviceParams(params.sublist(1))),
+    ['65', ...] => (DeviceAttributeType.vt500, _parseDeviceParams(params.sublist(1))),
+    _ => (DeviceAttributeType.unknown, <DeviceAttributeParams>[]),
   };
+
+  return PrimaryDeviceAttributesEvent(type, capabilities);
+}
+
+List<DeviceAttributeParams> _parseDeviceParams(List<String> params) {
+  return params.fold(<DeviceAttributeParams>[], (acc, p) {
+    if (p.isEmpty) return acc;
+    final code = DeviceAttributeParams.values.firstWhere(
+      (e) => e.value == int.parse(p),
+      orElse: () => DeviceAttributeParams.unknown,
+    );
+    if (code != DeviceAttributeParams.unknown) return acc..add(code);
+    return acc;
+  });
 }
 
 Event _parseSpecialKeyCode(List<String> parameters, String char) {

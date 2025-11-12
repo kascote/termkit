@@ -318,34 +318,8 @@ final class PrimaryDeviceAttributesEvent extends ResponseEvent with EquatableMix
   /// Constructs a new instance of [PrimaryDeviceAttributesEvent].
   const PrimaryDeviceAttributesEvent(this.type, this.params);
 
-  /// Constructs a new instance of [PrimaryDeviceAttributesEvent] with the given params.
-  factory PrimaryDeviceAttributesEvent.fromParams(List<String> params) {
-    return switch (params) {
-      ['1', '0'] => const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt101WithNoOptions, []),
-      ['6'] => const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt102, []),
-      ['1', '2'] => const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt100WithAdvancedVideoOption, []),
-      ['62', ...] => PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, _genParams(params.sublist(1))),
-      ['63', ...] => PrimaryDeviceAttributesEvent(DeviceAttributeType.vt320, _genParams(params.sublist(1))),
-      ['64', ...] => PrimaryDeviceAttributesEvent(DeviceAttributeType.vt420, _genParams(params.sublist(1))),
-      ['65', ...] => PrimaryDeviceAttributesEvent(DeviceAttributeType.vt500, _genParams(params.sublist(1))),
-      _ => const PrimaryDeviceAttributesEvent(DeviceAttributeType.unknown, []),
-    };
-  }
-
   @override
   List<Object?> get props => [type, params];
-
-  static List<DeviceAttributeParams> _genParams(List<String> params) {
-    return params.fold(<DeviceAttributeParams>[], (acc, p) {
-      if (p.isEmpty) return acc;
-      final code = DeviceAttributeParams.values.firstWhere(
-        (e) => e.value == int.parse(p),
-        orElse: () => DeviceAttributeParams.unknown,
-      );
-      if (code != DeviceAttributeParams.unknown) return acc..add(code);
-      return acc;
-    });
-  }
 }
 
 /// Paste Action Event
@@ -362,7 +336,7 @@ final class PasteEvent extends InputEvent with EquatableMixin {
 
 /// Terminal Name and Version
 final class NameAndVersionEvent extends ResponseEvent with EquatableMixin {
-  /// The terminal name and version
+  /// The terminal name and n
   final String value;
 
   /// Constructs a new instance of [NameAndVersionEvent].
