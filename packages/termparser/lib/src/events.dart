@@ -5,13 +5,54 @@ import './extensions/int_extension.dart';
 import 'events_types.dart';
 
 /// Base class for all events.
-final class Event {
+base class Event {
   /// Constructor
   const Event();
 }
 
+/// User-generated input events (keyboard, mouse, paste).
+///
+/// Use [InputEvent] for type-safe filtering of user input:
+/// ```dart
+/// final inputs = events.whereType<InputEvent>();
+/// ```
+abstract base class InputEvent extends Event {
+  /// Constructor
+  const InputEvent();
+}
+
+/// Terminal responses to queries (cursor position, colors, device attributes).
+///
+/// Use [ResponseEvent] for type-safe filtering of terminal responses:
+/// ```dart
+/// final responses = events.whereType<ResponseEvent>();
+/// ```
+abstract base class ResponseEvent extends Event {
+  /// Constructor
+  const ResponseEvent();
+}
+
+/// Parser/engine error events for malformed or invalid sequences.
+///
+/// Use [ErrorEvent] for type-safe filtering of parser errors:
+/// ```dart
+/// final errors = events.whereType<ErrorEvent>();
+/// ```
+abstract base class ErrorEvent extends Event {
+  /// Constructor
+  const ErrorEvent();
+}
+
+/// Internal parser events (no-op, unknown sequences).
+///
+/// Typically not used by applications directly.
+abstract base class InternalEvent extends Event {
+  /// Constructor
+  const InternalEvent();
+}
+
 /// Represent an empty event
-final class NoneEvent extends Event with EquatableMixin {
+final class NoneEvent extends InternalEvent with EquatableMixin {
   /// Constructs a new instance of [NoneEvent].
   const NoneEvent();
   @override
@@ -37,7 +78,7 @@ enum EngineErrorType {
 
 /// Error event dispatched when the engine cannot parse a sequence.
 /// This is for structural errors (malformed sequences, invalid state transitions).
-final class EngineErrorEvent extends Event with EquatableMixin {
+final class EngineErrorEvent extends ErrorEvent with EquatableMixin {
   /// The parameters of the sequence.
   final List<String> params;
 
@@ -124,7 +165,7 @@ final class EngineErrorEvent extends Event with EquatableMixin {
 
 /// Represent a Key event.
 @immutable
-final class KeyEvent extends Event with EquatableMixin {
+final class KeyEvent extends InputEvent with EquatableMixin {
   /// The key code.
   final KeyCode code;
 
@@ -155,7 +196,7 @@ final class KeyEvent extends Event with EquatableMixin {
 }
 
 /// Represent a Cursor event.
-final class CursorPositionEvent extends Event with EquatableMixin {
+final class CursorPositionEvent extends ResponseEvent with EquatableMixin {
   /// The x coordinate of the cursor event.
   final int x;
 
@@ -170,7 +211,7 @@ final class CursorPositionEvent extends Event with EquatableMixin {
 }
 
 /// Represent a Mouse event.
-final class MouseEvent extends Event with EquatableMixin {
+final class MouseEvent extends InputEvent with EquatableMixin {
   /// The x coordinate of the mouse event.
   final int x;
 
@@ -191,7 +232,7 @@ final class MouseEvent extends Event with EquatableMixin {
 }
 
 /// Represent a Focus event.
-final class FocusEvent extends Event with EquatableMixin {
+final class FocusEvent extends ResponseEvent with EquatableMixin {
   /// The focus state.
   final bool hasFocus;
 
@@ -206,7 +247,7 @@ final class FocusEvent extends Event with EquatableMixin {
 ///
 /// See <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement> for more information.
 @immutable
-final class KeyboardEnhancementFlagsEvent extends Event with EquatableMixin {
+final class KeyboardEnhancementFlagsEvent extends ResponseEvent with EquatableMixin {
   ///
   final int flags;
 
@@ -249,7 +290,7 @@ final class KeyboardEnhancementFlagsEvent extends Event with EquatableMixin {
 }
 
 /// Represent a Color event response from OSC 11
-final class ColorQueryEvent extends Event with EquatableMixin {
+final class ColorQueryEvent extends ResponseEvent with EquatableMixin {
   /// The red color value.
   final int r;
 
@@ -267,7 +308,7 @@ final class ColorQueryEvent extends Event with EquatableMixin {
 }
 
 /// Device Attribute
-final class PrimaryDeviceAttributesEvent extends Event with EquatableMixin {
+final class PrimaryDeviceAttributesEvent extends ResponseEvent with EquatableMixin {
   /// The type of attribute
   final DeviceAttributeType type;
 
@@ -308,7 +349,7 @@ final class PrimaryDeviceAttributesEvent extends Event with EquatableMixin {
 }
 
 /// Paste Action Event
-final class PasteEvent extends Event with EquatableMixin {
+final class PasteEvent extends InputEvent with EquatableMixin {
   /// The pasted text
   final String text;
 
@@ -320,7 +361,7 @@ final class PasteEvent extends Event with EquatableMixin {
 }
 
 /// Terminal Name and Version
-final class NameAndVersionEvent extends Event with EquatableMixin {
+final class NameAndVersionEvent extends ResponseEvent with EquatableMixin {
   /// The terminal name and version
   final String value;
 
@@ -334,7 +375,7 @@ final class NameAndVersionEvent extends Event with EquatableMixin {
 /// Query Sync update status
 ///
 /// ref: https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
-final class QuerySyncUpdateEvent extends Event with EquatableMixin {
+final class QuerySyncUpdateEvent extends ResponseEvent with EquatableMixin {
   /// The sync update status code reported by the terminal
   final int code;
 
@@ -351,7 +392,7 @@ final class QuerySyncUpdateEvent extends Event with EquatableMixin {
 }
 
 /// Raw Key Event
-final class RawKeyEvent extends Event with EquatableMixin {
+final class RawKeyEvent extends InputEvent with EquatableMixin {
   /// The raw key values received
   final List<int> sequence;
 
@@ -363,7 +404,7 @@ final class RawKeyEvent extends Event with EquatableMixin {
 }
 
 /// Query Terminal size in pixels
-final class QueryTerminalWindowSizeEvent extends Event with EquatableMixin {
+final class QueryTerminalWindowSizeEvent extends ResponseEvent with EquatableMixin {
   /// The terminal width
   final int width;
 
@@ -378,7 +419,7 @@ final class QueryTerminalWindowSizeEvent extends Event with EquatableMixin {
 }
 
 /// Cliboard Copy Event
-final class ClipboardCopyEvent extends Event with EquatableMixin {
+final class ClipboardCopyEvent extends ResponseEvent with EquatableMixin {
   /// The copied text
   final String text;
 
@@ -393,7 +434,7 @@ final class ClipboardCopyEvent extends Event with EquatableMixin {
 }
 
 /// Unicode Core Event
-final class UnicodeCoreEvent extends Event with EquatableMixin {
+final class UnicodeCoreEvent extends ResponseEvent with EquatableMixin {
   /// The Unicode Core status reported by the terminal
   final int code;
 
