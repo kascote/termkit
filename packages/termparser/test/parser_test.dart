@@ -4,6 +4,9 @@ import 'package:termparser/termparser.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
+/// Helper to convert test sequences to byte arrays.
+/// Use π (pi) to represent ESC (0x1B) for readability.
+/// Example: keySequence('π[H') → [0x1B, 0x5B, 0x48]
 List<int> keySequence(String seq) {
   final buffer = seq.replaceAll('π', '\x1b');
   return utf8.encode(buffer);
