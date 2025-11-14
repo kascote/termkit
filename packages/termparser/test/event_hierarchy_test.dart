@@ -30,7 +30,7 @@ void main() {
     });
 
     test('RawKeyEvent extends InputEvent', () {
-      final event = RawKeyEvent([0x1B, 0x5B]);
+      final event = RawKeyEvent(const [0x1B, 0x5B]);
       expect(event, isA<InputEvent>());
       expect(event, isA<Event>());
     });

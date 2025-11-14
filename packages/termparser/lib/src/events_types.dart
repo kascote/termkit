@@ -1,4 +1,3 @@
-import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
 import 'extensions/int_extension.dart';
@@ -12,7 +11,7 @@ import 'extensions/int_extension.dart';
 ///
 /// ref: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 @immutable
-class KeyCode extends Equatable {
+class KeyCode {
   /// Contains the name of the key if is a named key (enter, esc, pgUp, etc).
   final KeyCodeName name;
 
@@ -45,7 +44,18 @@ class KeyCode extends Equatable {
   });
 
   @override
-  List<Object?> get props => [name, char, media, modifiers, baseLayoutKey];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeyCode &&
+      runtimeType == other.runtimeType &&
+      name == other.name &&
+      char == other.char &&
+      media == other.media &&
+      modifiers == other.modifiers &&
+      baseLayoutKey == other.baseLayoutKey;
+
+  @override
+  int get hashCode => Object.hash(name, char, media, modifiers, baseLayoutKey);
 
   /// Create a new instance of [KeyCode] with the given parameters.
   KeyCode copyWith({
@@ -75,7 +85,7 @@ class KeyCode extends Equatable {
 /// **Note:** `superKey`, `hyper`, and `meta` can only be read if
 /// KeyboardEnhancementFlags.disambiguateEscapeCodes is enabled
 @immutable
-class KeyModifiers extends Equatable {
+class KeyModifiers {
   final int _value;
 
   /// Constructs a new instance of [KeyModifiers].
@@ -91,7 +101,14 @@ class KeyModifiers extends Equatable {
   KeyModifiers add(int modifier) => KeyModifiers(_value | modifier);
 
   @override
-  List<Object> get props => [_value];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeyModifiers &&
+      runtimeType == other.runtimeType &&
+      _value == other._value;
+
+  @override
+  int get hashCode => _value.hashCode;
 
   ///
   bool has(int mask) => _value.isSet(mask);
@@ -142,13 +159,13 @@ class KeyModifiers extends Equatable {
 }
 
 const _keypad = 0x1;
-const _capsLock = 0x8;
-const _numLock = 0x8;
+const _capsLock = 0x2;
+const _numLock = 0x4;
 const _none = 0;
 
 /// Represents the state of the keyboard.
 @immutable
-class KeyEventState with EquatableMixin {
+class KeyEventState {
   final int _value;
 
   /// Constructs a new instance of [KeyEventState].
@@ -163,7 +180,14 @@ class KeyEventState with EquatableMixin {
   }
 
   @override
-  List<Object> get props => [_value];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeyEventState &&
+      runtimeType == other.runtimeType &&
+      _value == other._value;
+
+  @override
+  int get hashCode => _value.hashCode;
 
   /// Returns `true` if is a key from the keypad
   bool get isKeypad => _value & _keypad == _keypad;
@@ -561,7 +585,7 @@ enum DeviceAttributeParams {
 
 /// Represents a Mouse Event
 @immutable
-final class MouseButton extends Equatable {
+final class MouseButton {
   /// Mouse Button that was pressed or released
   final MouseButtonKind button;
 
@@ -603,7 +627,15 @@ final class MouseButton extends Equatable {
   factory MouseButton.none() => const MouseButton(MouseButtonKind.none, MouseButtonAction.none);
 
   @override
-  List<Object?> get props => [button, action];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MouseButton &&
+      runtimeType == other.runtimeType &&
+      button == other.button &&
+      action == other.action;
+
+  @override
+  int get hashCode => Object.hash(button, action);
 }
 
 /// Represent a Mouse action

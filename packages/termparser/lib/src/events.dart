@@ -1,8 +1,17 @@
-import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
 import './extensions/int_extension.dart';
 import 'events_types.dart';
+
+/// Helper function for comparing lists
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
 
 /// Base class for all events.
 base class Event {
@@ -52,11 +61,16 @@ abstract base class InternalEvent extends Event {
 }
 
 /// Represent an empty event
-final class NoneEvent extends InternalEvent with EquatableMixin {
+@immutable
+final class NoneEvent extends InternalEvent {
   /// Constructs a new instance of [NoneEvent].
   const NoneEvent();
+
   @override
-  List<Object> get props => [];
+  bool operator ==(Object other) => identical(this, other) || other is NoneEvent && runtimeType == other.runtimeType;
+
+  @override
+  int get hashCode => runtimeType.hashCode;
 }
 
 const _blankArray = <int>[];
@@ -78,7 +92,8 @@ enum EngineErrorType {
 
 /// Error event dispatched when the engine cannot parse a sequence.
 /// This is for structural errors (malformed sequences, invalid state transitions).
-final class EngineErrorEvent extends ErrorEvent with EquatableMixin {
+@immutable
+final class EngineErrorEvent extends ErrorEvent {
   /// The parameters of the sequence.
   final List<String> params;
 
@@ -120,17 +135,32 @@ final class EngineErrorEvent extends ErrorEvent with EquatableMixin {
   });
 
   @override
-  List<Object?> get props => [
-    params,
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EngineErrorEvent &&
+          runtimeType == other.runtimeType &&
+          _listEquals(params, other.params) &&
+          char == other.char &&
+          _listEquals(block, other.block) &&
+          message == other.message &&
+          type == other.type &&
+          _listEquals(rawBytes, other.rawBytes) &&
+          stateAtError == other.stateAtError &&
+          failingByte == other.failingByte &&
+          _listEquals(partialParameters, other.partialParameters);
+
+  @override
+  int get hashCode => Object.hash(
+    Object.hashAll(params),
     char,
-    block,
+    Object.hashAll(block),
     message,
     type,
-    rawBytes,
+    Object.hashAll(rawBytes),
     stateAtError,
     failingByte,
-    partialParameters,
-  ];
+    Object.hashAll(partialParameters),
+  );
 
   @override
   String toString() {
@@ -165,7 +195,7 @@ final class EngineErrorEvent extends ErrorEvent with EquatableMixin {
 
 /// Represent a Key event.
 @immutable
-final class KeyEvent extends InputEvent with EquatableMixin {
+final class KeyEvent extends InputEvent {
   /// The key code.
   final KeyCode code;
 
@@ -187,7 +217,17 @@ final class KeyEvent extends InputEvent with EquatableMixin {
   });
 
   @override
-  List<Object> get props => [code, modifiers, eventType, eventState];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeyEvent &&
+          runtimeType == other.runtimeType &&
+          code == other.code &&
+          modifiers == other.modifiers &&
+          eventType == other.eventType &&
+          eventState == other.eventState;
+
+  @override
+  int get hashCode => Object.hash(code, modifiers, eventType, eventState);
 
   @override
   String toString() {
@@ -196,7 +236,8 @@ final class KeyEvent extends InputEvent with EquatableMixin {
 }
 
 /// Represent a Cursor event.
-final class CursorPositionEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class CursorPositionEvent extends ResponseEvent {
   /// The x coordinate of the cursor event.
   final int x;
 
@@ -207,11 +248,17 @@ final class CursorPositionEvent extends ResponseEvent with EquatableMixin {
   const CursorPositionEvent(this.x, this.y);
 
   @override
-  List<Object> get props => [x, y];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CursorPositionEvent && runtimeType == other.runtimeType && x == other.x && y == other.y;
+
+  @override
+  int get hashCode => Object.hash(x, y);
 }
 
 /// Represent a Mouse event.
-final class MouseEvent extends InputEvent with EquatableMixin {
+@immutable
+final class MouseEvent extends InputEvent {
   /// The x coordinate of the mouse event.
   final int x;
 
@@ -228,11 +275,22 @@ final class MouseEvent extends InputEvent with EquatableMixin {
   const MouseEvent(this.x, this.y, this.button, {this.modifiers = const KeyModifiers(0)});
 
   @override
-  List<Object> get props => [x, y, button, modifiers];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MouseEvent &&
+          runtimeType == other.runtimeType &&
+          x == other.x &&
+          y == other.y &&
+          button == other.button &&
+          modifiers == other.modifiers;
+
+  @override
+  int get hashCode => Object.hash(x, y, button, modifiers);
 }
 
 /// Represent a Focus event.
-final class FocusEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class FocusEvent extends ResponseEvent {
   /// The focus state.
   final bool hasFocus;
 
@@ -240,14 +298,18 @@ final class FocusEvent extends ResponseEvent with EquatableMixin {
   const FocusEvent({this.hasFocus = true});
 
   @override
-  List<Object> get props => [hasFocus];
+  bool operator ==(Object other) =>
+      identical(this, other) || other is FocusEvent && runtimeType == other.runtimeType && hasFocus == other.hasFocus;
+
+  @override
+  int get hashCode => hasFocus.hashCode;
 }
 
 /// Returns information terminal keyboard support
 ///
 /// See <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement> for more information.
 @immutable
-final class KeyboardEnhancementFlagsEvent extends ResponseEvent with EquatableMixin {
+final class KeyboardEnhancementFlagsEvent extends ResponseEvent {
   ///
   final int flags;
 
@@ -267,7 +329,15 @@ final class KeyboardEnhancementFlagsEvent extends ResponseEvent with EquatableMi
   bool has(int flag) => flags.isSet(flag);
 
   @override
-  List<Object> get props => [flags, mode];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeyboardEnhancementFlagsEvent &&
+          runtimeType == other.runtimeType &&
+          flags == other.flags &&
+          mode == other.mode;
+
+  @override
+  int get hashCode => Object.hash(flags, mode);
 
   /// Represent Escape and modified keys using CSI-u sequences, so they can be unambiguously read.
   static const int disambiguateEscapeCodes = 0x1;
@@ -290,7 +360,8 @@ final class KeyboardEnhancementFlagsEvent extends ResponseEvent with EquatableMi
 }
 
 /// Represent a Color event response from OSC 11
-final class ColorQueryEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class ColorQueryEvent extends ResponseEvent {
   /// The red color value.
   final int r;
 
@@ -304,11 +375,17 @@ final class ColorQueryEvent extends ResponseEvent with EquatableMixin {
   const ColorQueryEvent(this.r, this.g, this.b);
 
   @override
-  List<Object> get props => [r, g, b];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ColorQueryEvent && runtimeType == other.runtimeType && r == other.r && g == other.g && b == other.b;
+
+  @override
+  int get hashCode => Object.hash(r, g, b);
 }
 
 /// Device Attribute
-final class PrimaryDeviceAttributesEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class PrimaryDeviceAttributesEvent extends ResponseEvent {
   /// The type of attribute
   final DeviceAttributeType type;
 
@@ -319,11 +396,20 @@ final class PrimaryDeviceAttributesEvent extends ResponseEvent with EquatableMix
   const PrimaryDeviceAttributesEvent(this.type, this.params);
 
   @override
-  List<Object?> get props => [type, params];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PrimaryDeviceAttributesEvent &&
+          runtimeType == other.runtimeType &&
+          type == other.type &&
+          _listEquals(params, other.params);
+
+  @override
+  int get hashCode => Object.hash(type, Object.hashAll(params));
 }
 
 /// Paste Action Event
-final class PasteEvent extends InputEvent with EquatableMixin {
+@immutable
+final class PasteEvent extends InputEvent {
   /// The pasted text
   final String text;
 
@@ -331,11 +417,16 @@ final class PasteEvent extends InputEvent with EquatableMixin {
   const PasteEvent(this.text);
 
   @override
-  List<Object> get props => [text];
+  bool operator ==(Object other) =>
+      identical(this, other) || other is PasteEvent && runtimeType == other.runtimeType && text == other.text;
+
+  @override
+  int get hashCode => text.hashCode;
 }
 
 /// Terminal Name and Version
-final class NameAndVersionEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class NameAndVersionEvent extends ResponseEvent {
   /// The terminal name and n
   final String value;
 
@@ -343,13 +434,19 @@ final class NameAndVersionEvent extends ResponseEvent with EquatableMixin {
   const NameAndVersionEvent(this.value);
 
   @override
-  List<Object> get props => [value];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NameAndVersionEvent && runtimeType == other.runtimeType && value == other.value;
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// Query Sync update status
 ///
 /// ref: https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
-final class QuerySyncUpdateEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class QuerySyncUpdateEvent extends ResponseEvent {
   /// The sync update status code reported by the terminal
   final int code;
 
@@ -362,11 +459,16 @@ final class QuerySyncUpdateEvent extends ResponseEvent with EquatableMixin {
   }
 
   @override
-  List<Object> get props => [code];
+  bool operator ==(Object other) =>
+      identical(this, other) || other is QuerySyncUpdateEvent && runtimeType == other.runtimeType && code == other.code;
+
+  @override
+  int get hashCode => code.hashCode;
 }
 
 /// Raw Key Event
-final class RawKeyEvent extends InputEvent with EquatableMixin {
+@immutable
+final class RawKeyEvent extends InputEvent {
   /// The raw key values received
   final List<int> sequence;
 
@@ -374,11 +476,17 @@ final class RawKeyEvent extends InputEvent with EquatableMixin {
   RawKeyEvent(List<int> value) : sequence = List<int>.from(value);
 
   @override
-  List<Object> get props => [sequence];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RawKeyEvent && runtimeType == other.runtimeType && _listEquals(sequence, other.sequence);
+
+  @override
+  int get hashCode => Object.hashAll(sequence);
 }
 
 /// Query Terminal size in pixels
-final class QueryTerminalWindowSizeEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class QueryTerminalWindowSizeEvent extends ResponseEvent {
   /// The terminal width
   final int width;
 
@@ -389,11 +497,20 @@ final class QueryTerminalWindowSizeEvent extends ResponseEvent with EquatableMix
   const QueryTerminalWindowSizeEvent(this.width, this.height);
 
   @override
-  List<Object> get props => [width, height];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is QueryTerminalWindowSizeEvent &&
+          runtimeType == other.runtimeType &&
+          width == other.width &&
+          height == other.height;
+
+  @override
+  int get hashCode => Object.hash(width, height);
 }
 
-/// Cliboard Copy Event
-final class ClipboardCopyEvent extends ResponseEvent with EquatableMixin {
+/// Clipboard Copy Event
+@immutable
+final class ClipboardCopyEvent extends ResponseEvent {
   /// The copied text
   final String text;
 
@@ -404,11 +521,17 @@ final class ClipboardCopyEvent extends ResponseEvent with EquatableMixin {
   const ClipboardCopyEvent(this.source, this.text);
 
   @override
-  List<Object> get props => [source, text];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ClipboardCopyEvent && runtimeType == other.runtimeType && source == other.source && text == other.text;
+
+  @override
+  int get hashCode => Object.hash(source, text);
 }
 
 /// Unicode Core Event
-final class UnicodeCoreEvent extends ResponseEvent with EquatableMixin {
+@immutable
+final class UnicodeCoreEvent extends ResponseEvent {
   /// The Unicode Core status reported by the terminal
   final int code;
 
@@ -421,5 +544,9 @@ final class UnicodeCoreEvent extends ResponseEvent with EquatableMixin {
   }
 
   @override
-  List<Object> get props => [code];
+  bool operator ==(Object other) =>
+      identical(this, other) || other is UnicodeCoreEvent && runtimeType == other.runtimeType && code == other.code;
+
+  @override
+  int get hashCode => code.hashCode;
 }

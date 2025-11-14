@@ -150,7 +150,7 @@ class Engine {
 
   void _handleError(EventQueue queue, String message, EngineErrorType type) {
     final errorEvent = EngineErrorEvent(
-      [],
+      const [],
       message: message,
       type: type,
       rawBytes: List.from(_sequenceBytes),
