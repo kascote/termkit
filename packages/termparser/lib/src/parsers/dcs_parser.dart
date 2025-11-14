@@ -1,6 +1,8 @@
 import 'dart:convert';
 
-import '../events.dart';
+import '../events/event_base.dart';
+import '../events/internal_events.dart';
+import '../events/response_events.dart';
 
 /// Parse a Device Control String sequence from raw sequence bytes.
 ///

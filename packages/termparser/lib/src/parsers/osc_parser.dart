@@ -1,7 +1,8 @@
 import 'dart:convert';
 
-import '../events.dart';
-import '../events_types.dart';
+import '../events/event_base.dart';
+import '../events/internal_events.dart';
+import '../events/response_events.dart';
 import 'parser_base.dart';
 
 /// Parse an Operating System Command sequence

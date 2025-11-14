@@ -1,4 +1,4 @@
-import '../events.dart';
+import '../events/error_event.dart';
 import '../parsers/char_parser.dart';
 import '../parsers/csi_parser.dart';
 import '../parsers/dcs_parser.dart';

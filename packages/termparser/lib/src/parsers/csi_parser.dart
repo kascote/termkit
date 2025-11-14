@@ -1,9 +1,13 @@
 import 'dart:convert';
 
-import '../events.dart';
-import '../events_types.dart';
+import '../events/event_base.dart';
+import '../events/focus_event.dart';
+import '../events/internal_events.dart';
+import '../events/key_event.dart';
+import '../events/paste_event.dart';
+import '../events/response_events.dart';
 import '../extensions/string_extension.dart';
-import '../sequences/key_parser.dart';
+import 'key_parser.dart';
 
 /// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
@@ -35,7 +39,7 @@ Event parseCSISequence(List<String> parameters, int ignoredParameterCount, Strin
 Event _parseKeyAndModifiers(KeyCodeName name, String parameters) {
   final (modifier, event) = modifierAndEventParser(parameters);
   return KeyEvent(
-    KeyCode(name: name),
+    KeyCode.named(name),
     modifiers: modifier,
     eventType: event,
   );
@@ -84,39 +88,46 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   final stateFromModifiers = modifiersToStateParser(modifierMask);
   var (keyCode, stateFromKeyCode) = functionalKeyCodeParser(codePoint);
 
-  if (keyCode == const KeyCode()) {
+  if (keyCode == const KeyCode.named(KeyCodeName.none)) {
     final c = StringExtension.tryFromCharCode(codePoint);
     if (c == null) return const NoneEvent();
 
     keyCode = switch (codePoint) {
-      0x1b => const KeyCode(name: KeyCodeName.escape),
-      0xd => const KeyCode(name: KeyCodeName.enter),
+      0x1b => const KeyCode.named(KeyCodeName.escape),
+      0xd => const KeyCode.named(KeyCodeName.enter),
       // if the terminal is in raw mode, the enter key sends \r
       // we need to handle this case. How to receive the raw mode status?
-      0xa => const KeyCode(name: KeyCodeName.enter),
+      0xa => const KeyCode.named(KeyCodeName.enter),
       0x9 =>
         modifiers.has(KeyModifiers.shift)
-            ? const KeyCode(name: KeyCodeName.backTab)
-            : const KeyCode(name: KeyCodeName.tab),
-      0x7f => const KeyCode(name: KeyCodeName.backSpace),
-      _ => KeyCode(char: String.fromCharCode(codePoint)),
+            ? const KeyCode.named(KeyCodeName.backTab)
+            : const KeyCode.named(KeyCodeName.tab),
+      0x7f => const KeyCode.named(KeyCodeName.backSpace),
+      _ => KeyCode.char(String.fromCharCode(codePoint)),
     };
     stateFromKeyCode = KeyEventState.none();
   }
 
-  modifiers = switch (keyCode.modifiers) {
-    ModifierKeyCode.leftAlt || ModifierKeyCode.rightAlt => modifiers.add(KeyModifiers.alt),
-    ModifierKeyCode.leftControl || ModifierKeyCode.rightControl => modifiers.add(KeyModifiers.ctrl),
-    ModifierKeyCode.leftShift || ModifierKeyCode.rightShift => modifiers.add(KeyModifiers.shift),
-    ModifierKeyCode.leftSuper || ModifierKeyCode.rightSuper => modifiers.add(KeyModifiers.superKey),
-    ModifierKeyCode.leftHyper || ModifierKeyCode.rightHyper => modifiers.add(KeyModifiers.hyper),
-    ModifierKeyCode.leftMeta || ModifierKeyCode.rightMeta => modifiers.add(KeyModifiers.meta),
+  // Track specific modifier keys when the key itself is a modifier
+  final specificMods = <ModifierKey>{};
+  modifiers = switch (keyCode.modifierKey) {
+    ModifierKey.leftAlt || ModifierKey.rightAlt => modifiers.add(KeyModifiers.alt),
+    ModifierKey.leftCtrl || ModifierKey.rightCtrl => modifiers.add(KeyModifiers.ctrl),
+    ModifierKey.leftShift || ModifierKey.rightShift => modifiers.add(KeyModifiers.shift),
+    ModifierKey.leftSuper || ModifierKey.rightSuper => modifiers.add(KeyModifiers.superKey),
+    ModifierKey.leftHyper || ModifierKey.rightHyper => modifiers.add(KeyModifiers.hyper),
+    ModifierKey.leftMeta || ModifierKey.rightMeta => modifiers.add(KeyModifiers.meta),
     _ => modifiers,
   };
 
+  // Populate modifierKeys when the key is a modifier key itself
+  if (keyCode.modifierKey != ModifierKey.none) {
+    specificMods.add(keyCode.modifierKey);
+  }
+
   if (modifiers.has(KeyModifiers.shift)) {
     if (shiftedKey != null) {
-      keyCode = KeyCode(char: String.fromCharCode(shiftedKey));
+      keyCode = KeyCode.char(String.fromCharCode(shiftedKey));
       modifiers.add(KeyModifiers.shift);
     }
   }
@@ -127,6 +138,7 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
     modifiers: modifiers,
     eventType: kind,
     eventState: stateFromKeyCode == KeyEventState.none() ? stateFromModifiers : stateFromKeyCode,
+    modifierKeys: specificMods,
   );
 }
 
@@ -205,7 +217,7 @@ Event _parseSpecialKeyCode(List<String> parameters, String char) {
   if (key == null) return const NoneEvent();
 
   return KeyEvent(
-    KeyCode(name: key),
+    KeyCode.named(key),
     modifiers: modifier,
     eventType: eventType,
     eventState: state,

@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'engine/engine.dart';
 import 'engine/event_queue.dart';
-import 'events.dart';
+import 'events/event_base.dart';
+import 'events/raw_key_event.dart';
 
 /// The ANSI escape sequence parser
 ///

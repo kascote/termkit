@@ -1,4 +1,4 @@
-import '../events.dart';
+import '../events/event_base.dart';
 
 /// Event queue for storing parsed terminal events.
 ///

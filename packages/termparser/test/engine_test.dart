@@ -1,7 +1,6 @@
 import 'package:termparser/src/engine/engine.dart';
 import 'package:termparser/src/engine/event_queue.dart';
-import 'package:termparser/src/events.dart';
-import 'package:termparser/src/events_types.dart';
+import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
 void main() {

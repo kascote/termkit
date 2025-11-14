@@ -12,7 +12,7 @@ List<int> keySequence(String seq) {
 void main() {
   group('Event Hierarchy >', () {
     test('KeyEvent extends InputEvent', () {
-      const event = KeyEvent(KeyCode(char: 'a'));
+      const event = KeyEvent(KeyCode.char('a'));
       expect(event, isA<InputEvent>());
       expect(event, isA<Event>());
     });
