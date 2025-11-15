@@ -273,7 +273,6 @@ class Engine {
     if (_handlePossibleUtf8CodePoints(queue, byte)) return;
 
     return switch (byte) {
-      0x1b => _handleError(queue, 'Unexpected Esc byte in ground state', EngineErrorType.unexpectedEscape),
       // Execute
       (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F) => _provideChar(queue, String.fromCharCode(byte)),
       // get char
@@ -709,31 +708,32 @@ class Engine {
   /// The [hasMore] parameter indicates if more input is immediately available,
   /// which helps distinguish between ESC key press and ESC sequence start.
   void advance(EventQueue queue, int byte, {bool hasMore = false}) {
+    final byteValue = byte & 0xFF;
     // Accumulate bytes when not in ground state (building a sequence)
     if (_state != State.ground) {
-      _sequenceBytes.add(byte);
+      _sequenceBytes.add(byteValue);
     }
 
     // print('advance: $state $byte/${byte.toHexString()} ${byte.isPrintable ? String.fromCharCode(byte) : ''} $hasMore');
-    if (_handlePossibleEsc(queue, byte, hasMore: hasMore)) {
+    if (_handlePossibleEsc(queue, byteValue, hasMore: hasMore)) {
       return;
     }
 
     return switch (_state) {
-      State.ground => _advanceGroundState(queue, byte),
-      State.escape => _advanceEscapeState(queue, byte),
-      State.escapeIntermediate => _advanceEscapeIntermediateState(queue, byte),
-      State.csiEntry => _advanceCsiEntryState(queue, byte),
-      State.csiIgnore => _advanceCsiIgnoreState(queue, byte),
-      State.csiParameter => _advanceCsiParameterState(queue, byte),
-      State.csiIntermediate => _advanceCsiIntermediateState(queue, byte),
-      State.textBlock => _advanceTextBlockState(queue, byte),
-      State.textBlockFinal => _advanceTextBlockFinalState(queue, byte),
-      State.oscEntry => _advanceOscEntryState(queue, byte),
-      State.oscParameter => _advanceOscParameterState(queue, byte),
-      State.oscFinal => _advanceOscFinalState(queue, byte),
-      State.dcsEntry => _advanceDcsEntryState(queue, byte),
-      State.utf8 => _advanceUtf8State(queue, byte),
+      State.ground => _advanceGroundState(queue, byteValue),
+      State.escape => _advanceEscapeState(queue, byteValue),
+      State.escapeIntermediate => _advanceEscapeIntermediateState(queue, byteValue),
+      State.csiEntry => _advanceCsiEntryState(queue, byteValue),
+      State.csiIgnore => _advanceCsiIgnoreState(queue, byteValue),
+      State.csiParameter => _advanceCsiParameterState(queue, byteValue),
+      State.csiIntermediate => _advanceCsiIntermediateState(queue, byteValue),
+      State.textBlock => _advanceTextBlockState(queue, byteValue),
+      State.textBlockFinal => _advanceTextBlockFinalState(queue, byteValue),
+      State.oscEntry => _advanceOscEntryState(queue, byteValue),
+      State.oscParameter => _advanceOscParameterState(queue, byteValue),
+      State.oscFinal => _advanceOscFinalState(queue, byteValue),
+      State.dcsEntry => _advanceDcsEntryState(queue, byteValue),
+      State.utf8 => _advanceUtf8State(queue, byteValue),
     };
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:termparser/src/engine/engine.dart';
 import 'package:termparser/src/engine/event_queue.dart';
 import 'package:termparser/termparser_events.dart';
@@ -11,9 +13,9 @@ void main() {
   }
 
   void stringAdvance(Engine engine, EventQueue queue, String input, {bool hasMore = false}) {
-    final x = input.split('');
-    for (var i = 0; i < input.length; i++) {
-      engine.advance(queue, x[i].codeUnitAt(0), hasMore: (i < (input.length - 1)) || hasMore);
+    final bytes = utf8.encode(input);
+    for (var i = 0; i < bytes.length; i++) {
+      engine.advance(queue, bytes[i], hasMore: (i < (bytes.length - 1)) || hasMore);
     }
   }
 
