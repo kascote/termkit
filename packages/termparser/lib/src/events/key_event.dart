@@ -168,24 +168,6 @@ class KeyModifiers {
   bool has(int mask) => _value.isSet(mask);
 
   ///
-  bool get isCtrl => _value == KeyModifiers.ctrl;
-
-  ///
-  bool get isShift => _value == KeyModifiers.shift;
-
-  ///
-  bool get isAlt => _value == KeyModifiers.alt;
-
-  ///
-  bool get isSuperKey => _value == KeyModifiers.superKey;
-
-  ///
-  bool get isHyper => _value == KeyModifiers.hyper;
-
-  ///
-  bool get isMeta => _value == KeyModifiers.meta;
-
-  ///
   static const shift = 0x1;
 
   ///

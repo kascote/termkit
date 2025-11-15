@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:termparser/termparser.dart';
@@ -17,6 +18,31 @@ void main() {
     test('char', () {
       final parser = Parser()..advance([0x61]);
       expect(parser.hasEvents, true);
+    });
+
+    test('eventCount', () {
+      final parser = Parser();
+      expect(parser.eventCount, 0);
+      parser.advance([0x61]); // single char
+      expect(parser.eventCount, 1);
+      parser.advance(keySequence('π[H')); // home key
+      expect(parser.eventCount, 2);
+      parser.nextEvent();
+      expect(parser.eventCount, 1);
+      parser.drainEvents();
+      expect(parser.eventCount, 0);
+    });
+
+    test('peekEvent', () {
+      final parser = Parser()..advance([0x61]);
+      final peeked = parser.peekEvent();
+      expect(peeked, isNotNull);
+      expect(peeked, equals(const KeyEvent(KeyCode.char('a'))));
+      expect(parser.hasEvents, true); // should still have events
+      final next = parser.nextEvent();
+      expect(next, equals(peeked)); // should be same event
+      expect(parser.hasEvents, false); // now empty
+      expect(parser.peekEvent(), isNull); // peek on empty returns null
     });
 
     test('Ž', () {
@@ -767,6 +793,66 @@ void main() {
       expect(parser.hasEvents, true);
       final event = parser.nextEvent()! as NameAndVersionEvent;
       expect(event.value, equals(longName));
+    });
+  });
+
+  group('eventTransformer >', () {
+    test('transforms byte stream to KeyEvent stream', () async {
+      final controller = StreamController<List<int>>();
+      final eventStream = controller.stream.transform(eventTransformer<KeyEvent>());
+
+      final events = <KeyEvent>[];
+      final subscription = eventStream.listen(events.add);
+
+      // Send 'a'
+      controller
+        ..add([0x61])
+        // Send home key
+        ..add(keySequence('π[H'));
+
+      await controller.close();
+      await subscription.cancel();
+
+      expect(events.length, 2);
+      expect(events[0], equals(const KeyEvent(KeyCode.char('a'))));
+      expect(events[1], equals(const KeyEvent(KeyCode.named(KeyCodeName.home))));
+    });
+
+    test('filters events by type', () async {
+      final controller = StreamController<List<int>>();
+      final eventStream = controller.stream.transform(eventTransformer<MouseEvent>());
+
+      final events = <MouseEvent>[];
+      final subscription = eventStream.listen(events.add);
+
+      // Send 'a' (KeyEvent - should be filtered out)
+      controller
+        ..add([0x61])
+        // Send mouse event
+        ..add(keySequence('π[<0;20;10m'));
+
+      await controller.close();
+      await subscription.cancel();
+
+      expect(events.length, 1);
+      expect(events[0], equals(MouseEvent(20, 10, MouseButton.up(MouseButtonKind.left))));
+    });
+
+    test('rawKeys mode returns RawKeyEvent', () async {
+      final controller = StreamController<List<int>>();
+      final eventStream = controller.stream.transform(eventTransformer<RawKeyEvent>(rawKeys: true));
+
+      final events = <RawKeyEvent>[];
+      final subscription = eventStream.listen(events.add);
+
+      final input = keySequence('π[H');
+      controller.add(input);
+
+      await controller.close();
+      await subscription.cancel();
+
+      expect(events.length, 1);
+      expect(events[0], equals(RawKeyEvent(input)));
     });
   });
 }

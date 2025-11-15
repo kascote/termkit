@@ -249,6 +249,34 @@ void main() {
         expect(event.modifiers.has(KeyModifiers.meta), isTrue);
         expect(event.modifierKeys, isEmpty);
       });
+
+      test('parses leftHyper+g', () {
+        final event = KeyEvent.fromString('leftHyper+g');
+        expect(event.code.char, 'g');
+        expect(event.modifiers.has(KeyModifiers.hyper), isTrue);
+        expect(event.modifierKeys, contains(ModifierKey.leftHyper));
+      });
+
+      test('parses rightHyper+h', () {
+        final event = KeyEvent.fromString('rightHyper+h');
+        expect(event.code.char, 'h');
+        expect(event.modifiers.has(KeyModifiers.hyper), isTrue);
+        expect(event.modifierKeys, contains(ModifierKey.rightHyper));
+      });
+
+      test('parses leftMeta+i', () {
+        final event = KeyEvent.fromString('leftMeta+i');
+        expect(event.code.char, 'i');
+        expect(event.modifiers.has(KeyModifiers.meta), isTrue);
+        expect(event.modifierKeys, contains(ModifierKey.leftMeta));
+      });
+
+      test('parses rightMeta+j', () {
+        final event = KeyEvent.fromString('rightMeta+j');
+        expect(event.code.char, 'j');
+        expect(event.modifiers.has(KeyModifiers.meta), isTrue);
+        expect(event.modifierKeys, contains(ModifierKey.rightMeta));
+      });
     });
 
     group('specific modifiers', () {
