@@ -11,29 +11,77 @@ project.
 
 ## Features
 
-Still is a works in progress, but the following features are implemented:
-
-- Normal key mode
-- Enhanced key mode (Kitty protocol)
-- Mouse tracking
-- Cursor position report
+- Normal key mode + Enhanced key mode (Kitty protocol)
+- Mouse tracking (SGR format)
+- Cursor position reports (CPR)
 - Focus events
-- Color query requests
-- Device attributes
-- Bracketing paste
-- and more...
+- Color queries (OSC 10/11)
+- Device attributes (DA1)
+- Bracketed paste
+- Clipboard operations (OSC 52)
+- Terminal size queries
+- Keyboard enhancement flags
 
 ## Usage
 
 This is a simple example how to get started with the package.
 
 ```dart
-  final parser = Parser();
-  // ESC [ 20 ; 10 R
-  parser.advance([0x1B, 0x5B, 0x32, 0x30, 0x3B, 0x31, 0x30, 0x52]);
-  assert(parser.moveNext(), 'unable to get next sequence');
-  assert(parser.current == const CursorPositionEvent(20, 10), 'retrieve event');
-  assert(parser.moveNext() == false, 'no more events');
+final parser = Parser();
+// ESC [ 20 ; 10 R
+parser.advance([0x1B, 0x5B, 0x32, 0x30, 0x3B, 0x31, 0x30, 0x52]);
+assert(parser.hasEvents, 'has events');
+assert(parser.nextEvent() == const CursorPositionEvent(20, 10), 'retrieve event');
+assert(!parser.hasEvents, 'no more events');
+```
+
+### Stream Processing
+
+Use `eventTransformer` to convert byte streams to events:
+
+```dart
+stdin.transform(eventTransformer<KeyEvent>())
+  .listen((event) => print('Key: $event'));
+```
+
+## Event Hierarchy
+
+Events are organized into semantic categories for type-safe filtering:
+
+- **InputEvent** - User-generated input (keyboard, mouse, paste)
+  - `KeyEvent`, `MouseEvent`, `PasteEvent`, `RawKeyEvent`
+
+- **ResponseEvent** - Terminal responses to queries
+  - `CursorPositionEvent`, `ColorQueryEvent`, `FocusEvent`
+  - `PrimaryDeviceAttributesEvent`, `KeyboardEnhancementFlagsEvent`
+  - `QuerySyncUpdateEvent`, `QueryTerminalWindowSizeEvent`
+  - `NameAndVersionEvent`, `ClipboardCopyEvent`, `UnicodeCoreEvent`
+
+- **ErrorEvent** - Parser/engine errors
+  - `EngineErrorEvent`
+
+- **InternalEvent** - Parser-internal events
+  - `NoneEvent`
+
+### Filtering Events
+
+Use `whereType<T>()` to filter events by category:
+
+```dart
+final parser = Parser()
+  ..advance([0x61]) // 'a' key
+  ..advance([0x1B, 0x5B, 0x31, 0x30, 0x3B, 0x32, 0x30, 0x52]); // Cursor position
+
+final events = parser.drainEvents();
+
+// Filter only user input
+final inputs = events.whereType<InputEvent>();
+
+// Filter only terminal responses
+final responses = events.whereType<ResponseEvent>();
+
+// Filter specific event types
+final keyEvents = events.whereType<KeyEvent>();
 ```
 
 ## Acknowledgements
