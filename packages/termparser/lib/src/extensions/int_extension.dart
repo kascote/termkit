@@ -3,26 +3,30 @@ const _maxInt = 0x7FFFFFFF;
 /// Extension on [int] to add some utility methods
 extension IntUtils on int {
   /// Returns the result of multiplying this [int] with [value]
-  /// If the value is greater than maximum int32 then maximum int32 is returned (0x7FFFFFFF)
-  // this is not bulletproof, but it's good enough for our use case
+  /// Saturates to unsigned int32 bounds: [0, 2147483647]
   int saturatingMul(int value) {
     final result = this * value;
-    return result > _maxInt ? _maxInt : result;
+    if (result > _maxInt) return _maxInt;
+    if (result < 0) return 0;
+    return result;
   }
 
   /// Returns the result of adding this [int] with [value]
-  /// If the value is greater than maximum int32 then maximum int32 is returned (0x7FFFFFFF)
-  // this is not bulletproof, but it's good enough for our use case
+  /// Saturates to unsigned int32 bounds: [0, 2147483647]
   int saturatingAdd(int value) {
     final result = this + value;
-    return result > _maxInt ? _maxInt : result;
+    if (result > _maxInt) return _maxInt;
+    if (result < 0) return 0;
+    return result;
   }
 
   /// Subtracts [other] from this integer, returning the result.
-  /// If the result is less than 0, 0 is returned
+  /// Saturates to unsigned int32 bounds: [0, 2147483647]
   int saturatingSub(int other) {
-    if (this < other) return 0;
-    return this - other;
+    final result = this - other;
+    if (result > _maxInt) return _maxInt;
+    if (result < 0) return 0;
+    return result;
   }
 
   /// Return the hex representation

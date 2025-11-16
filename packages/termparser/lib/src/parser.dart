@@ -1,15 +1,26 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'engine/engine.dart';
 import 'engine/event_queue.dart';
+import 'engine/sequence_data.dart';
+import 'events/error_event.dart';
 import 'events/event_base.dart';
+import 'events/paste_event.dart';
 import 'events/raw_key_event.dart';
+import 'parsers/char_parser.dart';
+import 'parsers/csi_parser.dart';
+import 'parsers/dcs_parser.dart';
+import 'parsers/esc_parser.dart';
+import 'parsers/osc_parser.dart';
 
 /// The ANSI escape sequence parser
 ///
 /// This class implements the ANSI escape sequence parser allowing to parse
 /// data coming from the terminal (stdin) and dispatching events based on the
 /// input.
+///
+/// Translates SequenceData from the Engine into Events.
 ///
 /// Data is fed to the parser using the [advance] method. Events can be
 /// retrieved using [nextEvent], [peekEvent], or [drainEvents].
@@ -36,8 +47,41 @@ final class Parser {
   /// [hasMore] - more input data available right now
   void advance(List<int> buffer, {bool hasMore = false}) {
     for (var i = 0; i < buffer.length; i++) {
-      _engine.advance(_queue, buffer[i], hasMore: i < buffer.length - 1 || hasMore);
+      final sequence = _engine.advance(buffer[i], hasMore: i < buffer.length - 1 || hasMore);
+      if (sequence != null) {
+        _handleSequence(sequence);
+      }
     }
+  }
+
+  /// Translates SequenceData to Events and adds to queue.
+  void _handleSequence(SequenceData sequence) {
+    final event = switch (sequence) {
+      CharData(:final char, :final escO) => parseChar(char, escO: escO),
+      EscSequenceData(:final char) => parseESCSequence(char),
+      CsiSequenceData(:final params, :final finalChar) => parseCSISequence(params, finalChar),
+      OscSequenceData(:final params) => parseOscSequence(params, ''),
+      DcsSequenceData(:final params, :final contentBytes) => parseDcsSequence(params, '', contentBytes),
+      TextBlockSequenceData(:final contentBytes) => _handleTextBlock(contentBytes),
+      ErrorSequenceData() => _handleError(sequence),
+    };
+    _queue.add(event);
+  }
+
+  /// Handles ErrorSequenceData and creates EngineErrorEvent.
+  Event _handleError(ErrorSequenceData error) {
+    return EngineErrorEvent(
+      error.partialParameters,
+      message: error.message,
+      rawBytes: error.rawBytes,
+      stateAtError: error.state,
+    );
+  }
+
+  /// Handles TextBlockSequenceData (bracketed paste).
+  Event _handleTextBlock(List<int> contentBytes) {
+    final content = utf8.decode(contentBytes, allowMalformed: true);
+    return PasteEvent(content);
   }
 
   /// Whether the parser has pending events.

@@ -1,37 +1,35 @@
-import 'dart:convert';
-
+import '../engine/parameters.dart';
 import '../events/event_base.dart';
 import '../events/focus_event.dart';
 import '../events/internal_events.dart';
 import '../events/key_event.dart';
-import '../events/paste_event.dart';
 import '../events/response_events.dart';
 import '../extensions/string_extension.dart';
 import 'key_parser.dart';
 
 /// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
-Event parseCSISequence(List<String> parameters, int ignoredParameterCount, String char) {
+Event parseCSISequence(Parameters params, String char) {
   return switch (char) {
-    'A' => _parseKeyAndModifiers(KeyCodeName.up, parameters.length == 2 ? parameters[1] : ''),
-    'B' => _parseKeyAndModifiers(KeyCodeName.down, parameters.length == 2 ? parameters[1] : ''),
-    'C' => _parseKeyAndModifiers(KeyCodeName.right, parameters.length == 2 ? parameters[1] : ''),
-    'D' => _parseKeyAndModifiers(KeyCodeName.left, parameters.length == 2 ? parameters[1] : ''),
-    'F' => _parseKeyAndModifiers(KeyCodeName.end, parameters.length == 2 ? parameters[1] : ''),
-    'H' => _parseKeyAndModifiers(KeyCodeName.home, parameters.length == 2 ? parameters[1] : ''),
-    'P' => _parseKeyAndModifiers(KeyCodeName.f1, parameters.length == 2 ? parameters[1] : ''),
-    'Q' => _parseKeyAndModifiers(KeyCodeName.f2, parameters.length == 2 ? parameters[1] : ''),
-    'S' => _parseKeyAndModifiers(KeyCodeName.f4, parameters.length == 2 ? parameters[1] : ''),
-    'Z' => _parseKeyAndModifiers(KeyCodeName.backTab, parameters.length == 2 ? parameters[1] : ''),
-    'M' || 'm' when parameters.firstOrNull == '<' => sgrMouseParser(parameters, char, ignoredParameterCount),
+    'A' => _parseKeyAndModifiers(KeyCodeName.up, params.values.length == 2 ? params.values[1] : ''),
+    'B' => _parseKeyAndModifiers(KeyCodeName.down, params.values.length == 2 ? params.values[1] : ''),
+    'C' => _parseKeyAndModifiers(KeyCodeName.right, params.values.length == 2 ? params.values[1] : ''),
+    'D' => _parseKeyAndModifiers(KeyCodeName.left, params.values.length == 2 ? params.values[1] : ''),
+    'F' => _parseKeyAndModifiers(KeyCodeName.end, params.values.length == 2 ? params.values[1] : ''),
+    'H' => _parseKeyAndModifiers(KeyCodeName.home, params.values.length == 2 ? params.values[1] : ''),
+    'P' => _parseKeyAndModifiers(KeyCodeName.f1, params.values.length == 2 ? params.values[1] : ''),
+    'Q' => _parseKeyAndModifiers(KeyCodeName.f2, params.values.length == 2 ? params.values[1] : ''),
+    'S' => _parseKeyAndModifiers(KeyCodeName.f4, params.values.length == 2 ? params.values[1] : ''),
+    'Z' => _parseKeyAndModifiers(KeyCodeName.backTab, params.values.length == 2 ? params.values[1] : ''),
+    'M' || 'm' when params.values.firstOrNull == '<' => sgrMouseParser(params, char),
     'I' => const FocusEvent(),
     'O' => const FocusEvent(hasFocus: false),
-    'u' => _parseKeyboardEnhancedMode(parameters, char),
-    'c' => _primaryDeviceAttributes(parameters, char),
-    '~' => _parseSpecialKeyCode(parameters, char),
-    'R' => _parseCursorPosition(parameters),
-    'y' => _parseDECRPMStatus(parameters),
-    't' => _parseWindowSize(parameters),
+    'u' => _parseKeyboardEnhancedMode(params, char),
+    'c' => _primaryDeviceAttributes(params, char),
+    '~' => _parseSpecialKeyCode(params, char),
+    'R' => _parseCursorPosition(params),
+    'y' => _parseDECRPMStatus(params),
+    't' => _parseWindowSize(params),
     _ => const NoneEvent(),
   };
 }
@@ -49,11 +47,11 @@ Event _parseKeyAndModifiers(KeyCodeName name, String parameters) {
 // the `CSI u` (a.k.a. "Fix Keyboard Input on Terminals - Please", https://www.leonerd.org.uk/hacks/fixterms/)
 // or Kitty Keyboard Protocol (https://sw.kovidgoyal.net/kitty/keyboard-protocol/) specifications.
 // This CSI sequence is a tuple of semicolon-separated numbers.
-Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
-  if (parameters.isEmpty) return const NoneEvent();
+Event _parseKeyboardEnhancedMode(Parameters params, String char) {
+  if (params.values.isEmpty) return const NoneEvent();
 
-  if (parameters[0] == '?') {
-    return keyboardEnhancedCodeParser(parameters[1]);
+  if (params.values[0] == '?') {
+    return keyboardEnhancedCodeParser(params.values[1]);
   }
 
   // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#an-overview
@@ -75,14 +73,14 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   //
   // WezTerm is using it on some cases (Shift-Backspace, Shift-\, etc)
 
-  final codePoints = parameters.first.split(':');
+  final codePoints = params.values.first.split(':');
   final codePoint = int.tryParse(codePoints.firstOrNull ?? '');
   final shiftedKey = int.tryParse(codePoints.elementAtOrNull(1) ?? '');
   final baseLayout = int.tryParse(codePoints.elementAtOrNull(2) ?? '');
   // the first element is the only required
   if (codePoint == null) return const NoneEvent();
 
-  final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
+  final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
   var modifiers = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
   final kind = eventKindParser(eventKind);
   final stateFromModifiers = modifiersToStateParser(modifierMask);
@@ -142,21 +140,21 @@ Event _parseKeyboardEnhancedMode(List<String> parameters, String char) {
   );
 }
 
-Event _primaryDeviceAttributes(List<String> parameters, String char) {
-  if (parameters.isEmpty) return const NoneEvent();
-  if (parameters[0] != '?') return const NoneEvent();
+Event _primaryDeviceAttributes(Parameters params, String char) {
+  if (params.values.isEmpty) return const NoneEvent();
+  if (params.values[0] != '?') return const NoneEvent();
 
-  final params = parameters.sublist(1);
+  final values = params.values.sublist(1);
 
   // Parse device type and capabilities
-  final (type, capabilities) = switch (params) {
+  final (type, capabilities) = switch (values) {
     ['1', '0'] => (DeviceAttributeType.vt101WithNoOptions, <DeviceAttributeParams>[]),
     ['6'] => (DeviceAttributeType.vt102, <DeviceAttributeParams>[]),
     ['1', '2'] => (DeviceAttributeType.vt100WithAdvancedVideoOption, <DeviceAttributeParams>[]),
-    ['62', ...] => (DeviceAttributeType.vt220, _parseDeviceParams(params.sublist(1))),
-    ['63', ...] => (DeviceAttributeType.vt320, _parseDeviceParams(params.sublist(1))),
-    ['64', ...] => (DeviceAttributeType.vt420, _parseDeviceParams(params.sublist(1))),
-    ['65', ...] => (DeviceAttributeType.vt500, _parseDeviceParams(params.sublist(1))),
+    ['62', ...] => (DeviceAttributeType.vt220, _parseDeviceParams(values.sublist(1))),
+    ['63', ...] => (DeviceAttributeType.vt320, _parseDeviceParams(values.sublist(1))),
+    ['64', ...] => (DeviceAttributeType.vt420, _parseDeviceParams(values.sublist(1))),
+    ['65', ...] => (DeviceAttributeType.vt500, _parseDeviceParams(values.sublist(1))),
     _ => (DeviceAttributeType.unknown, <DeviceAttributeParams>[]),
   };
 
@@ -175,14 +173,14 @@ List<DeviceAttributeParams> _parseDeviceParams(List<String> params) {
   });
 }
 
-Event _parseSpecialKeyCode(List<String> parameters, String char) {
-  if (parameters.isEmpty) return const NoneEvent();
+Event _parseSpecialKeyCode(Parameters params, String char) {
+  if (params.values.isEmpty) return const NoneEvent();
 
-  final (modifierMask, eventKind) = parameters.length == 1 ? (null, null) : modifierAndKindParse(parameters[1]);
+  final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
   final modifier = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
   final eventType = eventKindParser(eventKind);
   final state = modifiersToStateParser(modifierMask);
-  final keyCode = int.parse(parameters.first);
+  final keyCode = int.parse(params.values.first);
 
   final key = switch (keyCode) {
     1 || 7 => KeyCodeName.home,
@@ -224,47 +222,34 @@ Event _parseSpecialKeyCode(List<String> parameters, String char) {
   );
 }
 
-Event _parseCursorPosition(List<String> parameters) {
-  if (parameters.isEmpty) return const NoneEvent();
-  if (parameters.length != 2) return const NoneEvent();
+Event _parseCursorPosition(Parameters params) {
+  if (params.values.isEmpty) return const NoneEvent();
+  if (params.values.length != 2) return const NoneEvent();
 
-  final x = int.tryParse(parameters[0]);
-  final y = int.tryParse(parameters[1]);
+  final x = int.tryParse(params.values[0]);
+  final y = int.tryParse(params.values[1]);
   if (x == null || y == null) return const NoneEvent();
   return CursorPositionEvent(x, y);
 }
 
-Event _parseDECRPMStatus(List<String> parameters) {
-  switch (parameters) {
+Event _parseDECRPMStatus(Parameters params) {
+  switch (params.values) {
     case ['?', '2026', ...]:
-      return QuerySyncUpdateEvent(int.tryParse(parameters[2]) ?? 0);
+      return QuerySyncUpdateEvent(int.tryParse(params.values[2]) ?? 0);
     case ['?', '2027', ...]:
-      return UnicodeCoreEvent(int.tryParse(parameters[2]) ?? 0);
+      return UnicodeCoreEvent(int.tryParse(params.values[2]) ?? 0);
     default:
       return const NoneEvent();
   }
 }
 
-Event _parseWindowSize(List<String> parameters) {
-  switch (parameters) {
+Event _parseWindowSize(Parameters params) {
+  switch (params.values) {
     case ['4', ...]:
-      final width = int.tryParse(parameters[1]) ?? -1;
-      final height = int.tryParse(parameters[2]) ?? -1;
+      final width = int.tryParse(params.values[1]) ?? -1;
+      final height = int.tryParse(params.values[2]) ?? -1;
       return QueryTerminalWindowSizeEvent(width, height);
     default:
       return const NoneEvent();
   }
-}
-
-/// Parse bracketed paste from raw sequence bytes.
-///
-/// Extracts content between CSI 200~ and CSI 201~ markers.
-/// State machine guarantees both markers are present.
-/// Note: Initial ESC is not in sequenceBytes (starts with '['),
-/// but ESC before end marker IS included.
-Event parseBracketedPaste(List<int> sequenceBytes) {
-  // sequenceBytes = [ '[', '2', '0', '0', '~', ...content..., ESC, '[', '2', '0', '1', '~' ]
-  final content = sequenceBytes.sublist(5, sequenceBytes.length - 6);
-  final text = utf8.decode(content, allowMalformed: true);
-  return PasteEvent(text);
 }

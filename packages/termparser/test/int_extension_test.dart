@@ -20,6 +20,18 @@ void main() {
         expect(0x3FFFFFFF.saturatingMul(2), 0x7FFFFFFE);
         expect(0x40000000.saturatingMul(2), 0x7FFFFFFF);
       });
+
+      test('saturates to 0 (negative result)', () {
+        expect((-1000000).saturatingMul(10000), 0);
+        expect((-100000).saturatingMul(30000), 0);
+        expect((-10).saturatingMul(5), 0);
+        expect(10.saturatingMul(-5), 0);
+      });
+
+      test('negative * negative within bounds', () {
+        expect((-10).saturatingMul(-5), 50);
+        expect((-100).saturatingMul(-100), 10000);
+      });
     });
 
     group('saturatingAdd >', () {
@@ -40,6 +52,17 @@ void main() {
         expect(0x7FFFFFFE.saturatingAdd(1), 0x7FFFFFFF);
         expect(0x7FFFFFFD.saturatingAdd(2), 0x7FFFFFFF);
       });
+
+      test('saturates to 0 (negative result)', () {
+        expect((-1000000000).saturatingAdd(-1500000000), 0);
+        expect((-10).saturatingAdd(-5), 0);
+        expect((-10).saturatingAdd(5), 0);
+      });
+
+      test('mixed sign addition', () {
+        expect(10.saturatingAdd(-5), 5);
+        expect(100.saturatingAdd(-50), 50);
+      });
     });
 
     group('saturatingSub >', () {
@@ -49,15 +72,28 @@ void main() {
         expect(0.saturatingSub(0), 0);
       });
 
-      test('saturates at 0', () {
-        expect(5.saturatingSub(10), 0);
+      test('saturates to 0 (negative result)', () {
+        expect((-1000000000).saturatingSub(1500000000), 0);
+        expect((-10).saturatingSub(5), 0);
         expect(0.saturatingSub(1), 0);
-        expect(100.saturatingSub(200), 0);
+        expect(5.saturatingSub(10), 0);
+      });
+
+      test('saturates at max int32 (positive overflow)', () {
+        const maxInt = 0x7FFFFFFF;
+        expect(maxInt.saturatingSub(-1), maxInt);
+        expect(maxInt.saturatingSub(-100), maxInt);
+        expect(1000000000.saturatingSub(-1500000000), maxInt);
+      });
+
+      test('subtracting negative (addition)', () {
+        expect(10.saturatingSub(-5), 15);
+        expect(100.saturatingSub(-50), 150);
       });
 
       test('edge cases', () {
         expect(1.saturatingSub(1), 0);
-        expect(1.saturatingSub(2), 0);
+        expect(0.saturatingSub(0), 0);
         expect(2.saturatingSub(1), 1);
       });
     });

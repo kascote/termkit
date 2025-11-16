@@ -36,6 +36,27 @@ void main() {
   });
 
   group('parser_base >', () {
+    test('ctrl characters 0x01-0x1A', () {
+      // Ctrl+A (0x01) -> 'a'
+      final parser1 = Parser()..advance([0x01]);
+      expect(parser1.hasEvents, true);
+      final event1 = parser1.nextEvent()! as KeyEvent;
+      expect(event1.code, const KeyCode.char('a'));
+      expect(event1.modifiers.value, KeyModifiers.ctrl);
+
+      // Ctrl+C (0x03) -> 'c'
+      final parser2 = Parser()..advance([0x03]);
+      final event2 = parser2.nextEvent()! as KeyEvent;
+      expect(event2.code, const KeyCode.char('c'));
+      expect(event2.modifiers.value, KeyModifiers.ctrl);
+
+      // Ctrl+Z (0x1A) -> 'z'
+      final parser3 = Parser()..advance([0x1A]);
+      final event3 = parser3.nextEvent()! as KeyEvent;
+      expect(event3.code, const KeyCode.char('z'));
+      expect(event3.modifiers.value, KeyModifiers.ctrl);
+    });
+
     test('ctrl characters 0x1C-0x1F', () {
       // Ctrl+\ (0x1C) -> '4'
       final parser1 = Parser()..advance([0x1C]);
@@ -97,6 +118,107 @@ void main() {
         expect(event.source, ClipboardSource.cutBuffer);
         expect(event.text, 'a');
       }
+    });
+  });
+
+  group('csi_parser >', () {
+    test('window size query - CSI 4;height;width t', () {
+      final parser = Parser()..advance(keySequence('π[4;1080;1920t'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as QueryTerminalWindowSizeEvent;
+      expect(event.width, 1080);
+      expect(event.height, 1920);
+    });
+
+    test(r'unicode core event - CSI ?2027;1$y', () {
+      final parser = Parser()..advance(keySequence(r'π[?2027;1$y'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as UnicodeCoreEvent;
+      expect(event.code, 1);
+      expect(event.status, DECRPMStatus.enabled);
+    });
+
+    test('tab with shift modifier - CSI 9;2u', () {
+      final parser = Parser()..advance(keySequence('π[9;2u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.named(KeyCodeName.backTab));
+    });
+
+    test('function keys F1-F20 via CSI~', () {
+      // F1 = 11~
+      var parser = Parser()..advance(keySequence('π[11~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f1));
+
+      // F5 = 15~
+      parser = Parser()..advance(keySequence('π[15~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f5));
+
+      // F6 = 17~
+      parser = Parser()..advance(keySequence('π[17~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f6));
+
+      // F11 = 23~
+      parser = Parser()..advance(keySequence('π[23~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f11));
+
+      // F12 = 24~
+      parser = Parser()..advance(keySequence('π[24~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f12));
+
+      // F13 = 25~
+      parser = Parser()..advance(keySequence('π[25~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f13));
+
+      // F14 = 26~
+      parser = Parser()..advance(keySequence('π[26~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f14));
+
+      // F15 = 28~
+      parser = Parser()..advance(keySequence('π[28~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f15));
+
+      // F16 = 29~
+      parser = Parser()..advance(keySequence('π[29~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f16));
+
+      // F17 = 31~
+      parser = Parser()..advance(keySequence('π[31~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f17));
+
+      // F18 = 32~
+      parser = Parser()..advance(keySequence('π[32~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f18));
+
+      // F19 = 33~
+      parser = Parser()..advance(keySequence('π[33~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f19));
+
+      // F20 = 34~
+      parser = Parser()..advance(keySequence('π[34~'));
+      expect((parser.nextEvent()! as KeyEvent).code, const KeyCode.named(KeyCodeName.f20));
+    });
+
+    test('device attributes - VT100 with advanced video', () {
+      final parser = Parser()..advance(keySequence('π[?1;2c'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as PrimaryDeviceAttributesEvent;
+      expect(event.type, DeviceAttributeType.vt100WithAdvancedVideoOption);
+    });
+
+    test('device attributes - unknown type', () {
+      final parser = Parser()..advance(keySequence('π[?99c'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as PrimaryDeviceAttributesEvent;
+      expect(event.type, DeviceAttributeType.unknown);
+    });
+
+    test('device attributes - unknown param code', () {
+      final parser = Parser()..advance(keySequence('π[?62;9999c'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as PrimaryDeviceAttributesEvent;
+      expect(event.type, DeviceAttributeType.vt220);
+      expect(event.params, isEmpty); // Unknown param should be filtered out
     });
   });
 

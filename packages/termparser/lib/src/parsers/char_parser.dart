@@ -3,7 +3,7 @@ import '../events/key_event.dart';
 import 'parser_base.dart';
 
 /// Parse a single character
-Event? parseChar(String char, {bool escO = false}) {
+Event parseChar(String char, {bool escO = false}) {
   if (escO) {
     return switch (char) {
       'P' => const KeyEvent(KeyCode.named(KeyCodeName.f1)),

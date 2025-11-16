@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../extensions/int_extension.dart';
+import '../extensions/list_extension.dart';
 import 'event_base.dart';
 import 'shared.dart';
 
@@ -101,7 +102,7 @@ final class EngineErrorEvent extends ErrorEvent {
     if (rawBytes.isNotEmpty) {
       buffer
         ..write('\n  Sequence: ')
-        ..write(rawBytes.map((b) => b.toHexString()).join(' '))
+        ..write(rawBytes.toHexString())
         ..write(' (');
       for (final b in rawBytes) {
         if (b.isPrintable) {

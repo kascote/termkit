@@ -794,6 +794,15 @@ void main() {
       final event = parser.nextEvent()! as NameAndVersionEvent;
       expect(event.value, equals(longName));
     });
+
+    test('error handling - unexpected escape in CSI', () {
+      // ESC [ ESC triggers an error
+      final parser = Parser()..advance(keySequence('π[π'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as EngineErrorEvent;
+      expect(event.message, contains('Unexpected Esc'));
+      expect(event.stateAtError, isNotEmpty);
+    });
   });
 
   group('eventTransformer >', () {
