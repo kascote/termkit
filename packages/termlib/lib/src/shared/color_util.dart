@@ -102,7 +102,7 @@ typedef LerpFunction = Color Function(double t);
 
 /// Returns a function that interpolates between two colors.
 ///
-/// The returned function accepts a parameter betwee 0 and 1,
+/// The returned function accepts a parameter between 0 and 1,
 /// being 0 the first color and 1 the second color.
 ///
 /// ex:
@@ -193,16 +193,16 @@ HSV rgbToHsv(Color color) {
 
 /// Return a terminal profile based on the color kind
 ProfileEnum termProfileFromColorKind(ColorKind kind) => switch (kind) {
-      ColorKind.noColor => ProfileEnum.noColor,
-      ColorKind.ansi => ProfileEnum.ansi16,
-      ColorKind.indexed => ProfileEnum.ansi256,
-      ColorKind.rgb => ProfileEnum.trueColor,
-    };
+  ColorKind.noColor => ProfileEnum.noColor,
+  ColorKind.ansi => ProfileEnum.ansi16,
+  ColorKind.indexed => ProfileEnum.ansi256,
+  ColorKind.rgb => ProfileEnum.trueColor,
+};
 
 /// Return a ColorKind based on the terminal profile
 ColorKind colorKindFromProfile(ProfileEnum profile) => switch (profile) {
-      ProfileEnum.noColor => ColorKind.noColor,
-      ProfileEnum.ansi16 => ColorKind.ansi,
-      ProfileEnum.ansi256 => ColorKind.indexed,
-      ProfileEnum.trueColor => ColorKind.rgb,
-    };
+  ProfileEnum.noColor => ColorKind.noColor,
+  ProfileEnum.ansi16 => ColorKind.ansi,
+  ProfileEnum.ansi256 => ColorKind.indexed,
+  ProfileEnum.trueColor => ColorKind.rgb,
+};

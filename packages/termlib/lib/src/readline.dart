@@ -2,24 +2,24 @@ import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
 final _keyMapping = {
-  const KeyEvent(KeyCode(name: KeyCodeName.escape)): 'escape',
-  const KeyEvent(KeyCode(char: 'm'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'enter',
-  const KeyEvent(KeyCode(name: KeyCodeName.enter)): 'enter',
-  const KeyEvent(KeyCode(name: KeyCodeName.backSpace, baseLayoutKey: 8)): 'backSpace',
-  const KeyEvent(KeyCode(name: KeyCodeName.backSpace)): 'backSpace',
-  const KeyEvent(KeyCode(char: 'h'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'backSpace',
-  const KeyEvent(KeyCode(char: 'u'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'clearBOL',
-  const KeyEvent(KeyCode(name: KeyCodeName.delete)): 'delete',
-  const KeyEvent(KeyCode(char: 'd'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'delete',
-  const KeyEvent(KeyCode(char: 'k'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'clearEOL',
-  const KeyEvent(KeyCode(name: KeyCodeName.left)): 'moveLeft',
-  const KeyEvent(KeyCode(char: 'b'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'moveLeft',
-  const KeyEvent(KeyCode(name: KeyCodeName.right)): 'moveRight',
-  const KeyEvent(KeyCode(char: 'f'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'moveRight',
-  const KeyEvent(KeyCode(name: KeyCodeName.home)): 'home',
-  const KeyEvent(KeyCode(char: 'a'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'home',
-  const KeyEvent(KeyCode(name: KeyCodeName.end)): 'end',
-  const KeyEvent(KeyCode(char: 'e'), modifiers: KeyModifiers(KeyModifiers.ctrl)): 'end',
+  const KeyEvent(KeyCode.named(KeyCodeName.escape)): 'escape',
+  const KeyEvent(KeyCode.char('m'), modifiers: KeyModifiers.ctrl): 'enter',
+  const KeyEvent(KeyCode.named(KeyCodeName.enter)): 'enter',
+  const KeyEvent(KeyCode.named(KeyCodeName.backSpace, baseLayoutKey: 8)): 'backSpace',
+  const KeyEvent(KeyCode.named(KeyCodeName.backSpace)): 'backSpace',
+  const KeyEvent(KeyCode.char('h'), modifiers: KeyModifiers.ctrl): 'backSpace',
+  const KeyEvent(KeyCode.char('u'), modifiers: KeyModifiers.ctrl): 'clearBOL',
+  const KeyEvent(KeyCode.named(KeyCodeName.delete)): 'delete',
+  const KeyEvent(KeyCode.char('d'), modifiers: KeyModifiers.ctrl): 'delete',
+  const KeyEvent(KeyCode.char('k'), modifiers: KeyModifiers.ctrl): 'clearEOL',
+  const KeyEvent(KeyCode.named(KeyCodeName.left)): 'moveLeft',
+  const KeyEvent(KeyCode.char('b'), modifiers: KeyModifiers.ctrl): 'moveLeft',
+  const KeyEvent(KeyCode.named(KeyCodeName.right)): 'moveRight',
+  const KeyEvent(KeyCode.char('f'), modifiers: KeyModifiers.ctrl): 'moveRight',
+  const KeyEvent(KeyCode.named(KeyCodeName.home)): 'home',
+  const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers.ctrl): 'home',
+  const KeyEvent(KeyCode.named(KeyCodeName.end)): 'end',
+  const KeyEvent(KeyCode.char('e'), modifiers: KeyModifiers.ctrl): 'end',
 };
 
 /// Readline class
@@ -73,9 +73,7 @@ class Readline {
           return null;
         case 'backSpace':
           if (bufferIndex > 0) {
-            term
-              ..writeAt(cursor.row, cursor.col + bufferIndex - 1, ' ')
-              ..moveLeft();
+            term.moveLeft();
             bufferIndex--;
             buffer.removeAt(bufferIndex);
             term

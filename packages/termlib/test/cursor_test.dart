@@ -8,7 +8,7 @@ void main() {
   group('Cursor >', () {
     test('should move the cursor to a position', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveTo(5, 7);
           expect(out.buf.toString(), equals('\x1b[5;7H'));
         },
@@ -17,7 +17,7 @@ void main() {
 
     test('should move the cursor to the next line', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveToNextLine();
           expect(out.buf.toString(), equals('\x1b[1E'));
           out.clearOutput();
@@ -29,7 +29,7 @@ void main() {
 
     test('should move the cursor to the previous line', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveToPrevLine();
           expect(out.buf.toString(), equals('\x1b[1F'));
           out.clearOutput();
@@ -41,7 +41,7 @@ void main() {
 
     test('should move the cursor to the given column', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveToColumn(5);
           expect(out.buf.toString(), equals('\x1b[5G'));
         },
@@ -50,7 +50,7 @@ void main() {
 
     test('should move the cursor to the given row', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveToRow(5);
           expect(out.buf.toString(), equals('\x1b[5d'));
         },
@@ -59,7 +59,7 @@ void main() {
 
     test('should move the cursor up', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveUp();
           expect(out.buf.toString(), equals('\x1b[1A'));
           out.clearOutput();
@@ -71,7 +71,7 @@ void main() {
 
     test('should move the cursor right', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveRight();
           expect(out.buf.toString(), equals('\x1b[1C'));
           out.clearOutput();
@@ -83,7 +83,7 @@ void main() {
 
     test('should move the cursor down', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveDown();
           expect(out.buf.toString(), equals('\x1b[1B'));
           out.clearOutput();
@@ -95,7 +95,7 @@ void main() {
 
     test('should move the cursor left', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveLeft();
           expect(out.buf.toString(), equals('\x1b[1D'));
           out.clearOutput();
@@ -107,7 +107,7 @@ void main() {
 
     test('should save the cursor position', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().savePosition();
           expect(out.buf.toString(), equals('\x1b7'));
         },
@@ -116,7 +116,7 @@ void main() {
 
     test('should restore the cursor position', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().restorePosition();
           expect(out.buf.toString(), equals('\x1b8'));
         },
@@ -125,7 +125,7 @@ void main() {
 
     test('should hide the cursor', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().cursorHide();
           expect(out.buf.toString(), equals('\x1b[?25l'));
         },
@@ -134,7 +134,7 @@ void main() {
 
     test('should show the cursor', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().cursorShow();
           expect(out.buf.toString(), equals('\x1b[?25h'));
         },
@@ -143,7 +143,7 @@ void main() {
 
     test('should enable blinking of the terminal cursor', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().enableBlinking();
           expect(out.buf.toString(), equals('\x1b[?12h'));
         },
@@ -152,7 +152,7 @@ void main() {
 
     test('should disable blinking of the terminal cursor', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().disableBlinking();
           expect(out.buf.toString(), equals('\x1b[?12l'));
         },
@@ -161,7 +161,7 @@ void main() {
 
     test('should move the cursor to home position', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().moveHome();
           expect(out.buf.toString(), equals('\x1B[H'));
         },
@@ -170,7 +170,7 @@ void main() {
 
     test('should set the cursor style', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().setCursorStyle(ansi.CursorStyle.defaultUserShape);
           expect(out.buf.toString(), equals('\x1b[0 q'));
           out.clearOutput();

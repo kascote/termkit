@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:termlib/color_util.dart';
+import 'package:termlib/src/shared/color_util.dart';
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
@@ -38,8 +38,8 @@ Future<void> main(List<String> arguments) async {
       closeTerm();
       return rc;
     },
-    (e, st) {
-      app.stop();
+    (e, st) async {
+      await app.stop();
       closeTerm();
       stderr
         ..writeln(e)
@@ -122,7 +122,7 @@ class Rain {
   late int speed;
   int height;
   late List<String> tail;
-  final cl = colorLerp(_headColor, _tailColor);
+  final LerpFunction cl = colorLerp(_headColor, _tailColor);
   bool isFailing = false;
 
   Rain(this.t, this.x, this.y, this.height) {
@@ -143,11 +143,13 @@ class Rain {
     }
     final style = t.style;
 
-    final llen = y < length ? y : length - 1;
+    final lineLength = y < length ? y : length - 1;
     var r = 0;
-    for (var i = llen; i > 0; i--) {
+    for (var i = lineLength; i > 0; i--) {
       final charStyle = style(tail[length - i]);
-      final char = i == llen ? (charStyle..fg(Color.white)) : (charStyle..fg(Color.fromString(cl(r / llen).hex)));
+      final char = i == lineLength
+          ? (charStyle..fg(Color.white))
+          : (charStyle..fg(Color.fromString(cl(r / lineLength).hex)));
       t.writeAt(y - r, x, char);
       r++;
     }

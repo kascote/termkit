@@ -35,7 +35,7 @@ enum ProfileEnum {
   trueColor,
 }
 
-final _bStream = stdin.asBroadcastStream();
+final Stream<List<int>> _bStream = stdin.asBroadcastStream();
 const _defaultColumns = 80;
 const _defaultRows = 25;
 
@@ -240,7 +240,7 @@ class TermLib {
   /// using the [timeout] parameter.
   ///
   /// If the [rawKeys] parameter is set to true, it will return [RawKeyEvent] events
-  /// for each key press. This is useful for debugging propouses.
+  /// for each key press. This is useful for debugging.
   ///
   /// If the timeout is reached, it will return a [NoneEvent] instance.
   Future<Event> readEvent<T extends Event>({int timeout = 100, bool rawKeys = false}) async {
@@ -249,15 +249,16 @@ class TermLib {
     StreamSubscription<Event> subscription;
     late Timer timer;
 
-    subscription =
-        _broadcastStream.transform(eventTransformer(rawKeys: rawKeys)).skipWhile((evt) => evt is! T).listen(null);
+    subscription = _broadcastStream
+        .transform(eventTransformer(rawKeys: rawKeys))
+        .skipWhile((evt) => evt is! T)
+        .listen(null);
     subscription
       ..onDone(() async {
         await subscription.cancel();
         timer.cancel();
         completer.complete(const NoneEvent());
       })
-      // ignore: avoid_types_on_closure_parameters
       ..onError((Object e) async {
         await subscription.cancel();
         timer.cancel();

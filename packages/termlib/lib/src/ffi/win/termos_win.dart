@@ -7,6 +7,7 @@
 //
 // code borrow from https://github.com/timsneath/dart_console/blob/main/lib/src/ffi/win/termlib_win.dart
 
+//
 // ignore_for_file: prefer_const_declarations
 
 import 'dart:ffi';
@@ -26,23 +27,21 @@ class TermOsWindows implements TermOs {
 
   @override
   void enableRawMode() {
-    final dwMode = (~CONSOLE_MODE.ENABLE_ECHO_INPUT) &
-        (~CONSOLE_MODE.ENABLE_PROCESSED_INPUT) &
-        (~CONSOLE_MODE.ENABLE_LINE_INPUT) &
-        (~CONSOLE_MODE.ENABLE_WINDOW_INPUT);
+    final dwMode = (~ENABLE_ECHO_INPUT) & (~ENABLE_PROCESSED_INPUT) & (~ENABLE_LINE_INPUT) & (~ENABLE_WINDOW_INPUT);
     SetConsoleMode(inputHandle, dwMode);
   }
 
   @override
   void disableRawMode() {
-    final dwMode = CONSOLE_MODE.ENABLE_ECHO_INPUT &
-        CONSOLE_MODE.ENABLE_EXTENDED_FLAGS &
-        CONSOLE_MODE.ENABLE_INSERT_MODE &
-        CONSOLE_MODE.ENABLE_LINE_INPUT &
-        CONSOLE_MODE.ENABLE_MOUSE_INPUT &
-        CONSOLE_MODE.ENABLE_PROCESSED_INPUT &
-        CONSOLE_MODE.ENABLE_QUICK_EDIT_MODE &
-        CONSOLE_MODE.ENABLE_VIRTUAL_TERMINAL_INPUT;
+    final dwMode =
+        ENABLE_ECHO_INPUT &
+        ENABLE_EXTENDED_FLAGS &
+        ENABLE_INSERT_MODE &
+        ENABLE_LINE_INPUT &
+        ENABLE_MOUSE_INPUT &
+        ENABLE_PROCESSED_INPUT &
+        ENABLE_QUICK_EDIT_MODE &
+        ENABLE_VIRTUAL_TERMINAL_INPUT;
     SetConsoleMode(inputHandle, dwMode);
   }
 
@@ -110,7 +109,7 @@ class TermOsWindows implements TermOs {
   /// Constructs a new instance of the [TermOsWindows] class.
   /// This class represents the Windows implementation of the [TermOs] interface.
   TermOsWindows() {
-    outputHandle = GetStdHandle(STD_HANDLE.STD_OUTPUT_HANDLE);
-    inputHandle = GetStdHandle(STD_HANDLE.STD_INPUT_HANDLE);
+    outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    inputHandle = GetStdHandle(STD_INPUT_HANDLE);
   }
 }

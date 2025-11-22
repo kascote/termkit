@@ -64,8 +64,8 @@ const _blinkSeqOff = '25';
 const _reverseSeqOff = '27';
 const _crossOutSeqOff = '29';
 const _overlineSeqOff = '55';
-const _defaultFgSeq = '39';
-const _defaultBgSeq = '49';
+// const _defaultFgSeq = '39';
+// const _defaultBgSeq = '49';
 
 /// Represents a text string that could have some properties as color and text
 /// styles.
@@ -150,7 +150,7 @@ class Style {
 
   /// Sets the underline style.
   void underline([Color? color]) {
-    if (color case final ucolor?) underlineColor(ucolor);
+    if (color case final uColor?) underlineColor(uColor);
     _styles.add(_underlineSeq);
   }
 
@@ -159,25 +159,25 @@ class Style {
 
   /// Sets the double underline style.
   void doubleUnderline([Color? color]) {
-    if (color case final ucolor?) underlineColor(ucolor);
+    if (color case final uColor?) underlineColor(uColor);
     _styles.add(_doubleUnderlineSeq);
   }
 
   /// Sets the curly underline style.
   void curlyUnderline([Color? color]) {
-    if (color case final ucolor?) underlineColor(ucolor);
+    if (color case final uColor?) underlineColor(uColor);
     return _styles.add(_curlyUnderlineSeq);
   }
 
   /// Sets the dotted underline style.
   void dottedUnderline([Color? color]) {
-    if (color case final ucolor?) underlineColor(ucolor);
+    if (color case final uColor?) underlineColor(uColor);
     _styles.add(_dottedUnderlineSeq);
   }
 
   /// Sets the dashed underline style.
   void dashedUnderline([Color? color]) {
-    if (color case final ucolor?) underlineColor(ucolor);
+    if (color case final uColor?) underlineColor(uColor);
     _styles.add(_dashedUnderlineSeq);
   }
 

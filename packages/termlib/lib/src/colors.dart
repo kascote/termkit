@@ -16,7 +16,7 @@ enum ColorKind {
   indexed,
 
   /// RGB color
-  rgb
+  rgb,
 }
 
 const _foreground = 38;
@@ -28,7 +28,7 @@ const _reset = -1;
 // Keeps a cache for the colors requested/converted by the user to save time.
 // Over time this cache must be short, because the there are no many colors
 // that a terminal program will use
-Map<(ColorKind, Color), Color> _colorCache = {};
+//Map<(ColorKind, Color), Color> _colorCache = {};
 
 /// Color class
 @immutable
@@ -223,7 +223,7 @@ class Color {
 
   /// Convert an indexed color to Ansi Color
   Color indexedToAnsiColor() {
-    // grayscale range
+    // gray scale range
     if (value > 231) {
       if (value < 237) return Color.black;
       if (value < 250) return Color.gray;
@@ -314,7 +314,7 @@ class Color {
       return Color.fromRGB(0);
     }
 
-    // Optimization: Early return for grayscale (saturation = 0)
+    // Optimization: Early return for gray scale (saturation = 0)
     if (s <= 0.0) {
       final gray = toRGB(v);
       return Color.fromRGB((gray << 16) | (gray << 8) | gray);

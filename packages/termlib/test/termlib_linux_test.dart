@@ -7,7 +7,7 @@ void main() {
   group('colorProfile >', () {
     test('should return TrueColor if GOOGLE_CLOUD_SHELL is set', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.trueColor);
         },
@@ -17,7 +17,7 @@ void main() {
 
     test('should return TrueColor if COLORTERM is set to "truecolor"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.trueColor);
         },
@@ -27,7 +27,7 @@ void main() {
 
     test('should return TrueColor if COLORTERM is set to "24bit"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.trueColor);
         },
@@ -37,7 +37,7 @@ void main() {
 
     test('should return ansi256 if COLORTERM is set to "256color"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.ansi256);
         },
@@ -47,7 +47,7 @@ void main() {
 
     test('should return ansi256 if COLORTERM is set to "yes"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.ansi256);
         },
@@ -57,7 +57,7 @@ void main() {
 
     test('should return ansi256 if COLORTERM is set to "true"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.ansi256);
         },
@@ -67,7 +67,7 @@ void main() {
 
     test('should return trueColor if TERM is set to "kitty"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.trueColor);
         },
@@ -77,7 +77,7 @@ void main() {
 
     test('should return trueColor if TERM is set to "wezterm"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.trueColor);
         },
@@ -87,7 +87,7 @@ void main() {
 
     test('should return trueColor if TERM is set to "alacritty"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.trueColor);
         },
@@ -97,7 +97,7 @@ void main() {
 
     test('should return ansi16 if TERM is set to "linux"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.ansi16);
         },
@@ -107,7 +107,7 @@ void main() {
 
     test('should return ansi256 if TERM is contains "256color"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.ansi256);
         },
@@ -117,7 +117,7 @@ void main() {
 
     test('should return ansi16 if TERM is contains "color"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.ansi16);
         },
@@ -127,7 +127,7 @@ void main() {
 
     test('should return ansi16 if TERM is contains "ansi"', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final tu = TermLib();
           expect(tu.colorProfile(), ProfileEnum.ansi16);
         },

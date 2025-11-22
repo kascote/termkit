@@ -7,7 +7,7 @@ void main() {
   group('Cursor >', () {
     test('should generate eraseDown', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseDown();
           expect(out.buf.toString(), equals('\x1b[0J'));
         },
@@ -16,7 +16,7 @@ void main() {
 
     test('should generate eraseUp', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseUp();
           expect(out.buf.toString(), equals('\x1b[1J'));
         },
@@ -25,7 +25,7 @@ void main() {
 
     test('should generate eraseScreen', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseScreen();
           expect(out.buf.toString(), equals('\x1b[2J'));
         },
@@ -34,7 +34,7 @@ void main() {
 
     test('should generate eraseLineFromCursor', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseLineFromCursor();
           expect(out.buf.toString(), equals('\x1b[0K'));
         },
@@ -43,7 +43,7 @@ void main() {
 
     test('should generate eraseLineToCursor', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseLineToCursor();
           expect(out.buf.toString(), equals('\x1b[1K'));
         },
@@ -52,7 +52,7 @@ void main() {
 
     test('should generate eraseLine', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseLine();
           expect(out.buf.toString(), equals('\x1b[2K'));
         },
@@ -61,7 +61,7 @@ void main() {
 
     test('should generate eraseLineSaved', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseLineSaved();
           expect(out.buf.toString(), equals('\x1b[3K'));
         },
@@ -70,7 +70,7 @@ void main() {
 
     test('should generate eraseSaved', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseSaved();
           expect(out.buf.toString(), equals('\x1b[3J'));
         },
@@ -79,7 +79,7 @@ void main() {
 
     test('should generate eraseClear (clear screen and move cursor to home position)', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           TermLib().eraseClear();
           expect(out.buf.toString(), equals('\x1b[2J\x1b[H'));
         },

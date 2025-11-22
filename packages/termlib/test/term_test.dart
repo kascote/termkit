@@ -8,98 +8,98 @@ import 'termlib_mock.dart';
 void main() {
   group('Term extension >', () {
     test('hyperlink', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().hyperlink('https://example.com', 'example');
         expect(out.buf.toString(), equals('\x1B]8;;https://example.com\x1B\\example\x1B]8;;\x1B\\'));
       });
     });
 
     test('notify', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().notify('title', 'message');
         expect(out.buf.toString(), equals('\x1B]777;notify;title;message\x1B\\'));
       });
     });
 
     test('enableAlternateScreen', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().enableAlternateScreen();
         expect(out.buf.toString(), equals('\x1B[?1049h'));
       });
     });
 
     test('disableAlternateScreen', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().disableAlternateScreen();
         expect(out.buf.toString(), equals('\x1B[?1049l'));
       });
     });
 
     test('setTerminalTitle', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().setTerminalTitle('Terminal Title');
         expect(out.buf.toString(), equals('\x1B]0;Terminal Title\x07'));
       });
     });
 
     test('enableMouseEvents', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().enableMouseEvents();
         expect(out.buf.toString(), equals('\x1B[?1000;1003;1006h'));
       });
     });
 
     test('disableMouseEvents', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().disableMouseEvents();
         expect(out.buf.toString(), equals('\x1B[?1000;1003;1006l'));
       });
     });
 
     test('startFocusTracking', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().startFocusTracking();
         expect(out.buf.toString(), equals('\x1B[?1004h'));
       });
     });
 
     test('endFocusTracking', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().endFocusTracking();
         expect(out.buf.toString(), equals('\x1B[?1004l'));
       });
     });
 
     test('enableLineWrapping', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().enableLineWrapping();
         expect(out.buf.toString(), equals('\x1B[?7h'));
       });
     });
 
     test('disableLineWrapping', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().disableLineWrapping();
         expect(out.buf.toString(), equals('\x1B[?7l'));
       });
     });
 
     test('scrollUp', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().scrollUp(1);
         expect(out.buf.toString(), equals('\x1B[1S'));
       });
     });
 
     test('scrollDown', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().scrollDown(1);
         expect(out.buf.toString(), equals('\x1B[1T'));
       });
     });
 
     test('startSyncUpdate', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         TermLib().startSyncUpdate();
         expect(out.buf.toString(), equals('\x1B[?2026h'));
       });
@@ -134,28 +134,28 @@ void main() {
     });
 
     test('queryTerminalVersion', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         await TermLib().queryTerminalVersion();
         expect(out.buf.toString(), equals('\x1B[>0q'));
       });
     });
 
     test('queryOSCStatus', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         await TermLib().queryOSCStatus(11);
         expect(out.buf.toString(), equals('\x1B]11;?\x1B\\'));
       });
     });
 
     test('queryKeyboardEnhancementSupport', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         await TermLib().queryKeyboardEnhancementSupport();
         expect(out.buf.toString(), equals('\x1B[?u'));
       });
     });
 
     test('queryPrimaryDeviceAttributes', () async {
-      await mockedTest((out, _, __) async {
+      await mockedTest((out, _, _) async {
         await TermLib().queryPrimaryDeviceAttributes();
         expect(out.buf.toString(), equals('\x1B[c'));
       });
@@ -176,14 +176,14 @@ void main() {
     });
 
     test('clipboardSet', () async {
-      await mockedTest((out, _, __) {
+      await mockedTest((out, _, _) {
         TermLib().clipboardSet(Clipboard.primary, 'bananas');
         expect(out.buf.toString(), equals('\x1B]52;p;YmFuYW5hcw==\x1B\\'));
       });
     });
 
     test('clipboardClear', () async {
-      await mockedTest((out, _, __) {
+      await mockedTest((out, _, _) {
         TermLib().clipboardClear(Clipboard.primary);
         expect(out.buf.toString(), equals('\x1B]52;p;!\x1B\\'));
       });
@@ -191,7 +191,7 @@ void main() {
 
     test('queryClipboard', () async {
       await mockedTest(
-        (out, _, __) async {
+        (out, _, _) async {
           final term = TermLib();
           final status = await term.queryClipboard(Clipboard.primary);
           expect(out.buf.toString(), equals('\x1B]52;p;?\x1B\\'));

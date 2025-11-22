@@ -131,11 +131,12 @@ class MockStdout implements Stdout {
   @override
   void add(List<int> data) {
     throw UnimplementedError();
-//    _sink.add(data);
+    //    _sink.add(data);
   }
 
   @override
   Never addError(Object error, [StackTrace? stackTrace]) {
+    //
     // ignore: only_throw_errors
     throw error;
   }
@@ -145,8 +146,8 @@ class MockStdout implements Stdout {
 
   @override
   Future<void> close() async {
-//    await _sink.close();
-//    await _controller.close();
+    //    await _sink.close();
+    //    await _controller.close();
   }
 
   @override
@@ -207,7 +208,7 @@ class _StdStream extends Stream<List<int>> {
 }
 
 class MockStdin extends _StdStream implements Stdin {
-  MockStdin(super.stream);
+  MockStdin(super._stream);
 
   @override
   bool get echoMode => true;

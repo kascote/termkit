@@ -4,9 +4,52 @@ import 'dart:io' as dart_io;
 import 'package:termlib/src/ffi/termos.dart';
 import 'package:termlib/termlib.dart';
 
+//
+// ignore: specify_nonobvious_property_types
 const _asyncRunZoned = runZoned;
 
+/// Provides dependency injection for terminal I/O operations.
 ///
+/// This class enables testing and custom terminal implementations by allowing
+/// you to override stdin, stdout, environment variables, and OS-level
+/// terminal operations.
+///
+/// borrowed from https://github.com/felangel/mason/blob/master/packages/mason_logger/lib/src/terminal_overrides.dart
+///
+/// ## Testing Example
+///
+/// ```dart
+/// test('terminal writes to stdout', () {
+///   final mockStdout = MockStdout();
+///
+///   TerminalOverrides.runZoned(
+///     () {
+///       final term = TermLib();
+///       term.write('Hello');
+///       expect(mockStdout.writes, contains('Hello'));
+///     },
+///     stdout: mockStdout,
+///   );
+/// });
+/// ```
+///
+/// ## Custom Terminal Example
+///
+/// ```dart
+/// // Implement a terminal that logs all output
+/// TerminalOverrides.runZoned(
+///   () {
+///     final term = TermLib();
+///     // All output now goes to loggingStdout
+///   },
+///   stdout: loggingStdout,
+///   stdin: customStdin,
+/// );
+/// ```
+///
+/// See also:
+/// - [runZoned] for creating override contexts
+/// - Test files in `test/` directory for more examples
 abstract class TerminalOverrides {
   static final _token = Object();
 

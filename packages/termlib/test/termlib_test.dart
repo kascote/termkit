@@ -8,7 +8,7 @@ import 'termlib_mock.dart';
 void main() {
   group('TermLib tests >', () {
     test('isInteractive should return true if the terminal is attached to a TTY', () async {
-      await mockedTest((out, _, __) {
+      await mockedTest((out, _, _) {
         final term = TermLib();
         expect(term.isInteractive, isTrue);
         expect(out.callStack[0], 'hasTerminal');
@@ -16,7 +16,7 @@ void main() {
     });
 
     test('isNotInteractive should return false if the terminal is attached to a TTY', () async {
-      await mockedTest((out, _, __) {
+      await mockedTest((out, _, _) {
         final term = TermLib();
         expect(term.isNotInteractive, isFalse);
         expect(out.callStack[0], 'hasTerminal');
@@ -114,21 +114,21 @@ void main() {
     });
 
     test('enableRawMode must call enableRawMode on TermOs', () async {
-      await mockedTest((_, __, tos) {
+      await mockedTest((_, _, tos) {
         TermLib().enableRawMode();
         expect(tos.callStack[0], 'enableRawMode');
       });
     });
 
     test('disableRawMode must call disableRawMode on TermOs', () async {
-      await mockedTest((_, __, tos) {
+      await mockedTest((_, _, tos) {
         TermLib().disableRawMode();
         expect(tos.callStack[0], 'disableRawMode');
       });
     });
 
     test('style must return a new Style with the terminal profile setup', () async {
-      await mockedTest((_, __, tos) {
+      await mockedTest((_, _, tos) {
         final term = TermLib(profile: ProfileEnum.ansi16);
         final style = term.style();
         expect(style, isA<Style>());
@@ -137,7 +137,7 @@ void main() {
     });
 
     test('newLine must return the correct sequence depending on the rawMode setup', () async {
-      await mockedTest((_, __, tos) {
+      await mockedTest((_, _, tos) {
         final term = TermLib();
         expect(term.newLine, '\n');
         term.enableRawMode();
@@ -148,14 +148,14 @@ void main() {
     });
 
     test('write must send the object to the stdout', () async {
-      await mockedTest((out, _, __) {
+      await mockedTest((out, _, _) {
         TermLib().write('hello world');
         expect(out.output, 'hello world');
       });
     });
 
     test('writeLn must send the object to the stdout followed by a new line', () async {
-      await mockedTest((out, _, __) {
+      await mockedTest((out, _, _) {
         final term = TermLib()..writeln('hello world');
         expect(out.output, 'hello world\n');
 
@@ -168,7 +168,7 @@ void main() {
     });
 
     test('writeAt must write the text at the expected position', () async {
-      await mockedTest((out, _, __) {
+      await mockedTest((out, _, _) {
         TermLib().writeAt(10, 11, 'hello world');
         expect(out.output, '\x1B[10;11Hhello world');
       });
@@ -201,7 +201,7 @@ void main() {
 
     test('envNoColor must return true if NO_COLOR is set', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envNoColor(), isTrue);
         },
@@ -211,7 +211,7 @@ void main() {
 
     test('envNoColor must return false if CLICOLOR is set', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envNoColor(), isFalse);
         },
@@ -221,7 +221,7 @@ void main() {
 
     test('envNoColor must return false CLICOLOR_FORCE is set', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envNoColor(), isFalse);
         },
@@ -232,7 +232,7 @@ void main() {
     test('envNoColor must return true if terminal is not interactive', () async {
       final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envNoColor(), isTrue);
         },
@@ -242,7 +242,7 @@ void main() {
 
     test('envColorProfile must return noColor if NO_COLOR is set', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envColorProfile(), ProfileEnum.noColor);
         },
@@ -252,7 +252,7 @@ void main() {
 
     test('envColorProfile must return ansi16 can no detect from ENV but is forced', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envColorProfile(), ProfileEnum.ansi16);
         },
@@ -263,7 +263,7 @@ void main() {
     test('envColorProfile must return noColor if terminal is not interactive', () async {
       final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envColorProfile(), ProfileEnum.noColor);
         },
@@ -273,7 +273,7 @@ void main() {
 
     test('envColorProfile must return noColor if unable to detect from environment', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envColorProfile(), ProfileEnum.noColor);
         },
@@ -283,7 +283,7 @@ void main() {
 
     test('envColorProfile must return trueColor GOOGLE_CLOUD_SHELL is set to true', () async {
       await mockedTest(
-        (_, __, ___) {
+        (_, _, _) {
           final term = TermLib();
           expect(term.envColorProfile(), ProfileEnum.trueColor);
         },
@@ -293,72 +293,72 @@ void main() {
 
     test('envColorProfile must return trueColor for supported COLORTERM', () async {
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
         env: {'COLORTERM': 'truecolor'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
         env: {'COLORTERM': '24bit'},
       );
     });
 
     test('envColorProfile must return ansi256 for supported COLORTERM', () async {
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
         env: {'COLORTERM': '256color'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
         env: {'COLORTERM': 'yes'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
         env: {'COLORTERM': 'true'},
       );
     });
 
     test('envColorProfile must return color for supported TERM', () async {
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'kitty'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'xterm-kitty'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'wezterm'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'alacritty'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'contour'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
         env: {'TERM': 'linux'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
         env: {'TERM': 'banana-256color'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
         env: {'TERM': 'banana-color'},
       );
       await mockedTest(
-        (_, __, ___) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
+        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
         env: {'TERM': 'banana-ansi'},
       );
     });
 
     test('terminalColumns must return 80 if the terminal is not interactive', () async {
       final stdOut = MockStdout()..hasTerminal = false;
-      await mockedTest((_, __, ___) => expect(TermLib().terminalColumns, 80), stdout: stdOut);
+      await mockedTest((_, _, _) => expect(TermLib().terminalColumns, 80), stdout: stdOut);
     });
 
     test('terminalColumns must honor COLUMNS env variables if set and is not interactive', () async {
@@ -366,7 +366,7 @@ void main() {
         ..setTermColumns(999)
         ..hasTerminal = false;
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalColumns, 222),
+        (_, _, _) => expect(TermLib().terminalColumns, 222),
         stdout: stdOut,
         env: {'COLUMNS': '222'},
       );
@@ -377,7 +377,7 @@ void main() {
         ..setTermColumns(999)
         ..hasTerminal = true;
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalColumns, 221),
+        (_, _, _) => expect(TermLib().terminalColumns, 221),
         stdout: stdOut,
         env: {'COLUMNS': '221'},
       );
@@ -385,14 +385,14 @@ void main() {
 
     test('terminalColumns must return the terminal columns', () async {
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalColumns, 999),
+        (_, _, _) => expect(TermLib().terminalColumns, 999),
         stdout: MockStdout()..setTermColumns(999),
       );
     });
 
-    test('terminalColumns must return default value if termnalColumns is 0', () async {
+    test('terminalColumns must return default value if terminalColumns is 0', () async {
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalColumns, 80),
+        (_, _, _) => expect(TermLib().terminalColumns, 80),
         stdout: MockStdout()..setTermColumns(0),
       );
     });
@@ -400,7 +400,7 @@ void main() {
     test('terminalLines must return 25 if the terminal is not interactive', () async {
       final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalLines, 25),
+        (_, _, _) => expect(TermLib().terminalLines, 25),
         stdout: stdOut,
       );
     });
@@ -410,7 +410,7 @@ void main() {
         ..setTermLines(999)
         ..hasTerminal = false;
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalLines, 222),
+        (_, _, _) => expect(TermLib().terminalLines, 222),
         stdout: stdOut,
         env: {'LINES': '222'},
       );
@@ -421,7 +421,7 @@ void main() {
         ..setTermLines(999)
         ..hasTerminal = true;
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalLines, 221),
+        (_, _, _) => expect(TermLib().terminalLines, 221),
         stdout: stdOut,
         env: {'LINES': '221'},
       );
@@ -429,14 +429,14 @@ void main() {
 
     test('terminalLines must return the terminal lines', () async {
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalLines, 999),
+        (_, _, _) => expect(TermLib().terminalLines, 999),
         stdout: MockStdout()..setTermLines(999),
       );
     });
 
-    test('terminalLines must return default value if termnalColumns is 0', () async {
+    test('terminalLines must return default value if terminalColumns is 0', () async {
       await mockedTest(
-        (_, __, ___) => expect(TermLib().terminalLines, 25),
+        (_, _, _) => expect(TermLib().terminalLines, 25),
         stdout: MockStdout()..setTermLines(0),
       );
     });
@@ -444,7 +444,7 @@ void main() {
     test('withRawMode must enable/disable raw mode while executing the callback', () async {
       var ran = false;
       await mockedTest(
-        (_, __, tos) async {
+        (_, _, tos) async {
           TermLib().withRawMode(() => ran = true);
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
@@ -456,7 +456,7 @@ void main() {
     test('withRawModeAsync must enable/disable raw mode while execute callback', () async {
       var ran = false;
       await mockedTest(
-        (_, __, tos) async {
+        (_, _, tos) async {
           await TermLib().withRawModeAsync(() async => ran = true);
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
@@ -467,7 +467,7 @@ void main() {
 
     test('queryKeyboardCapabilities must return event with data', () async {
       await mockedTest(
-        (out, __, tos) async {
+        (out, _, tos) async {
           final term = TermLib();
           final caps = await term.queryKeyboardCapabilities();
           expect(caps, isA<KeyboardEnhancementFlagsEvent>());
@@ -481,7 +481,7 @@ void main() {
 
     test('setKeyboardFlags must send the flag to the terminal', () async {
       await mockedTest(
-        (out, __, tos) async {
+        (out, _, tos) async {
           TermLib().setKeyboardFlags(const KeyboardEnhancementFlagsEvent(1));
           expect(out.buf.toString(), '\x1B[=1;1u');
         },
@@ -490,7 +490,7 @@ void main() {
 
     test('pushKeyboardFlags must send the flag to the terminal', () async {
       await mockedTest(
-        (out, __, tos) async {
+        (out, _, tos) async {
           TermLib().pushKeyboardFlags(const KeyboardEnhancementFlagsEvent(3));
           expect(out.buf.toString(), '\x1B[>3u');
         },
@@ -499,7 +499,7 @@ void main() {
 
     test('enableKeyboardEnhancement must send base modes', () async {
       await mockedTest(
-        (out, __, tos) async {
+        (out, _, tos) async {
           TermLib().enableKeyboardEnhancement();
           expect(out.buf.toString(), '\x1B[=15;1u');
         },
@@ -508,7 +508,7 @@ void main() {
 
     test('enableKeyboardEnhancementFull must send all modes', () async {
       await mockedTest(
-        (out, __, tos) async {
+        (out, _, tos) async {
           TermLib().enableKeyboardEnhancementFull();
           expect(out.buf.toString(), '\x1B[=31;1u');
         },
@@ -517,7 +517,7 @@ void main() {
 
     test('disableKeyboardEnhancement must reset the flags', () async {
       await mockedTest(
-        (out, __, tos) async {
+        (out, _, tos) async {
           TermLib().disableKeyboardEnhancement();
           expect(out.buf.toString(), '\x1B[=0;1u');
         },
@@ -526,7 +526,7 @@ void main() {
 
     test('popKeyboardFlags must send the command to pop N flags', () async {
       await mockedTest(
-        (out, __, tos) async {
+        (out, _, tos) async {
           TermLib().popKeyboardFlags(3);
           expect(out.buf.toString(), '\x1B[<3u');
         },

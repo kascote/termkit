@@ -43,9 +43,9 @@ class AsciiTable {
 
   Point pos = (x: 0, y: 0);
   final blockSize = 5;
-  final winOffset = (x: 2, y: 2);
-  final axisOffset = (x: 4, y: 6); // blockSize + 1
-  final table = (height: 9, width: 17);
+  final ({int x, int y}) winOffset = (x: 2, y: 2);
+  final ({int x, int y}) axisOffset = (x: 4, y: 6); // blockSize + 1
+  final ({int height, int width}) table = (height: 9, width: 17);
   Range range = (start: 0, end: 128);
   late Theme colors;
 

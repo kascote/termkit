@@ -72,8 +72,6 @@ enum Direction { up, right, down, left }
 
 enum Finish { none, win, lose }
 
-enum Tile { empty, snake, food }
-
 typedef Pos = ({int row, int col});
 
 class SnakeGame {
