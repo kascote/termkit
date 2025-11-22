@@ -7,6 +7,7 @@ export 'src/events/event_base.dart';
 export 'src/events/focus_event.dart';
 export 'src/events/internal_events.dart';
 export 'src/events/key_event.dart';
+export 'src/events/key_support.dart';
 export 'src/events/mouse_event.dart';
 export 'src/events/paste_event.dart';
 export 'src/events/raw_key_event.dart';

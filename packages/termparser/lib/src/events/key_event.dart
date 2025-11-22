@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
-import '../extensions/int_extension.dart';
 import 'event_base.dart';
+import 'key_support.dart';
 
 /// Discriminator for KeyCode variants
 enum KeyCodeKind {
@@ -10,244 +10,6 @@ enum KeyCodeKind {
 
   /// Printable character
   char,
-
-  /// Media key (play, pause, volumeUp, etc.)
-  media,
-
-  /// Modifier key itself (leftCtrl, rightShift, etc.)
-  modifier,
-}
-
-/// Represents a key pressed on the keyboard.
-/// This class is used for the legacy key events as well the enhanced key events.
-/// used on the Kitty protocol.
-///
-/// **Note:** need to have KeyboardEnhancementFlags.disambiguateEscapeCodes enabled
-/// to [media] and/or [modifierKey] to be populated.
-///
-/// ref: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
-@immutable
-class KeyCode {
-  /// Discriminator indicating which type of key this represents
-  final KeyCodeKind kind;
-
-  /// Contains the name of the key if is a named key (enter, esc, pgUp, etc).
-  /// Only populated when kind == KeyCodeKind.named
-  final KeyCodeName name;
-
-  /// Contains the character of the key if is a printable character.
-  /// Only populated when kind == KeyCodeKind.char
-  final String char;
-
-  /// Contains the media key code if is a media key (play, pause, etc).
-  /// Only populated when kind == KeyCodeKind.media
-  final MediaKeyCode media;
-
-  /// Contains the modifier key itself (leftCtrl, rightShift, etc).
-  /// Only populated when kind == KeyCodeKind.modifier
-  final ModifierKey modifierKey;
-
-  /// Base layout key
-  ///
-  /// From Kitty documentation:
-  /// The base layout key is the key corresponding to the physical key in the
-  /// standard PC-101 key layout. So for example, if the user is using a
-  /// Cyrillic keyboard with a Cyrillic keyboard layout pressing the ctrl+С key
-  /// will be ctrl+c in the standard layout. So the terminal should send the
-  /// base layout key as 99 corresponding to the c key.
-  final int baseLayoutKey;
-
-  /// Private constructor
-  const KeyCode._({
-    required this.kind,
-    this.name = KeyCodeName.none,
-    this.char = '',
-    this.media = MediaKeyCode.none,
-    this.modifierKey = ModifierKey.none,
-    this.baseLayoutKey = 0,
-  });
-
-  /// Constructs a named key (F1-F35, Enter, Escape, arrows, etc.)
-  const KeyCode.named(KeyCodeName name, {int baseLayoutKey = 0})
-    : this._(
-        kind: KeyCodeKind.named,
-        name: name,
-        baseLayoutKey: baseLayoutKey,
-      );
-
-  /// Constructs a character key
-  const KeyCode.char(String char, {int baseLayoutKey = 0})
-    : this._(
-        kind: KeyCodeKind.char,
-        char: char,
-        baseLayoutKey: baseLayoutKey,
-      );
-
-  /// Constructs a media key
-  const KeyCode.media(MediaKeyCode media)
-    : this._(
-        kind: KeyCodeKind.media,
-        media: media,
-      );
-
-  /// Constructs a modifier key itself
-  const KeyCode.modifier(ModifierKey modifierKey)
-    : this._(
-        kind: KeyCodeKind.modifier,
-        modifierKey: modifierKey,
-      );
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is KeyCode &&
-          runtimeType == other.runtimeType &&
-          kind == other.kind &&
-          name == other.name &&
-          char == other.char &&
-          media == other.media &&
-          modifierKey == other.modifierKey &&
-          baseLayoutKey == other.baseLayoutKey;
-
-  @override
-  int get hashCode => Object.hash(kind, name, char, media, modifierKey, baseLayoutKey);
-
-  /// Create a new instance of [KeyCode] with the given parameters.
-  KeyCode copyWith({
-    KeyCodeKind? kind,
-    KeyCodeName? name,
-    String? char,
-    MediaKeyCode? media,
-    ModifierKey? modifierKey,
-    int? baseLayoutKey,
-  }) {
-    return KeyCode._(
-      kind: kind ?? this.kind,
-      name: name ?? this.name,
-      char: char ?? this.char,
-      media: media ?? this.media,
-      modifierKey: modifierKey ?? this.modifierKey,
-      baseLayoutKey: baseLayoutKey ?? this.baseLayoutKey,
-    );
-  }
-
-  @override
-  String toString() {
-    return 'KeyCode{kind: $kind, name: $name, char: $char, media: $media, modifierKey: $modifierKey, baseLayoutKey: $baseLayoutKey}';
-  }
-}
-
-/// Represents key modifiers (shift, control, alt, etc.).
-///
-/// **Note:** `superKey`, `hyper`, and `meta` can only be read if
-/// KeyboardEnhancementFlags.disambiguateEscapeCodes is enabled
-@immutable
-class KeyModifiers {
-  final int _value;
-
-  /// Constructs a new instance of [KeyModifiers].
-  const KeyModifiers(int mask) : _value = mask;
-
-  /// Constructs a new instance of [KeyModifiers] with no modifiers.
-  factory KeyModifiers.empty() => const KeyModifiers(0);
-
-  /// Returns the value of the modifiers.
-  int get value => _value;
-
-  /// Add a modifier to the current set of modifiers.
-  KeyModifiers add(int modifier) => KeyModifiers(_value | modifier);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is KeyModifiers && runtimeType == other.runtimeType && _value == other._value;
-
-  @override
-  int get hashCode => _value.hashCode;
-
-  ///
-  bool has(int mask) => _value.isSet(mask);
-
-  ///
-  static const shift = 0x1;
-
-  ///
-  static const alt = 0x2;
-
-  ///
-  static const ctrl = 0x4;
-
-  ///
-  static const superKey = 0x8;
-
-  ///
-  static const hyper = 0x10;
-
-  ///
-  static const meta = 0x20;
-
-  ///
-  static const none = 0x0;
-
-  @override
-  String toString() {
-    return 'KeyModifiers{shift: ${has(shift)}, alt: ${has(alt)}, ctrl: ${has(ctrl)}, superKey: ${has(superKey)}, hyper: ${has(hyper)}, meta: ${has(meta)}}';
-  }
-}
-
-const _keypad = 0x1;
-const _capsLock = 0x2;
-const _numLock = 0x4;
-const _none = 0;
-
-/// Represents the state of the keyboard.
-@immutable
-class KeyEventState {
-  final int _value;
-
-  /// Constructs a new instance of [KeyEventState].
-  const KeyEventState(int value) : _value = value;
-
-  /// Returns the value of the state.
-  int get value => _value;
-
-  /// Add a state to the current set of states.
-  KeyEventState add(KeyEventState state) {
-    return KeyEventState(_value | state.value);
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is KeyEventState && runtimeType == other.runtimeType && _value == other._value;
-
-  @override
-  int get hashCode => _value.hashCode;
-
-  /// Returns `true` if is a key from the keypad
-  bool get isKeypad => _value & _keypad == _keypad;
-
-  /// Returns `true` if the caps is in the key event
-  bool get isCapsLock => _value & _capsLock == _capsLock;
-
-  /// Returns `true` if the num lock is in the key event.
-  bool get isNumLock => _value & _numLock == _numLock;
-
-  /// Creates a new instance of [KeyEventState] with keypad enabled.
-  factory KeyEventState.keypad() => const KeyEventState(_keypad);
-
-  /// Creates a new instance of [KeyEventState] with caps lock enabled.
-  factory KeyEventState.capsLock() => const KeyEventState(_capsLock);
-
-  /// Creates a new instance of [KeyEventState] with num lock enabled.
-  factory KeyEventState.numLock() => const KeyEventState(_numLock);
-
-  /// Creates a new instance of [KeyEventState] with none of the states enabled.
-  factory KeyEventState.none() => const KeyEventState(_none);
-
-  @override
-  String toString() {
-    if (_value == _none) return 'KeyEventState: {none}';
-    return 'KeyEventState: {isKeypad: $isKeypad, isCapsLock: $isCapsLock, isNumLock: $isNumLock}';
-  }
 }
 
 /// Enum for keys with names
@@ -425,15 +187,9 @@ enum KeyCodeName {
 
   /// F35
   f35,
-}
 
-/// Enum for Media Keys
-enum MediaKeyCode {
   /// Play media key.
   play,
-
-  /// Pause media key.
-  pause,
 
   /// Play/Pause media key.
   playPause,
@@ -468,56 +224,47 @@ enum MediaKeyCode {
   /// Mute media key.
   muteVolume,
 
-  ///
-  none,
-}
-
-/// Enum for Modifier Keys
-enum ModifierKey {
-  /// Left Shift key.
+  /// Left Shift key
   leftShift,
 
-  /// Left Control key.
+  /// Left Control key
   leftCtrl,
 
-  /// Left Alt key.
+  /// Left Alt key
   leftAlt,
 
-  /// Left Super key.
+  /// Left Super key
   leftSuper,
 
-  /// Left Hyper key.
+  /// Left Hyper key
   leftHyper,
 
-  /// Left Meta key.
+  /// Left Meta key
   leftMeta,
 
-  /// Right Shift key.
+  /// Right Shift key
   rightShift,
 
-  /// Right Control key.
+  /// Right Control key
   rightCtrl,
 
-  /// Right Alt key.
+  /// Right Alt key
   rightAlt,
 
-  /// Right Super key.
+  /// Right Super key
   rightSuper,
 
-  /// Right Hyper key.
+  /// Right Hyper key
   rightHyper,
 
-  /// Right Meta key.
+  /// Right Meta key
   rightMeta,
 
-  /// Iso Level3 Shift key.
+  /// ISO Level 3 Shift key
   isoLevel3Shift,
 
-  /// Iso Level5 Shift key.
+  /// ISO Level 5 Shift key
   isoLevel5Shift,
-
-  ///
-  none,
 }
 
 /// Enum for Key Events Types
@@ -525,11 +272,100 @@ enum KeyEventType {
   /// Key press event.
   keyPress,
 
-  /// Key release event.
+  /// Key repeat event.
   keyRepeat,
 
   /// Key release event.
   keyRelease,
+}
+
+/// Represents a key pressed on the keyboard.
+/// This class is used for the legacy key events as well the enhanced key events.
+/// used on the Kitty protocol.
+///
+/// **Note:** need to have KeyboardEnhancementFlags.disambiguateEscapeCodes enabled
+/// to identify some keys as media keys, leftCtrl, etc.
+///
+/// ref: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
+@immutable
+class KeyCode {
+  /// Discriminator indicating which type of key this represents
+  final KeyCodeKind kind;
+
+  /// Contains the name of the key if is a named key (enter, esc, pgUp, etc).
+  /// Only populated when kind == KeyCodeKind.named
+  final KeyCodeName name;
+
+  /// Contains the character of the key if is a printable character.
+  /// Only populated when kind == KeyCodeKind.char
+  final String char;
+
+  /// Base layout key
+  ///
+  /// From Kitty documentation:
+  /// The base layout key is the key corresponding to the physical key in the
+  /// standard PC-101 key layout. So for example, if the user is using a
+  /// Cyrillic keyboard with a Cyrillic keyboard layout pressing the ctrl+С key
+  /// will be ctrl+c in the standard layout. So the terminal should send the
+  /// base layout key as 99 corresponding to the c key.
+  final int baseLayoutKey;
+
+  /// Private constructor
+  const KeyCode._({
+    required this.kind,
+    this.name = KeyCodeName.none,
+    this.char = '',
+    this.baseLayoutKey = 0,
+  });
+
+  /// Constructs a named key (F1-F35, Enter, Escape, arrows, etc.)
+  const KeyCode.named(KeyCodeName name, {int baseLayoutKey = 0})
+    : this._(
+        kind: KeyCodeKind.named,
+        name: name,
+        baseLayoutKey: baseLayoutKey,
+      );
+
+  /// Constructs a character key
+  const KeyCode.char(String char, {int baseLayoutKey = 0})
+    : this._(
+        kind: KeyCodeKind.char,
+        char: char,
+        baseLayoutKey: baseLayoutKey,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeyCode &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          name == other.name &&
+          char == other.char &&
+          baseLayoutKey == other.baseLayoutKey;
+
+  @override
+  int get hashCode => Object.hash(kind, name, char, baseLayoutKey);
+
+  /// Create a new instance of [KeyCode] with the given parameters.
+  KeyCode copyWith({
+    KeyCodeKind? kind,
+    KeyCodeName? name,
+    String? char,
+    int? baseLayoutKey,
+  }) {
+    return KeyCode._(
+      kind: kind ?? this.kind,
+      name: name ?? this.name,
+      char: char ?? this.char,
+      baseLayoutKey: baseLayoutKey ?? this.baseLayoutKey,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'KeyCode{kind: $kind, name: $name, char: $char, baseLayoutKey: $baseLayoutKey}';
+  }
 }
 
 /// Represent a Key event.
@@ -544,21 +380,11 @@ final class KeyEvent extends InputEvent {
   /// The type of the event.
   final KeyEventType eventType;
 
-  /// The Key state
-  final KeyEventState eventState;
-
-  /// Specific modifier keys that were pressed (leftCtrl vs rightCtrl).
-  /// Empty set means wildcard (matches any specific modifiers).
-  /// Populated when Kitty protocol provides specific modifier info.
-  final Set<ModifierKey> modifierKeys;
-
   /// Constructs a new instance of [KeyEvent].
   const KeyEvent(
     this.code, {
-    this.modifiers = const KeyModifiers(0),
+    this.modifiers = KeyModifiers.none,
     this.eventType = KeyEventType.keyPress,
-    this.eventState = const KeyEventState(0),
-    this.modifierKeys = const {},
   });
 
   /// Parses a key specification string into a [KeyEvent].
@@ -566,16 +392,14 @@ final class KeyEvent extends InputEvent {
   /// Supports both generic and specific modifier syntax:
   /// - 'a' → single character key
   /// - 'enter' → named key (use exact enum names)
-  /// - 'ctrl+a' → generic modifier + key
-  /// - 'leftCtrl+a' → specific modifier + key (also sets generic ctrl)
+  /// - 'ctrl+a' → modifier + key
   /// - 'shift+ctrl+enter' → multiple modifiers
-  /// - 'leftShift+rightCtrl+f1' → specific modifiers
   /// - 'play' → media key (use exact enum names)
   /// - 'ctrl+raiseVolume' → media key with modifier
-  /// - 'leftCtrl' → modifier key itself
+  /// - 'leftCtrl' → named modifier key itself
   ///
   /// Key names are case-insensitive and match the enum names from
-  /// [KeyCodeName], [MediaKeyCode], and [ModifierKey].
+  /// [KeyCodeName].
   ///
   /// Throws [ArgumentError] if the specification is invalid.
   factory KeyEvent.fromString(String spec) {
@@ -585,34 +409,25 @@ final class KeyEvent extends InputEvent {
 
     final parts = spec.split('+');
     final keyPart = parts.last;
-    final modifierParts = parts.length > 1 ? parts.sublist(0, parts.length - 1) : <String>[];
+    final modifierParts = parts.length > 1 ? parts.sublist(0, parts.length - 1) : [parts[0]];
 
-    var modifierMask = 0;
-    final specificMods = <ModifierKey>{};
+    var modifierMask = KeyModifiers.none;
 
     for (final mod in modifierParts) {
-      final specificMod = _parseSpecificModifier(mod);
-      if (specificMod != null) {
-        specificMods.add(specificMod);
-        modifierMask |= _getGenericModifierForSpecific(specificMod);
-        continue;
-      }
-
       final genericMod = _parseGenericModifier(mod);
       if (genericMod != null) {
         modifierMask |= genericMod;
         continue;
       }
 
-      throw ArgumentError('Unknown modifier: $mod');
+      if (parts.length > 1 && genericMod == null) {
+        throw ArgumentError('Unknown modifier: $mod');
+      }
     }
 
-    final keyCode = _parseKey(keyPart);
-
     return KeyEvent(
-      keyCode,
-      modifiers: KeyModifiers(modifierMask),
-      modifierKeys: specificMods,
+      _parseKey(keyPart),
+      modifiers: modifierMask,
     );
   }
 
@@ -623,94 +438,59 @@ final class KeyEvent extends InputEvent {
           runtimeType == other.runtimeType &&
           code == other.code &&
           modifiers == other.modifiers &&
-          eventType == other.eventType &&
-          eventState == other.eventState;
-  // NOTE: modifierKeys is intentionally NOT compared for wildcard matching
+          eventType == other.eventType;
 
   @override
-  int get hashCode => Object.hash(code, modifiers, eventType, eventState);
-  // NOTE: modifierKeys is intentionally NOT included for wildcard matching
+  int get hashCode => Object.hash(code, modifiers, eventType);
 
   /// Creates a copy of this [KeyEvent] with the given fields replaced.
   KeyEvent copyWith({
     KeyCode? code,
     KeyModifiers? modifiers,
-    Set<ModifierKey>? modifierKeys,
     KeyEventType? eventType,
-    KeyEventState? eventState,
   }) {
     return KeyEvent(
       code ?? this.code,
       modifiers: modifiers ?? this.modifiers,
       eventType: eventType ?? this.eventType,
-      eventState: eventState ?? this.eventState,
-      modifierKeys: modifierKeys ?? this.modifierKeys,
     );
   }
 
   @override
   String toString() {
-    return 'KeyEvent{code: $code, modifiers: $modifiers, eventType: $eventType, eventState: $eventState, modifierKeys: $modifierKeys}';
-  }
-}
-
-/// Returns the generic modifier mask for a specific modifier key
-int _getGenericModifierForSpecific(ModifierKey specificMod) {
-  switch (specificMod) {
-    case ModifierKey.leftShift:
-    case ModifierKey.rightShift:
-      return KeyModifiers.shift;
-    case ModifierKey.leftCtrl:
-    case ModifierKey.rightCtrl:
-      return KeyModifiers.ctrl;
-    case ModifierKey.leftAlt:
-    case ModifierKey.rightAlt:
-      return KeyModifiers.alt;
-    case ModifierKey.leftSuper:
-    case ModifierKey.rightSuper:
-      return KeyModifiers.superKey;
-    case ModifierKey.leftHyper:
-    case ModifierKey.rightHyper:
-      return KeyModifiers.hyper;
-    case ModifierKey.leftMeta:
-    case ModifierKey.rightMeta:
-      return KeyModifiers.meta;
-    case ModifierKey.isoLevel3Shift:
-    case ModifierKey.isoLevel5Shift:
-    case ModifierKey.none:
-      return 0;
+    return 'KeyEvent{code: $code, modifiers: ${modifiers.debugInfo()}, eventType: $eventType';
   }
 }
 
 /// Map of generic modifier names to their bit masks
-const Map<String, int> _genericModifiers = {
+const Map<String, KeyModifiers> _genericModifiers = {
   'shift': KeyModifiers.shift,
   'ctrl': KeyModifiers.ctrl,
   'alt': KeyModifiers.alt,
   'super': KeyModifiers.superKey,
   'hyper': KeyModifiers.hyper,
   'meta': KeyModifiers.meta,
+  'leftshift': KeyModifiers.shift,
+  'rightshift': KeyModifiers.shift,
+  'leftctrl': KeyModifiers.ctrl,
+  'rightctrl': KeyModifiers.ctrl,
+  'leftalt': KeyModifiers.alt,
+  'rightalt': KeyModifiers.alt,
+  'leftmeta': KeyModifiers.meta,
+  'rightmeta': KeyModifiers.meta,
+  'leftsuper': KeyModifiers.superKey,
+  'rightsuper': KeyModifiers.superKey,
+  'lefthyper': KeyModifiers.hyper,
+  'righthyper': KeyModifiers.hyper,
 };
 
 /// Parses a generic modifier string (shift, ctrl, alt, etc.)
-int? _parseGenericModifier(String mod) {
+KeyModifiers? _parseGenericModifier(String mod) {
   return _genericModifiers[mod.toLowerCase()];
 }
 
 /// Parses a key string into a KeyCode
 KeyCode _parseKey(String key) {
-  // Try to parse as a modifier key itself
-  final modifierKey = _parseSpecificModifier(key);
-  if (modifierKey != null) {
-    return KeyCode.modifier(modifierKey);
-  }
-
-  // Try to parse as a media key
-  final mediaKey = _parseMediaKey(key);
-  if (mediaKey != null) {
-    return KeyCode.media(mediaKey);
-  }
-
   // Try to parse as a named key
   final namedKey = _parseNamedKey(key);
   if (namedKey != null) {
@@ -723,32 +503,6 @@ KeyCode _parseKey(String key) {
   }
 
   throw ArgumentError('Unknown key: $key');
-}
-
-/// Parses a specific modifier string (leftCtrl, rightShift, etc.)
-ModifierKey? _parseSpecificModifier(String mod) {
-  final modLower = mod.toLowerCase();
-  for (final value in ModifierKey.values) {
-    if (value == ModifierKey.none) continue;
-    if (value == ModifierKey.isoLevel3Shift) continue;
-    if (value == ModifierKey.isoLevel5Shift) continue;
-    if (value.name.toLowerCase() == modLower) {
-      return value;
-    }
-  }
-  return null;
-}
-
-/// Parses a media key string
-MediaKeyCode? _parseMediaKey(String key) {
-  final keyLower = key.toLowerCase();
-  for (final value in MediaKeyCode.values) {
-    if (value == MediaKeyCode.none) continue;
-    if (value.name.toLowerCase() == keyLower) {
-      return value;
-    }
-  }
-  return null;
 }
 
 /// Parses a named key string

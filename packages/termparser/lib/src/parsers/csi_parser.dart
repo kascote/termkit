@@ -3,6 +3,7 @@ import '../events/event_base.dart';
 import '../events/focus_event.dart';
 import '../events/internal_events.dart';
 import '../events/key_event.dart';
+import '../events/key_support.dart';
 import '../events/response_events.dart';
 import '../extensions/string_extension.dart';
 import 'key_parser.dart';
@@ -81,10 +82,11 @@ Event _parseKeyboardEnhancedMode(Parameters params, String char) {
   if (codePoint == null) return const NoneEvent();
 
   final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
-  var modifiers = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
+  var modifiers = modifierMask == null ? KeyModifiers.none : modifierParser(modifierMask);
   final kind = eventKindParser(eventKind);
-  final stateFromModifiers = modifiersToStateParser(modifierMask);
-  var (keyCode, stateFromKeyCode) = functionalKeyCodeParser(codePoint);
+  // final stateFromModifiers = modifiersToStateParser(modifierMask);
+  var (keyCode, baseModifier) = functionalKeyCodeParser(codePoint);
+  modifiers = modifiers | baseModifier;
 
   if (keyCode == const KeyCode.named(KeyCodeName.none)) {
     final c = StringExtension.tryFromCharCode(codePoint);
@@ -103,30 +105,12 @@ Event _parseKeyboardEnhancedMode(Parameters params, String char) {
       0x7f => const KeyCode.named(KeyCodeName.backSpace),
       _ => KeyCode.char(String.fromCharCode(codePoint)),
     };
-    stateFromKeyCode = KeyEventState.none();
-  }
-
-  // Track specific modifier keys when the key itself is a modifier
-  final specificMods = <ModifierKey>{};
-  modifiers = switch (keyCode.modifierKey) {
-    ModifierKey.leftAlt || ModifierKey.rightAlt => modifiers.add(KeyModifiers.alt),
-    ModifierKey.leftCtrl || ModifierKey.rightCtrl => modifiers.add(KeyModifiers.ctrl),
-    ModifierKey.leftShift || ModifierKey.rightShift => modifiers.add(KeyModifiers.shift),
-    ModifierKey.leftSuper || ModifierKey.rightSuper => modifiers.add(KeyModifiers.superKey),
-    ModifierKey.leftHyper || ModifierKey.rightHyper => modifiers.add(KeyModifiers.hyper),
-    ModifierKey.leftMeta || ModifierKey.rightMeta => modifiers.add(KeyModifiers.meta),
-    _ => modifiers,
-  };
-
-  // Populate modifierKeys when the key is a modifier key itself
-  if (keyCode.modifierKey != ModifierKey.none) {
-    specificMods.add(keyCode.modifierKey);
   }
 
   if (modifiers.has(KeyModifiers.shift)) {
     if (shiftedKey != null) {
       keyCode = KeyCode.char(String.fromCharCode(shiftedKey));
-      modifiers.add(KeyModifiers.shift);
+      modifiers = modifiers | KeyModifiers.shift;
     }
   }
   if (baseLayout != null) keyCode = keyCode.copyWith(baseLayoutKey: baseLayout);
@@ -135,8 +119,6 @@ Event _parseKeyboardEnhancedMode(Parameters params, String char) {
     keyCode,
     modifiers: modifiers,
     eventType: kind,
-    eventState: stateFromKeyCode == KeyEventState.none() ? stateFromModifiers : stateFromKeyCode,
-    modifierKeys: specificMods,
   );
 }
 
@@ -177,9 +159,9 @@ Event _parseSpecialKeyCode(Parameters params, String char) {
   if (params.values.isEmpty) return const NoneEvent();
 
   final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
-  final modifier = modifierMask == null ? KeyModifiers.empty() : modifierParser(modifierMask);
+  final modifier = modifierMask == null ? KeyModifiers.none : modifierParser(modifierMask);
   final eventType = eventKindParser(eventKind);
-  final state = modifiersToStateParser(modifierMask);
+  // final state = modifiersToStateParser(modifierMask);
   final keyCode = int.parse(params.values.first);
 
   final key = switch (keyCode) {
@@ -218,7 +200,7 @@ Event _parseSpecialKeyCode(Parameters params, String char) {
     KeyCode.named(key),
     modifiers: modifier,
     eventType: eventType,
-    eventState: state,
+    // eventState: state,
   );
 }
 

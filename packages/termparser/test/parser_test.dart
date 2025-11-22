@@ -90,7 +90,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('c'), modifiers: KeyModifiers(KeyModifiers.alt))),
+        equals(const KeyEvent(KeyCode.char('c'), modifiers: KeyModifiers.alt)),
       );
     });
 
@@ -102,7 +102,7 @@ void main() {
         equals(
           const KeyEvent(
             KeyCode.char('H'), // must have shift included? is an uppercase
-            modifiers: KeyModifiers(KeyModifiers.alt),
+            modifiers: KeyModifiers.alt,
           ),
         ),
       );
@@ -144,7 +144,7 @@ void main() {
         parser.nextEvent(),
         const KeyEvent(
           KeyCode.named(KeyCodeName.home),
-          modifiers: KeyModifiers(KeyModifiers.shift),
+          modifiers: KeyModifiers.shift,
           eventType: KeyEventType.keyRelease,
         ),
       );
@@ -186,7 +186,7 @@ void main() {
           86,
           18,
           MouseButton.down(MouseButtonKind.left),
-          modifiers: const KeyModifiers(KeyModifiers.ctrl | KeyModifiers.alt),
+          modifiers: KeyModifiers.ctrl | KeyModifiers.alt,
         ),
       );
     });
@@ -214,7 +214,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        MouseEvent(20, 10, MouseButton.moved(), modifiers: const KeyModifiers(KeyModifiers.ctrl)),
+        MouseEvent(20, 10, MouseButton.moved(), modifiers: KeyModifiers.ctrl),
       );
     });
 
@@ -250,7 +250,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('A'), modifiers: KeyModifiers(KeyModifiers.shift))),
+        equals(const KeyEvent(KeyCode.char('A'), modifiers: KeyModifiers.shift)),
       );
     });
 
@@ -259,7 +259,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers(KeyModifiers.ctrl | KeyModifiers.alt))),
+        equals(KeyEvent(const KeyCode.char('a'), modifiers: KeyModifiers.ctrl | KeyModifiers.alt)),
       );
     });
 
@@ -304,7 +304,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.media(MediaKeyCode.play))),
+        equals(const KeyEvent(KeyCode.named(KeyCodeName.play))),
       );
     });
 
@@ -315,8 +315,8 @@ void main() {
         parser.nextEvent(),
         equals(
           const KeyEvent(
-            KeyCode.modifier(ModifierKey.leftShift),
-            modifiers: KeyModifiers(KeyModifiers.shift),
+            KeyCode.named(KeyCodeName.leftShift),
+            modifiers: KeyModifiers.shift,
           ),
         ),
       );
@@ -326,64 +326,25 @@ void main() {
       final parser = Parser()..advance(keySequence('π[57441u'));
       expect(parser.hasEvents, true);
       final event = parser.nextEvent()! as KeyEvent;
-      expect(event.modifierKeys, contains(ModifierKey.leftShift));
-      expect(event.modifierKeys.length, equals(1));
+      expect(event.modifiers, KeyModifiers.shift);
+      expect(event.code.kind, KeyCodeKind.named);
+      expect(event.code.name, KeyCodeName.leftShift);
     });
 
     test('.[57448u - rightCtrl modifierKeys', () {
       final parser = Parser()..advance(keySequence('π[57448u'));
       expect(parser.hasEvents, true);
       final event = parser.nextEvent()! as KeyEvent;
-      expect(event.modifierKeys, contains(ModifierKey.rightCtrl));
-      expect(event.modifierKeys.length, equals(1));
+      expect(event.modifiers, KeyModifiers.ctrl);
+      expect(event.code.kind, KeyCodeKind.named);
+      expect(event.code.name, KeyCodeName.rightCtrl);
     });
 
     test('.[97u - no modifierKeys for regular key', () {
       final parser = Parser()..advance(keySequence('π[97u'));
       expect(parser.hasEvents, true);
       final event = parser.nextEvent()! as KeyEvent;
-      expect(event.modifierKeys, isEmpty);
-    });
-
-    test('wildcard matching - equality ignores modifierKeys', () {
-      // Two KeyEvents with different modifierKeys should be equal
-      const event1 = KeyEvent(
-        KeyCode.char('a'),
-        modifiers: KeyModifiers(KeyModifiers.ctrl),
-        modifierKeys: {ModifierKey.leftCtrl},
-      );
-      const event2 = KeyEvent(
-        KeyCode.char('a'),
-        modifiers: KeyModifiers(KeyModifiers.ctrl),
-        modifierKeys: {ModifierKey.rightCtrl},
-      );
-      const event3 = KeyEvent(
-        KeyCode.char('a'),
-        modifiers: KeyModifiers(KeyModifiers.ctrl),
-      );
-
-      expect(event1, equals(event2));
-      expect(event1, equals(event3));
-      expect(event2, equals(event3));
-      expect(event1.hashCode, equals(event2.hashCode));
-      expect(event1.hashCode, equals(event3.hashCode));
-    });
-
-    test('copyWith preserves and updates fields', () {
-      const event = KeyEvent(
-        KeyCode.char('a'),
-        modifiers: KeyModifiers(KeyModifiers.ctrl),
-        modifierKeys: {ModifierKey.leftCtrl},
-      );
-
-      final updated = event.copyWith(
-        modifierKeys: const {ModifierKey.rightCtrl},
-      );
-
-      expect(updated.code, equals(event.code));
-      expect(updated.modifiers, equals(event.modifiers));
-      expect(updated.modifierKeys, contains(ModifierKey.rightCtrl));
-      expect(updated.modifierKeys, isNot(contains(ModifierKey.leftCtrl)));
+      expect(event.modifiers, KeyModifiers.none);
     });
 
     test('.[57399u', () {
@@ -391,7 +352,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(KeyEvent(const KeyCode.char('0'), eventState: KeyEventState.keypad())),
+        equals(const KeyEvent(KeyCode.char('0'), modifiers: KeyModifiers.keyPad)),
       );
     });
 
@@ -400,7 +361,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(KeyEvent(const KeyCode.named(KeyCodeName.up), eventState: KeyEventState.keypad())),
+        equals(const KeyEvent(KeyCode.named(KeyCodeName.up), modifiers: KeyModifiers.keyPad)),
       );
     });
 
@@ -427,7 +388,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers(KeyModifiers.ctrl))),
+        equals(const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers.ctrl)),
       );
     });
 
@@ -436,7 +397,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('d'), modifiers: KeyModifiers(KeyModifiers.ctrl))),
+        equals(const KeyEvent(KeyCode.char('d'), modifiers: KeyModifiers.ctrl)),
       );
     });
 
@@ -465,8 +426,8 @@ void main() {
         parser.nextEvent(),
         equals(
           const KeyEvent(
-            KeyCode.modifier(ModifierKey.rightAlt),
-            modifiers: KeyModifiers(KeyModifiers.alt),
+            KeyCode.named(KeyCodeName.rightAlt),
+            modifiers: KeyModifiers.alt,
           ),
         ),
       );
@@ -479,8 +440,8 @@ void main() {
         parser.nextEvent(),
         equals(
           const KeyEvent(
-            KeyCode.modifier(ModifierKey.rightAlt),
-            modifiers: KeyModifiers(KeyModifiers.alt),
+            KeyCode.named(KeyCodeName.rightAlt),
+            modifiers: KeyModifiers.alt,
             eventType: KeyEventType.keyRelease,
           ),
         ),
@@ -493,9 +454,9 @@ void main() {
       expect(
         parser.nextEvent(),
         equals(
-          const KeyEvent(
-            KeyCode.modifier(ModifierKey.rightCtrl),
-            modifiers: KeyModifiers(KeyModifiers.shift | KeyModifiers.alt | KeyModifiers.ctrl | KeyModifiers.superKey),
+          KeyEvent(
+            const KeyCode.named(KeyCodeName.rightCtrl),
+            modifiers: KeyModifiers.shift | KeyModifiers.alt | KeyModifiers.ctrl | KeyModifiers.superKey,
             eventType: KeyEventType.keyRepeat,
           ),
         ),
@@ -509,8 +470,8 @@ void main() {
         parser.nextEvent(),
         equals(
           const KeyEvent(
-            KeyCode.modifier(ModifierKey.rightSuper),
-            modifiers: KeyModifiers(KeyModifiers.superKey),
+            KeyCode.named(KeyCodeName.rightSuper),
+            modifiers: KeyModifiers.superKey,
           ),
         ),
       );
@@ -523,8 +484,8 @@ void main() {
         parser.nextEvent(),
         equals(
           const KeyEvent(
-            KeyCode.modifier(ModifierKey.rightHyper),
-            modifiers: KeyModifiers(KeyModifiers.hyper),
+            KeyCode.named(KeyCodeName.rightHyper),
+            modifiers: KeyModifiers.hyper,
           ),
         ),
       );
@@ -535,7 +496,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(KeyEvent(const KeyCode.char('a'), eventState: KeyEventState.capsLock())),
+        equals(const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers.capsLock)),
       );
     });
 
@@ -544,7 +505,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(KeyEvent(const KeyCode.char('1'), eventState: KeyEventState.numLock())),
+        equals(const KeyEvent(KeyCode.char('1'), modifiers: KeyModifiers.keyPad)),
       );
     });
 
@@ -553,9 +514,28 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('('), modifiers: KeyModifiers(KeyModifiers.alt | KeyModifiers.shift))),
+        equals(KeyEvent(const KeyCode.char('('), modifiers: KeyModifiers.alt | KeyModifiers.shift)),
       );
     });
+
+    test('π[49:33;2;33u', () {
+      final parser = Parser()..advance(keySequence('π[49:33;2;33u'));
+      expect(parser.hasEvents, true);
+      expect(
+        parser.nextEvent(),
+        equals(const KeyEvent(KeyCode.char('!'), modifiers: KeyModifiers.shift)),
+      );
+    });
+
+    // option+a
+    // test('π[97;;229u', () {
+    //   final parser = Parser()..advance(keySequence('π[97;;229u'));
+    //   expect(parser.hasEvents, true);
+    //   expect(
+    //     parser.nextEvent(),
+    //     equals(const KeyEvent(KeyCode.char('å'))),
+    //   );
+    // });
 
     test('.[127u', () {
       final parser = Parser()..advance(keySequence('π[127u'));
@@ -583,7 +563,7 @@ void main() {
         equals(
           const KeyEvent(
             KeyCode.named(KeyCodeName.backSpace, baseLayoutKey: 8),
-            modifiers: KeyModifiers(KeyModifiers.shift),
+            modifiers: KeyModifiers.shift,
           ),
         ),
       );
@@ -612,7 +592,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.named(KeyCodeName.escape), modifiers: KeyModifiers(KeyModifiers.superKey))),
+        equals(const KeyEvent(KeyCode.named(KeyCodeName.escape), modifiers: KeyModifiers.superKey)),
       );
     });
 
@@ -678,7 +658,7 @@ void main() {
         equals(
           const KeyEvent(
             KeyCode.named(KeyCodeName.pageDown),
-            modifiers: KeyModifiers(KeyModifiers.ctrl),
+            modifiers: KeyModifiers.ctrl,
             eventType: KeyEventType.keyRelease,
           ),
         ),

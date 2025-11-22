@@ -1,4 +1,5 @@
 import '../events/key_event.dart';
+import '../events/key_support.dart';
 import '../extensions/string_extension.dart';
 
 /// Try to parse a hexadecimal string to int
@@ -13,11 +14,11 @@ KeyEvent ctrlOrKey(String char) {
   return switch (code) {
     >= 0x01 && <= 0x1A => KeyEvent(
       KeyCode.char(String.fromCharCode(code - 0x01 + 0x61)),
-      modifiers: const KeyModifiers(KeyModifiers.ctrl),
+      modifiers: KeyModifiers.ctrl,
     ),
     >= 0x1C && <= 0x1F => KeyEvent(
       KeyCode.char(String.fromCharCode(code - 0x1C + 0x34)),
-      modifiers: const KeyModifiers(KeyModifiers.ctrl),
+      modifiers: KeyModifiers.ctrl,
     ),
     _ => KeyEvent(KeyCode.char(char)),
   };

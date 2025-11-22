@@ -4,6 +4,7 @@ import '../engine/parameters.dart';
 import '../events/event_base.dart';
 import '../events/internal_events.dart';
 import '../events/key_event.dart';
+import '../events/key_support.dart';
 import '../events/mouse_event.dart';
 import '../events/response_events.dart';
 import '../extensions/int_extension.dart';
@@ -12,7 +13,7 @@ import '../extensions/int_extension.dart';
 (KeyModifiers, KeyEventType) modifierAndEventParser(String value) {
   final split = value.split(':');
 
-  if (split.isEmpty) return (KeyModifiers.empty(), KeyEventType.keyPress);
+  if (split.isEmpty) return (KeyModifiers.none, KeyEventType.keyPress);
 
   final modifier = int.tryParse(split[0]) ?? 0;
   final event = split.length == 2 ? int.tryParse(split[1]) : null;
@@ -23,13 +24,15 @@ import '../extensions/int_extension.dart';
 /// Parse the modifier keys
 KeyModifiers modifierParser(int modifier) {
   final mod = modifier.saturatingSub(1);
-  var modifiers = KeyModifiers.empty();
-  if (mod & 1 != 0) modifiers = modifiers.add(KeyModifiers.shift);
-  if (mod & 2 != 0) modifiers = modifiers.add(KeyModifiers.alt);
-  if (mod & 4 != 0) modifiers = modifiers.add(KeyModifiers.ctrl);
-  if (mod & 8 != 0) modifiers = modifiers.add(KeyModifiers.superKey);
-  if (mod & 16 != 0) modifiers = modifiers.add(KeyModifiers.hyper);
-  if (mod & 32 != 0) modifiers = modifiers.add(KeyModifiers.meta);
+  var modifiers = KeyModifiers.none;
+  if (mod & 1 != 0) modifiers = modifiers | KeyModifiers.shift;
+  if (mod & 2 != 0) modifiers = modifiers | KeyModifiers.alt;
+  if (mod & 4 != 0) modifiers = modifiers | KeyModifiers.ctrl;
+  if (mod & 8 != 0) modifiers = modifiers | KeyModifiers.superKey;
+  if (mod & 16 != 0) modifiers = modifiers | KeyModifiers.hyper;
+  if (mod & 32 != 0) modifiers = modifiers | KeyModifiers.meta;
+  if (mod & 64 != 0) modifiers = modifiers | KeyModifiers.capsLock;
+  if (mod & 128 != 0) modifiers = modifiers | KeyModifiers.keyPad;
 
   return modifiers;
 }
@@ -69,16 +72,16 @@ Event sgrMouseParser(Parameters params, String charFinal) {
 
   final p1 = params.values[1].parseInt();
   final btn = p1 & _buttonBits;
-  var mods = 0;
+  var modifiers = KeyModifiers.none;
 
   if (p1.isSet(_motion)) action = MouseButtonAction.moved;
   if (p1.isSet(_mouseWheelUp)) action = MouseButtonAction.wheelUp;
   if (p1.isSet(_mouseWheelDown)) action = MouseButtonAction.wheelDown;
   if (p1.isSet(_mouseWheelLeft)) action = MouseButtonAction.wheelLeft;
   if (p1.isSet(_mouseWheelRight)) action = MouseButtonAction.wheelRight;
-  if (p1.isSet(_mouseModShift)) mods |= KeyModifiers.shift;
-  if (p1.isSet(_mouseModAlt)) mods |= KeyModifiers.alt;
-  if (p1.isSet(_mouseModCtrl)) mods |= KeyModifiers.ctrl;
+  if (p1.isSet(_mouseModShift)) modifiers |= KeyModifiers.shift;
+  if (p1.isSet(_mouseModAlt)) modifiers |= KeyModifiers.alt;
+  if (p1.isSet(_mouseModCtrl)) modifiers |= KeyModifiers.ctrl;
   final button = switch (btn) {
     0x00 => MouseButtonKind.left,
     0x01 => MouseButtonKind.middle,
@@ -90,7 +93,7 @@ Event sgrMouseParser(Parameters params, String charFinal) {
     params.values[2].parseInt(),
     params.values[3].parseInt(),
     MouseButton(button, action),
-    modifiers: KeyModifiers(mods),
+    modifiers: modifiers,
   );
 }
 
@@ -126,16 +129,16 @@ KeyboardEnhancementFlagsEvent keyboardEnhancedCodeParser(String mode) {
 }
 
 /// Parse the modifier keys to state
-KeyEventState modifiersToStateParser(int? modifierMask) {
-  final mod = (modifierMask ?? 0).saturatingSub(1);
-  var state = KeyEventState.none();
-  if (mod & 64 != 0) state = state.add(KeyEventState.capsLock());
-  if (mod & 128 != 0) state = state.add(KeyEventState.numLock());
-  return state;
-}
+// KeyEventState modifiersToStateParser(int? modifierMask) {
+//   final mod = (modifierMask ?? 0).saturatingSub(1);
+//   var state = KeyEventState.none();
+//   if (mod & 64 != 0) state = state.add(KeyEventState.capsLock());
+//   if (mod & 128 != 0) state = state.add(KeyEventState.numLock());
+//   return state;
+// }
 
 /// Translate the enhanced keyboard code to a functional key code
-(KeyCode, KeyEventState) functionalKeyCodeParser(int codePoint) {
+(KeyCode, KeyModifiers) functionalKeyCodeParser(int codePoint) {
   var keyCode = switch (codePoint) {
     57399 => const KeyCode.char('0'),
     57400 => const KeyCode.char('1'),
@@ -169,7 +172,9 @@ KeyEventState modifiersToStateParser(int? modifierMask) {
     _ => null,
   };
 
-  if (keyCode != null) return (keyCode, KeyEventState.keypad());
+  if (keyCode != null) {
+    return (keyCode, KeyModifiers.keyPad);
+  }
 
   keyCode = switch (codePoint) {
     57358 => const KeyCode.named(KeyCodeName.capsLock),
@@ -201,37 +206,45 @@ KeyEventState modifiersToStateParser(int? modifierMask) {
     57396 => const KeyCode.named(KeyCodeName.f33),
     57397 => const KeyCode.named(KeyCodeName.f34),
     57398 => const KeyCode.named(KeyCodeName.f35),
-    57428 => const KeyCode.media(MediaKeyCode.play),
-    57429 => const KeyCode.media(MediaKeyCode.pause),
-    57430 => const KeyCode.media(MediaKeyCode.playPause),
-    57431 => const KeyCode.media(MediaKeyCode.reverse),
-    57432 => const KeyCode.media(MediaKeyCode.stop),
-    57433 => const KeyCode.media(MediaKeyCode.fastForward),
-    57434 => const KeyCode.media(MediaKeyCode.rewind),
-    57435 => const KeyCode.media(MediaKeyCode.trackNext),
-    57436 => const KeyCode.media(MediaKeyCode.trackPrevious),
-    57437 => const KeyCode.media(MediaKeyCode.record),
-    57438 => const KeyCode.media(MediaKeyCode.lowerVolume),
-    57439 => const KeyCode.media(MediaKeyCode.raiseVolume),
-    57440 => const KeyCode.media(MediaKeyCode.muteVolume),
-    57441 => const KeyCode.modifier(ModifierKey.leftShift),
-    57442 => const KeyCode.modifier(ModifierKey.leftCtrl),
-    57443 => const KeyCode.modifier(ModifierKey.leftAlt),
-    57444 => const KeyCode.modifier(ModifierKey.leftSuper),
-    57445 => const KeyCode.modifier(ModifierKey.leftHyper),
-    57446 => const KeyCode.modifier(ModifierKey.leftMeta),
-    57447 => const KeyCode.modifier(ModifierKey.rightShift),
-    57448 => const KeyCode.modifier(ModifierKey.rightCtrl),
-    57449 => const KeyCode.modifier(ModifierKey.rightAlt),
-    57450 => const KeyCode.modifier(ModifierKey.rightSuper),
-    57451 => const KeyCode.modifier(ModifierKey.rightHyper),
-    57452 => const KeyCode.modifier(ModifierKey.rightMeta),
-    57453 => const KeyCode.modifier(ModifierKey.isoLevel3Shift),
-    57454 => const KeyCode.modifier(ModifierKey.isoLevel5Shift),
+    57428 => const KeyCode.named(KeyCodeName.play),
+    57429 => const KeyCode.named(KeyCodeName.pause),
+    57430 => const KeyCode.named(KeyCodeName.playPause),
+    57431 => const KeyCode.named(KeyCodeName.reverse),
+    57432 => const KeyCode.named(KeyCodeName.stop),
+    57433 => const KeyCode.named(KeyCodeName.fastForward),
+    57434 => const KeyCode.named(KeyCodeName.rewind),
+    57435 => const KeyCode.named(KeyCodeName.trackNext),
+    57436 => const KeyCode.named(KeyCodeName.trackPrevious),
+    57437 => const KeyCode.named(KeyCodeName.record),
+    57438 => const KeyCode.named(KeyCodeName.lowerVolume),
+    57439 => const KeyCode.named(KeyCodeName.raiseVolume),
+    57440 => const KeyCode.named(KeyCodeName.muteVolume),
     _ => null,
   };
 
-  if (keyCode != null) return (keyCode, KeyEventState.none());
+  if (keyCode != null) {
+    return (keyCode, KeyModifiers.none);
+  }
 
-  return (const KeyCode.named(KeyCodeName.none), const KeyEventState(0));
+  final (specificKey, specificModifier) = switch (codePoint) {
+    57441 => (const KeyCode.named(KeyCodeName.leftShift), KeyModifiers.shift),
+    57442 => (const KeyCode.named(KeyCodeName.leftCtrl), KeyModifiers.ctrl),
+    57443 => (const KeyCode.named(KeyCodeName.leftAlt), KeyModifiers.alt),
+    57444 => (const KeyCode.named(KeyCodeName.leftSuper), KeyModifiers.superKey),
+    57445 => (const KeyCode.named(KeyCodeName.leftHyper), KeyModifiers.hyper),
+    57446 => (const KeyCode.named(KeyCodeName.leftMeta), KeyModifiers.meta),
+    57447 => (const KeyCode.named(KeyCodeName.rightShift), KeyModifiers.shift),
+    57448 => (const KeyCode.named(KeyCodeName.rightCtrl), KeyModifiers.ctrl),
+    57449 => (const KeyCode.named(KeyCodeName.rightAlt), KeyModifiers.alt),
+    57450 => (const KeyCode.named(KeyCodeName.rightSuper), KeyModifiers.superKey),
+    57451 => (const KeyCode.named(KeyCodeName.rightHyper), KeyModifiers.hyper),
+    57452 => (const KeyCode.named(KeyCodeName.rightMeta), KeyModifiers.meta),
+    57453 => (const KeyCode.named(KeyCodeName.isoLevel3Shift), KeyModifiers.shift),
+    57454 => (const KeyCode.named(KeyCodeName.isoLevel5Shift), KeyModifiers.shift),
+    _ => (null, null),
+  };
+
+  if (specificKey != null) return (specificKey, specificModifier!);
+
+  return (const KeyCode.named(KeyCodeName.none), KeyModifiers.none);
 }

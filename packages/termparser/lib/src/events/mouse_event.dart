@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'event_base.dart';
-import 'key_event.dart';
+import 'key_support.dart';
 
 /// Represent a Mouse event.
 @immutable
@@ -19,7 +19,7 @@ final class MouseEvent extends InputEvent {
   final KeyModifiers modifiers;
 
   /// Constructs a new instance of [MouseEvent].
-  const MouseEvent(this.x, this.y, this.button, {this.modifiers = const KeyModifiers(0)});
+  const MouseEvent(this.x, this.y, this.button, {this.modifiers = KeyModifiers.none});
 
   @override
   bool operator ==(Object other) =>

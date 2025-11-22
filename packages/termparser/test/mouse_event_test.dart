@@ -7,11 +7,11 @@ void main() {
       final event = MouseEvent(10, 20, MouseButton.down());
       expect(event.x, 10);
       expect(event.y, 20);
-      expect(event.modifiers, const KeyModifiers(0));
+      expect(event.modifiers, KeyModifiers.none);
     });
 
     test('constructor with modifiers', () {
-      const modifiers = KeyModifiers(1);
+      final modifiers = KeyModifiers.shift | KeyModifiers.ctrl;
       final event = MouseEvent(5, 15, MouseButton.down(), modifiers: modifiers);
       expect(event.x, 5);
       expect(event.y, 15);
@@ -47,8 +47,8 @@ void main() {
     });
 
     test('equality - different modifiers', () {
-      final event1 = MouseEvent(10, 20, MouseButton.down(), modifiers: const KeyModifiers(3));
-      final event2 = MouseEvent(10, 20, MouseButton.down(), modifiers: const KeyModifiers(2));
+      final event1 = MouseEvent(10, 20, MouseButton.down(), modifiers: KeyModifiers.shift);
+      final event2 = MouseEvent(10, 20, MouseButton.down(), modifiers: KeyModifiers.ctrl);
 
       expect(event1, isNot(equals(event2)));
     });
