@@ -2,7 +2,7 @@ import 'package:termlib/color_util.dart';
 import 'package:termlib/termlib.dart';
 
 // test to see how 256 colors downgrades to 16 colors
-void main() {
+Future<void> main() async {
   final t = TermLib();
   const black = Color.black;
   const white = Color.darkGray;
@@ -33,4 +33,6 @@ void main() {
   }
 
   t.write(resetCR);
+  await t.dispose();
+  await t.flushThenExit(0);
 }

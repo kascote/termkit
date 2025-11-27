@@ -221,8 +221,10 @@ class MockStdin extends _StdStream implements Stdin {
   @override
   bool lineMode = true;
 
+  var _hasTerminal = true;
   @override
-  bool get hasTerminal => throw UnimplementedError();
+  bool get hasTerminal => _hasTerminal;
+  set hasTerminal(bool value) => _hasTerminal = value;
 
   @override
   int readByteSync() => throw UnimplementedError();

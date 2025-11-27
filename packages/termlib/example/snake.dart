@@ -32,6 +32,7 @@ void main() async {
       ..cursorShow();
   }
 
+  await t.dispose();
   await t.flushThenExit(0);
 }
 
@@ -39,7 +40,7 @@ Future<void> gameLoop(TermLib t, SnakeGame game) async {
   game.drawBoard();
 
   while (true) {
-    final event = await t.readEvent<Event>();
+    final event = await t.pollTimeout<Event>(timeout: 100);
     var heading = game.heading;
 
     if (event is KeyEvent) {
@@ -260,7 +261,7 @@ class SnakeGame {
       ..write(white(' to exit'));
 
     while (true) {
-      final event = await _term.readEvent<KeyEvent>();
+      final event = await _term.pollTimeout<KeyEvent>();
       if (event is! KeyEvent) continue;
 
       if (event.code.name == KeyCodeName.escape) {

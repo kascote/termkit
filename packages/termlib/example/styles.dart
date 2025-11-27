@@ -1,6 +1,6 @@
 import 'package:termlib/termlib.dart';
 
-void main() {
+Future<void> main() async {
   final t = TermLib();
   final resetCR = '${Style('')..resetStyle()}\n';
 
@@ -56,13 +56,20 @@ void main() {
   }
 
   t
-    ..writeln(' ${t.style('underline color')
-      ..fg(Color.indexed(160))
-      ..curlyUnderline(Color.indexed(120))
-      ..resetStyle()}')
-    ..writeln(' ${t.style('underline color')
-      ..dottedUnderline(Color.indexed(196))
-      ..resetStyle()}');
+    ..writeln(
+      ' ${t.style('underline color')
+        ..fg(Color.indexed(160))
+        ..curlyUnderline(Color.indexed(120))
+        ..resetStyle()}',
+    )
+    ..writeln(
+      ' ${t.style('underline color')
+        ..dottedUnderline(Color.indexed(196))
+        ..resetStyle()}',
+    );
+
+  await t.dispose();
+  await t.flushThenExit(0);
 }
 
 String center(String text, int length) {

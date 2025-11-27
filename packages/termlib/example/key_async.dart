@@ -156,7 +156,7 @@ class KeyViewer {
         ..writeln('Error: $e')
         ..writeln('$st');
     } finally {
-      _cleanup();
+      await _cleanup();
     }
   }
 
@@ -175,22 +175,21 @@ class KeyViewer {
   }
 
   Future<void> _mainLoop() async {
-    while (true) {
-      final rawEvent = await t.readEvent<Event>(rawKeys: true);
+    final events = t.eventStreamer<Event>(rawKeys: true);
 
-      switch (rawEvent) {
-        case NoneEvent _:
-          continue;
-        case EngineErrorEvent _:
-          t.writeln('EngineErrorEvent: $rawEvent');
-          continue;
-        case RawKeyEvent _:
-          if (!_handleRawKeyEvent(rawEvent)) return;
-          continue;
+    await for (final event in events) {
+      var keepRunning = true;
+
+      switch (event) {
+        case EngineErrorEvent():
+          t.writeln('EngineErrorEvent: $event');
+        case RawKeyEvent():
+          keepRunning = _handleRawKeyEvent(event);
         default:
-          t.writeln('Unknown event: $rawEvent - ${rawEvent.runtimeType} - ${rawEvent is NoneEvent} ');
-          continue;
+          t.writeln('Unknown event: $event - ${event.runtimeType} - ${event is NoneEvent}');
       }
+
+      if (!keepRunning) break;
     }
   }
 
@@ -474,7 +473,7 @@ class KeyViewer {
     return sb.toString();
   }
 
-  void _cleanup() {
+  Future<void> _cleanup() async {
     t.setKeyboardFlags(KeyboardEnhancementFlagsEvent.empty());
 
     if (config.withMouse) {
@@ -482,6 +481,7 @@ class KeyViewer {
     }
 
     //t.popCapabilities();
+    await t.dispose();
   }
 }
 

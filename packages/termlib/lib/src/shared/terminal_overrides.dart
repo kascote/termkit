@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io' as dart_io;
 
+import 'package:termlib/src/event_queue.dart';
 import 'package:termlib/src/ffi/termos.dart';
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 
 //
 // ignore: specify_nonobvious_property_types
@@ -11,45 +13,14 @@ const _asyncRunZoned = runZoned;
 /// Provides dependency injection for terminal I/O operations.
 ///
 /// This class enables testing and custom terminal implementations by allowing
-/// you to override stdin, stdout, environment variables, and OS-level
+/// to override stdin, stdout, environment variables, and OS-level
 /// terminal operations.
 ///
 /// borrowed from https://github.com/felangel/mason/blob/master/packages/mason_logger/lib/src/terminal_overrides.dart
 ///
-/// ## Testing Example
-///
-/// ```dart
-/// test('terminal writes to stdout', () {
-///   final mockStdout = MockStdout();
-///
-///   TerminalOverrides.runZoned(
-///     () {
-///       final term = TermLib();
-///       term.write('Hello');
-///       expect(mockStdout.writes, contains('Hello'));
-///     },
-///     stdout: mockStdout,
-///   );
-/// });
-/// ```
-///
-/// ## Custom Terminal Example
-///
-/// ```dart
-/// // Implement a terminal that logs all output
-/// TerminalOverrides.runZoned(
-///   () {
-///     final term = TermLib();
-///     // All output now goes to loggingStdout
-///   },
-///   stdout: loggingStdout,
-///   stdin: customStdin,
-/// );
-/// ```
-///
 /// See also:
 /// - [runZoned] for creating override contexts
-/// - Test files in `test/` directory for more examples
+/// - Test files in `test/` directory for examples
 abstract class TerminalOverrides {
   static final _token = Object();
 
@@ -65,8 +36,19 @@ abstract class TerminalOverrides {
     EnvironmentData? environmentData,
     dart_io.Stdout? stdout,
     dart_io.Stdin? stdin,
+    EventQueue? eventQueue,
+    bool? hasTerminal,
+    StreamController<Event>? eventStream,
   }) {
-    final overrides = _TerminalOverridesScope(termOs, environmentData, stdout, stdin);
+    final overrides = _TerminalOverridesScope(
+      termOs,
+      environmentData,
+      stdout,
+      stdin,
+      eventQueue,
+      hasTerminal: hasTerminal,
+      eventStream: eventStream,
+    );
     return dart_io.IOOverrides.runZoned(
       () => _asyncRunZoned(body, zoneValues: {_token: overrides}),
       stdout: () => overrides.stdout,
@@ -74,27 +56,48 @@ abstract class TerminalOverrides {
     );
   }
 
-  ///
+  /// OS-level terminal operations
   TermOs get termOs => TermOs();
 
-  ///
+  /// Get Environment variables
   EnvironmentData get environmentData => dart_io.Platform.environment;
 
-  ///
+  /// Return the standard output stream
   dart_io.Stdout get stdout => dart_io.stdout;
 
-  ///
+  /// Return the standard input stream
   dart_io.Stdin get stdin => dart_io.stdin;
+
+  /// Event queue for testing (zone-local override)
+  EventQueue? get eventQueue => null;
+
+  /// Terminal detection for testing (zone-local override)
+  bool? get hasTerminal => null;
+
+  /// Event stream for testing (zone-local override)
+  StreamController<Event>? get eventStream => null;
 }
 
 class _TerminalOverridesScope extends TerminalOverrides {
-  _TerminalOverridesScope(this._termOs, this._environmentData, this._stdout, this._stdin);
+  _TerminalOverridesScope(
+    this._termOs,
+    this._environmentData,
+    this._stdout,
+    this._stdin,
+    this._eventQueue, {
+    required bool? hasTerminal,
+    required StreamController<Event>? eventStream,
+  }) : _hasTerminal = hasTerminal,
+       _eventStream = eventStream;
 
   final TerminalOverrides? _previous = TerminalOverrides.current;
   final TermOs? _termOs;
   final EnvironmentData? _environmentData;
   final dart_io.Stdout? _stdout;
   final dart_io.Stdin? _stdin;
+  final EventQueue? _eventQueue;
+  final bool? _hasTerminal;
+  final StreamController<Event>? _eventStream;
 
   @override
   TermOs get termOs => _termOs ?? _previous?.termOs ?? super.termOs;
@@ -107,4 +110,13 @@ class _TerminalOverridesScope extends TerminalOverrides {
 
   @override
   dart_io.Stdin get stdin => _stdin ?? _previous?.stdin ?? super.stdin;
+
+  @override
+  EventQueue? get eventQueue => _eventQueue ?? _previous?.eventQueue ?? super.eventQueue;
+
+  @override
+  bool? get hasTerminal => _hasTerminal ?? _previous?.hasTerminal ?? super.hasTerminal;
+
+  @override
+  StreamController<Event>? get eventStream => _eventStream ?? _previous?.eventStream ?? super.eventStream;
 }

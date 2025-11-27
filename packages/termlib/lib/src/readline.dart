@@ -58,7 +58,7 @@ class Readline {
     if (buffer.isNotEmpty) term.writeAt(cursor.row, cursor.col, buffer.join());
 
     while (readingChars) {
-      final key = await term.readEvent<KeyEvent>();
+      final key = await term.pollTimeout<KeyEvent>(timeout: 60000);
       if (key is! KeyEvent) continue;
       if (key.eventType != KeyEventType.keyPress) continue;
 

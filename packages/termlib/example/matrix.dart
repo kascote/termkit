@@ -47,6 +47,7 @@ Future<void> main(List<String> arguments) async {
     },
   );
 
+  await t.dispose();
   await t.flushThenExit(0);
 }
 

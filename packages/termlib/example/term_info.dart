@@ -37,7 +37,8 @@ Future<void> main() async {
     ..writeln('${theme.white('Terminal version: ')}${theme.green(version)}')
     ..writeln('${theme.white('dimension chars: ')}${theme.green('${t.terminalColumns}x${t.terminalLines}')}')
     ..writeln(
-        '${theme.white('dimension pixels: ')}${theme.green('${termPixels?.width ?? ''}x${termPixels?.height ?? ''}')}')
+      '${theme.white('dimension pixels: ')}${theme.green('${termPixels?.width ?? ''}x${termPixels?.height ?? ''}')}',
+    )
     ..writeln('${theme.white('Color profile: ')}${theme.green(t.profile.name)}')
     ..writeln('${theme.white('Sync update status: ')}${renderValue(syncStatus?.status.name ?? 'unsupported', theme)}')
     ..writeln('${theme.white('Foreground color: ')}${theme.yellow(fgColor.toString())}')
@@ -48,6 +49,7 @@ Future<void> main() async {
   t.writeln('${theme.white('Keyboard Enhancement support: ')}${renderValue(keyEnhanced.toString(), theme)}');
   if (keyEnhanced) showKeyboardCapabilities(t, theme, keyCap);
 
+  await t.dispose();
   await t.flushThenExit(0);
 }
 

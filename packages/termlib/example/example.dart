@@ -19,5 +19,7 @@ Future<void> main() async {
   t
     ..disableAlternateScreen()
     ..cursorShow();
+
+  await t.dispose();
   await t.flushThenExit(0);
 }

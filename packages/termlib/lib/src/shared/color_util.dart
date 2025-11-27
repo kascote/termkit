@@ -128,7 +128,7 @@ LerpFunction colorLerp(Color color1, Color color2) {
 /// Function that calculates the TrueColor luminance and returns
 /// a value between 0.0 and 1.0. Being 0.0 black and 1.0 white.
 double colorLuminance(Color color) {
-  if (color.kind != ColorKind.rgb) throw ArgumentError.value(color.value, 'color', 'must be an RGB color');
+  if (color.kind != ColorKind.rgb) throw ArgumentError.value(color.toString(), 'color', 'must be an RGB color');
   final rgb = color.toRgbComponents();
   final rsRGB = rgb.r / 255.0;
   final gsRGB = rgb.g / 255.0;
@@ -152,7 +152,7 @@ typedef HSV = ({
 //
 // borrow from https://github.com/Qix-/color-convert/blob/master/conversions.js#L97
 HSV rgbToHsv(Color color) {
-  if (color.kind != ColorKind.rgb) throw ArgumentError.value(color.value, 'color', 'must be an RGB color');
+  if (color.kind != ColorKind.rgb) throw ArgumentError.value(color.toString(), 'color', 'must be an RGB color');
   final rgb = color.toRgbComponents();
 
   final r = rgb.r / 255;

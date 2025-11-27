@@ -6,6 +6,7 @@ import 'package:termparser/termparser.dart';
 import 'package:termparser/termparser_events.dart';
 
 import './colors.dart';
+import './event_queue.dart';
 import './extensions/cursor.dart';
 import './extensions/term.dart';
 import './ffi/termos.dart';
@@ -46,6 +47,8 @@ class TermLib {
   late EnvironmentData _env;
   bool _isRawMode = false;
   Stream<List<int>>? _mockStdin;
+  EventQueue? _eventQueue;
+  StreamSubscription<Event>? _eventSubscription;
 
   /// The current terminal profile to use.
   /// The profile is resolved when the [TermLib] instance is created.
@@ -57,12 +60,28 @@ class TermLib {
   /// If no [profile] is provided, it will use the value returned by the
   /// [envColorProfile] function. That means that the default profile will be
   /// resolved based on the environment settings.
+  ///
+  /// Event queue only initialized for interactive terminal (stdin.hasTerminal).
+  /// For piped/redirected input, event queue is not created.
+  ///
+  /// Zone overrides take precedence: if eventQueue is provided via
+  /// TerminalOverrides, it will be used instead of creating a new one.
   TermLib({ProfileEnum? profile}) {
     final overrides = TerminalOverrides.current;
     _stdout = overrides?.stdout ?? stdout;
     _env = overrides?.environmentData ?? Platform.environment;
     _termOs = overrides?.termOs ?? TermOs();
     this.profile = profile ?? envColorProfile();
+
+    if (overrides?.eventQueue != null) {
+      _eventQueue = overrides!.eventQueue;
+    } else if (overrides?.eventStream != null) {
+      _eventQueue = EventQueue();
+      _eventSubscription = overrides!.eventStream!.stream.listen(_eventQueue!.enqueue);
+    } else if (hasTerminal) {
+      _eventQueue = EventQueue();
+      _initEventQueue();
+    }
   }
 
   Stream<List<int>> get _broadcastStream {
@@ -73,12 +92,27 @@ class TermLib {
     return _mockStdin ?? _bStream;
   }
 
-  /// Returns true if the terminal is attached to an interactive terminal session.
-  /// (aka has an standard output connected to a terminal)
-  bool get isInteractive => _stdout.hasTerminal;
+  /// Returns true if stdin is connected to an interactive terminal.
+  ///
+  /// Use this to detect if input capabilities are available (keyboard, mouse events).
+  /// For piped/redirected input, this returns false.
+  ///
+  /// Zone overrides take precedence: if hasTerminal is provided via
+  /// TerminalOverrides, it will be used for testing.
+  bool get hasTerminal {
+    final overrides = TerminalOverrides.current;
+    return overrides?.hasTerminal ?? stdin.hasTerminal;
+  }
 
-  /// Returns true if the terminal is not attached to an interactive terminal session.
-  bool get isNotInteractive => !_stdout.hasTerminal;
+  /// Returns true if stdout is connected to an interactive terminal.
+  ///
+  /// Use this to detect if output capabilities are available (colors, cursor control).
+  bool get hasOutputTerminal => _stdout.hasTerminal;
+
+  /// Returns true if both stdin and stdout are connected to interactive terminals.
+  ///
+  /// This indicates full interactive terminal capabilities.
+  bool get isFullyInteractive => hasTerminal && hasOutputTerminal;
 
   /// Enables raw mode.
   ///
@@ -144,7 +178,7 @@ class TermLib {
     return withRawModeAsync<Pos?>(() async {
       _stdout.write(ansi.Cursor.requestPosition);
 
-      final event = await readEvent<CursorPositionEvent>();
+      final event = await pollTimeout<CursorPositionEvent>();
       return (event is CursorPositionEvent) ? (row: event.x, col: event.y) : null;
     });
   }
@@ -162,7 +196,7 @@ class TermLib {
   bool envNoColor() {
     if (_env.containsKey('NO_COLOR')) return true;
     if (_env['CLICOLOR'] != null || isColorForced) return false;
-    return isNotInteractive;
+    return !hasOutputTerminal;
   }
 
   /// Returns true if the terminal is forced to support colors
@@ -195,7 +229,7 @@ class TermLib {
   /// reported value.
   int get terminalColumns {
     final envCols = int.tryParse(_env['COLUMNS'] ?? '');
-    if (isInteractive) {
+    if (hasOutputTerminal) {
       return envCols ?? (_stdout.terminalColumns == 0 ? _defaultColumns : _stdout.terminalColumns);
     }
     return envCols ?? _defaultColumns;
@@ -208,7 +242,7 @@ class TermLib {
   /// reported value.
   int get terminalLines {
     final envRows = int.tryParse(_env['LINES'] ?? '');
-    if (isInteractive) {
+    if (hasOutputTerminal) {
       return envRows ?? (_stdout.terminalLines == 0 ? _defaultRows : _stdout.terminalLines);
     }
     return envRows ?? _defaultRows;
@@ -232,52 +266,163 @@ class TermLib {
   Stream<T> eventStreamer<T extends Event>({bool rawKeys = false}) =>
       _bStream.transform(eventTransformer<T>(rawKeys: rawKeys));
 
-  /// Read events from the standard input [stdin]
-  /// The type parameter [T] is the type of event to read. It should be a subclass
-  /// of [Event] or [Event] itself to read all the events.
+  /// Poll for events without blocking
   ///
-  /// By default will wait for events for 100 milliseconds, but you can change that
-  /// using the [timeout] parameter.
+  /// Synchronously checks event queue and returns immediately. Returns [NoneEvent]
+  /// if queue is empty.
   ///
-  /// If the [rawKeys] parameter is set to true, it will return [RawKeyEvent] events
-  /// for each key press. This is useful for debugging.
+  /// Type parameter [T] filters events by type. For example, `poll<KeyEvent>()`
+  /// returns first KeyEvent or NoneEvent if none available.
   ///
-  /// If the timeout is reached, it will return a [NoneEvent] instance.
-  Future<Event> readEvent<T extends Event>({int timeout = 100, bool rawKeys = false}) async {
-    final timeoutDuration = Duration(milliseconds: timeout);
-    final completer = Completer<Event>();
-    StreamSubscription<Event> subscription;
-    late Timer timer;
-
-    subscription = _broadcastStream
-        .transform(eventTransformer(rawKeys: rawKeys))
-        .skipWhile((evt) => evt is! T)
-        .listen(null);
-    subscription
-      ..onDone(() async {
-        await subscription.cancel();
-        timer.cancel();
-        completer.complete(const NoneEvent());
-      })
-      ..onError((Object e) async {
-        await subscription.cancel();
-        timer.cancel();
-        completer.completeError(e);
-      });
-
-    timer = Timer(timeoutDuration, () async {
-      await subscription.cancel();
-      completer.complete(const NoneEvent());
-    });
-
-    subscription.onData((event) async {
-      await subscription.cancel();
-      timer.cancel();
-      completer.complete(event);
-    });
-
-    return completer.future;
+  /// Throws [StateError] if called on piped/redirected input (when !hasTerminal).
+  /// Use [stdinStream] for piped input instead.
+  ///
+  /// Contrast with [read] which blocks until event arrives.
+  ///
+  /// Example:
+  /// ```dart
+  /// final event = term.poll<KeyEvent>();
+  /// if (event is KeyEvent) {
+  ///   // Handle key press
+  /// }
+  /// // Continue with render loop immediately
+  /// ```
+  Event poll<T extends Event>() {
+    if (!hasTerminal) {
+      throw StateError('poll() requires interactive terminal. Use stdinStream for piped input.');
+    }
+    return _eventQueue!.dequeue<T>() ?? const NoneEvent();
   }
+
+  /// Waits for event using signal-based notification. Returns immediately when
+  /// matching event arrives or [NoneEvent] if timeout reached.
+  ///
+  /// Type parameter [T] filters events by type. For example, `pollTimeout<KeyEvent>()`
+  /// waits for first KeyEvent or timeout.
+  ///
+  /// The [timeout] parameter specifies maximum wait time in milliseconds (default 500ms).
+  ///
+  /// Throws [StateError] if called on piped/redirected input (when !hasTerminal).
+  /// Use [stdinStream] for piped input instead.
+  ///
+  /// Essential for query-response patterns where terminal sends async response:
+  /// ```dart
+  /// term.write(ansi.Term.querySyncUpdate);
+  /// final event = await term.pollTimeout<QuerySyncUpdateEvent>(timeout: 500);
+  /// if (event is QuerySyncUpdateEvent) {
+  ///   // Handle response
+  /// }
+  /// ```
+  Future<Event> pollTimeout<T extends Event>({int timeout = defaultQueryTimeout}) async {
+    if (!hasTerminal) {
+      throw StateError('pollTimeout() requires interactive terminal. Use stdinStream for piped input.');
+    }
+    final deadlineMs = DateTime.now().millisecondsSinceEpoch + timeout;
+
+    while (true) {
+      final event = _eventQueue!.dequeue<T>();
+      if (event != null) return event;
+
+      final remainingMs = deadlineMs - DateTime.now().millisecondsSinceEpoch;
+      if (remainingMs <= 0) break;
+
+      await Future.any<void>([
+        _eventQueue!.onEvent.first,
+        Future<void>.delayed(Duration(milliseconds: remainingMs)),
+      ]);
+    }
+    return const NoneEvent();
+  }
+
+  /// Read event, blocking until one arrives
+  ///
+  /// Asynchronously waits for event to become available in queue. Blocks current
+  /// task indefinitely until matching event arrives. Recommended for CLI apps
+  /// waiting for user input.
+  ///
+  /// Type parameter [T] filters events by type. For example, `read<KeyEvent>()`
+  /// waits for and returns first KeyEvent.
+  ///
+  /// Throws [StateError] if called on piped/redirected input (when !hasTerminal).
+  /// Use [stdinStream] for piped input instead.
+  ///
+  /// Contrast with [poll] which is synchronous and returns immediately (non-blocking).
+  ///
+  /// Example:
+  /// ```dart
+  /// final event = await term.read<KeyEvent>();
+  /// if (event.code.name == KeyCodeName.enter) {
+  ///   // Handle enter key
+  /// }
+  /// ```
+  ///
+  /// Note: Will block indefinitely if no input arrives. Consider using [pollTimeout]
+  /// if you need timeout behavior.
+  Future<Event> read<T extends Event>() async {
+    if (!hasTerminal) {
+      throw StateError('read() requires interactive terminal. Use stdinStream for piped input.');
+    }
+    while (true) {
+      final event = _eventQueue!.dequeue<T>();
+      if (event != null) return event;
+      await _eventQueue!.onEvent.first;
+    }
+  }
+
+  /// Raw stdin stream for piped/redirected input.
+  ///
+  /// Exposes the raw byte stream from stdin without event parsing. Use this instead
+  /// of [poll]/[read] for piped or redirected input scenarios.
+  ///
+  /// Check [hasTerminal] to detect input mode:
+  /// - `hasTerminal == true`: Interactive terminal, use [poll]/[read] for events
+  /// - `hasTerminal == false`: Piped/redirected, use [stdinStream] for raw bytes
+  ///
+  /// Compose with transformers for different processing patterns:
+  ///
+  /// **Line-by-line streaming** (efficient, recommended):
+  /// ```dart
+  /// await for (final line in term.stdinStream
+  ///     .transform(utf8.decoder)
+  ///     .transform(LineSplitter())) {
+  ///   processLine(line);  // Process each line as it arrives
+  /// }
+  /// ```
+  ///
+  /// **Collect all input** (simple but loads into memory):
+  /// ```dart
+  /// final lines = await term.stdinStream
+  ///     .transform(utf8.decoder)
+  ///     .transform(LineSplitter())
+  ///     .toList();
+  /// ```
+  ///
+  /// **Custom chunk processing**:
+  /// ```dart
+  /// await for (final chunk in term.stdinStream.transform(utf8.decoder)) {
+  ///   processChunk(chunk);  // Process text chunks as they arrive
+  /// }
+  /// ```
+  ///
+  /// **Adaptive input handling**:
+  /// ```dart
+  /// if (term.hasTerminal) {
+  ///   // Interactive: use event-based input
+  ///   final event = await term.read<KeyEvent>();
+  /// } else {
+  ///   // Piped: use stream-based input
+  ///   await for (final line in term.stdinStream
+  ///       .transform(utf8.decoder)
+  ///       .transform(LineSplitter())) {
+  ///     processLine(line);
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// WARNING: Avoid loading entire piped input into memory with `.toList()` or
+  /// similar operations on large inputs. Prefer streaming patterns that process
+  /// data incrementally.
+  Stream<List<int>> get stdinStream => _broadcastStream;
 
   /// Enables raw mode and executes the provided function.
   /// On return sets raw mode back to its previous value
@@ -299,7 +444,7 @@ class TermLib {
 
   /// Resolves the current terminal profile checking different environment variables.
   ProfileEnum colorProfile() {
-    if (isNotInteractive) return ProfileEnum.noColor;
+    if (!hasOutputTerminal) return ProfileEnum.noColor;
 
     if (_env['GOOGLE_CLOUD_SHELL'] == 'true') {
       return ProfileEnum.trueColor;
@@ -387,6 +532,21 @@ class TermLib {
   /// after you've decided to exit.
   Future<void> flushThenExit(int status) {
     return Future.wait<void>([_stdout.close(), stderr.close()]).then<void>((_) => exit(status));
+  }
+
+  /// Dispose of resources used by TermLib.
+  ///
+  /// Cancels event subscription and disposes event queue if active.
+  /// Call this when done using TermLib to prevent resource leaks.
+  Future<void> dispose() async {
+    await _eventSubscription?.cancel();
+    await _eventQueue?.dispose();
+    _eventQueue = null;
+    _eventSubscription = null;
+  }
+
+  void _initEventQueue() {
+    _eventSubscription = _broadcastStream.transform(eventTransformer()).listen((event) => _eventQueue!.enqueue(event));
   }
 
   bool _setRawMode(bool value) {

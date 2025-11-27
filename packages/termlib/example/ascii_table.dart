@@ -24,6 +24,7 @@ void main() async {
       ..cursorShow();
   }
 
+  await t.dispose();
   await t.flushThenExit(0);
 }
 
@@ -84,7 +85,7 @@ class AsciiTable {
   Future<void> loop() async {
     draw();
     while (true) {
-      final event = await _term.readEvent<KeyEvent>();
+      final event = await _term.pollTimeout<KeyEvent>();
       if (event is KeyEvent) {
         if (event.code.name == KeyCodeName.escape) break;
 

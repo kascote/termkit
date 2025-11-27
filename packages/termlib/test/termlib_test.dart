@@ -1,3 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:termlib/src/event_queue.dart';
+import 'package:termlib/src/shared/terminal_overrides.dart';
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
@@ -7,20 +12,23 @@ import 'termlib_mock.dart';
 
 void main() {
   group('TermLib tests >', () {
-    test('isInteractive should return true if the terminal is attached to a TTY', () async {
+    test('hasOutputTerminal should return true if stdout is attached to a TTY', () async {
       await mockedTest((out, _, _) {
         final term = TermLib();
-        expect(term.isInteractive, isTrue);
+        expect(term.hasOutputTerminal, isTrue);
         expect(out.callStack[0], 'hasTerminal');
       });
     });
 
-    test('isNotInteractive should return false if the terminal is attached to a TTY', () async {
-      await mockedTest((out, _, _) {
-        final term = TermLib();
-        expect(term.isNotInteractive, isFalse);
-        expect(out.callStack[0], 'hasTerminal');
-      });
+    test('hasOutputTerminal should return false if stdout is not attached to a TTY', () async {
+      final stdOut = MockStdout()..hasTerminal = false;
+      await mockedTest(
+        (out, _, _) {
+          final term = TermLib();
+          expect(term.hasOutputTerminal, isFalse);
+        },
+        stdout: stdOut,
+      );
     });
 
     test('foregroundColor should return the foreground color', () async {
@@ -586,5 +594,348 @@ void main() {
       },
       skip: true,
     );
+
+    test('read() must block until event arrives', () async {
+      final controller = StreamController<List<int>>();
+      await mockedTest(
+        (out, _, tos) async {
+          final term = TermLib();
+
+          var eventReceived = false;
+          final readFuture = term.read<KeyEvent>().then((event) {
+            eventReceived = true;
+            expect(event, isA<KeyEvent>());
+            expect((event as KeyEvent).code.char, 'a');
+          });
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          expect(eventReceived, isFalse);
+
+          controller.add(utf8.encode('a'));
+
+          await readFuture;
+          expect(eventReceived, isTrue);
+
+          await term.dispose();
+          await controller.close();
+        },
+        stdin: MockStdin(controller.stream.asBroadcastStream()),
+      );
+    });
+
+    test('read() must throw StateError when !hasTerminal', () async {
+      final mockStdin = MockStdin(streamString(''))..hasTerminal = false;
+      await mockedTest(
+        (_, _, _) {
+          final term = TermLib();
+          expect(
+            () => term.read<KeyEvent>(),
+            throwsA(
+              isA<StateError>().having(
+                (e) => e.message,
+                'message',
+                contains('read() requires interactive terminal'),
+              ),
+            ),
+          );
+        },
+        stdin: mockStdin,
+      );
+    });
+
+    test('read() with type filter must wait for matching event type', () async {
+      await mockedTest(
+        (out, _, tos) async {
+          final term = TermLib();
+
+          final readFuture = term.read<KeyEvent>();
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          final event = await readFuture;
+          expect(event, isA<KeyEvent>());
+          expect((event as KeyEvent).code.char, 'x');
+
+          await term.dispose();
+        },
+        stdin: MockStdin(streamString('x')),
+      );
+    });
+
+    test('poll() must return NoneEvent when queue is empty', () async {
+      await mockedTest(
+        (out, _, tos) async {
+          final term = TermLib();
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          final event = term.poll<KeyEvent>();
+          expect(event, isA<NoneEvent>());
+
+          await term.dispose();
+        },
+        stdin: MockStdin(streamString('')),
+      );
+    });
+
+    test('poll() must throw StateError when !hasTerminal', () async {
+      final mockStdin = MockStdin(streamString(''))..hasTerminal = false;
+      await mockedTest(
+        (_, _, _) {
+          final term = TermLib();
+          expect(
+            () => term.poll<KeyEvent>(),
+            throwsA(
+              isA<StateError>().having(
+                (e) => e.message,
+                'message',
+                contains('poll() requires interactive terminal'),
+              ),
+            ),
+          );
+        },
+        stdin: mockStdin,
+      );
+    });
+
+    test('dispose() must cancel subscription and clear queue', () async {
+      await mockedTest(
+        (out, _, tos) async {
+          final term = TermLib();
+
+          await term.dispose();
+
+          expect(() => term.poll<KeyEvent>(), throwsA(isA<TypeError>()));
+        },
+        stdin: MockStdin(streamString('abc')),
+      );
+    });
+
+    test('zone override: eventQueue injection via TerminalOverrides', () async {
+      final queue = EventQueue();
+      injectEvent(queue, const KeyEvent(KeyCode.char('a')));
+      injectEvent(queue, const KeyEvent(KeyCode.char('b')));
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+
+          final event1 = term.poll<KeyEvent>();
+          expect(event1, isA<KeyEvent>());
+          expect((event1 as KeyEvent).code.char, 'a');
+
+          final event2 = term.poll<KeyEvent>();
+          expect(event2, isA<KeyEvent>());
+          expect((event2 as KeyEvent).code.char, 'b');
+
+          final event3 = term.poll<KeyEvent>();
+          expect(event3, isA<NoneEvent>());
+
+          await term.dispose();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventQueue: queue,
+        hasTerminal: true,
+      );
+    });
+
+    test('zone override: eventStream injection via TerminalOverrides', () async {
+      final controller = createEventController();
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+
+          controller
+            ..add(const KeyEvent(KeyCode.char('x')))
+            ..add(const KeyEvent(KeyCode.char('y')));
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          final event1 = term.poll<KeyEvent>();
+          expect(event1, isA<KeyEvent>());
+          expect((event1 as KeyEvent).code.char, 'x');
+
+          final event2 = term.poll<KeyEvent>();
+          expect(event2, isA<KeyEvent>());
+          expect((event2 as KeyEvent).code.char, 'y');
+
+          await term.dispose();
+          await controller.close();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventStream: controller,
+        hasTerminal: true,
+      );
+    });
+
+    test('zone override: hasTerminal override for testing', () async {
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+          expect(term.hasTerminal, isFalse);
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        hasTerminal: false,
+      );
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+          expect(term.hasTerminal, isTrue);
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        hasTerminal: true,
+      );
+    });
+
+    test('zone override: default behavior when no override', () async {
+      final mockStdin = MockStdin(streamString(''))..hasTerminal = true;
+      await mockedTest(
+        (out, _, tos) async {
+          final term = TermLib();
+          expect(term.hasTerminal, isTrue);
+          await term.dispose();
+        },
+        stdin: mockStdin,
+      );
+    });
+
+    test('concurrent poll() calls must consume events independently', () async {
+      final queue = EventQueue();
+      injectEvent(queue, const KeyEvent(KeyCode.char('a')));
+      injectEvent(queue, const KeyEvent(KeyCode.char('b')));
+      injectEvent(queue, const KeyEvent(KeyCode.char('c')));
+      injectEvent(queue, const MouseEvent(10, 20, MouseButton(MouseButtonKind.left, MouseButtonAction.down)));
+      injectEvent(queue, const KeyEvent(KeyCode.char('d')));
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+
+          final key1 = term.poll<KeyEvent>();
+          expect(key1, isA<KeyEvent>());
+          expect((key1 as KeyEvent).code.char, 'a');
+
+          final key2 = term.poll<KeyEvent>();
+          expect(key2, isA<KeyEvent>());
+          expect((key2 as KeyEvent).code.char, 'b');
+
+          final mouse = term.poll<MouseEvent>();
+          expect(mouse, isA<MouseEvent>());
+          expect((mouse as MouseEvent).x, 10);
+          expect(mouse.y, 20);
+
+          final key3 = term.poll<KeyEvent>();
+          expect(key3, isA<KeyEvent>());
+          expect((key3 as KeyEvent).code.char, 'c');
+
+          final key4 = term.poll<KeyEvent>();
+          expect(key4, isA<KeyEvent>());
+          expect((key4 as KeyEvent).code.char, 'd');
+
+          final empty = term.poll<KeyEvent>();
+          expect(empty, isA<NoneEvent>());
+
+          await term.dispose();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventQueue: queue,
+        hasTerminal: true,
+      );
+    });
+
+    test('concurrent poll() with type filtering must skip non-matching events', () async {
+      final queue = EventQueue();
+      injectEvent(queue, const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)));
+      injectEvent(queue, const MouseEvent(2, 2, MouseButton(MouseButtonKind.right, MouseButtonAction.up)));
+      injectEvent(queue, const KeyEvent(KeyCode.char('x')));
+      injectEvent(queue, const MouseEvent(3, 3, MouseButton(MouseButtonKind.middle, MouseButtonAction.down)));
+      injectEvent(queue, const KeyEvent(KeyCode.char('y')));
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+
+          final key1 = term.poll<KeyEvent>();
+          expect(key1, isA<KeyEvent>());
+          expect((key1 as KeyEvent).code.char, 'x');
+
+          final key2 = term.poll<KeyEvent>();
+          expect(key2, isA<KeyEvent>());
+          expect((key2 as KeyEvent).code.char, 'y');
+
+          final key3 = term.poll<KeyEvent>();
+          expect(key3, isA<NoneEvent>());
+
+          final mouse1 = term.poll<MouseEvent>();
+          expect(mouse1, isA<MouseEvent>());
+          expect((mouse1 as MouseEvent).x, 1);
+
+          final mouse2 = term.poll<MouseEvent>();
+          expect(mouse2, isA<MouseEvent>());
+          expect((mouse2 as MouseEvent).x, 2);
+
+          final mouse3 = term.poll<MouseEvent>();
+          expect(mouse3, isA<MouseEvent>());
+          expect((mouse3 as MouseEvent).x, 3);
+
+          final empty = term.poll<Event>();
+          expect(empty, isA<NoneEvent>());
+
+          await term.dispose();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventQueue: queue,
+        hasTerminal: true,
+      );
+    });
+
+    test('concurrent poll() and read() can be mixed', () async {
+      final controller = createEventController();
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+
+          controller
+            ..add(const KeyEvent(KeyCode.char('a')))
+            ..add(const KeyEvent(KeyCode.char('b')));
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          final poll1 = term.poll<KeyEvent>();
+          expect(poll1, isA<KeyEvent>());
+          expect((poll1 as KeyEvent).code.char, 'a');
+
+          final read1 = await term.read<KeyEvent>();
+          expect(read1, isA<KeyEvent>());
+          expect((read1 as KeyEvent).code.char, 'b');
+
+          final poll2 = term.poll<KeyEvent>();
+          expect(poll2, isA<NoneEvent>());
+
+          controller.add(const KeyEvent(KeyCode.char('c')));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          final read2 = await term.read<KeyEvent>();
+          expect(read2, isA<KeyEvent>());
+          expect((read2 as KeyEvent).code.char, 'c');
+
+          await term.dispose();
+          await controller.close();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventStream: controller,
+        hasTerminal: true,
+      );
+    });
   });
 }

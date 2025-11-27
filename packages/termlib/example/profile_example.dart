@@ -1,6 +1,6 @@
 import 'package:termlib/termlib.dart';
 
-void main() {
+Future<void> main() async {
   final t = TermLib();
 
   final c16 = Color.fromString('#00ffff').convert(ColorKind.ansi);
@@ -22,4 +22,6 @@ void main() {
   ];
 
   t.writeln(out.toString());
+  await t.dispose();
+  await t.flushThenExit(0);
 }

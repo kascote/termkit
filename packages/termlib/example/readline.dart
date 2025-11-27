@@ -10,5 +10,6 @@ Future<void> main() async {
     t.writeln('${t.newLine}You typed: [$input]${t.newLine}');
   }
 
+  await t.dispose();
   return t.flushThenExit(0);
 }
