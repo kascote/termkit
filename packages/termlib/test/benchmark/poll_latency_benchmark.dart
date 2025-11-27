@@ -307,8 +307,9 @@ Future<BenchmarkStats> _benchmarkMidQueueSearch() async {
         }
         queue.enqueue(const FocusEvent());
 
-        term.poll<KeyEvent>();
-        term.poll<FocusEvent>();
+        term
+          ..poll<KeyEvent>()
+          ..poll<FocusEvent>();
       }
 
       final samples = <int>[];
@@ -341,9 +342,9 @@ Future<BenchmarkStats> _benchmarkMidQueueSearch() async {
         term.poll<KeyEvent>();
         stopwatch.stop();
         samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch.reset();
-
-        stopwatch.start();
+        stopwatch
+          ..reset()
+          ..start();
         term.poll<FocusEvent>();
         stopwatch.stop();
         samples.add(stopwatch.elapsedMicroseconds);
