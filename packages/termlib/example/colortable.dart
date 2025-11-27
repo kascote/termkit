@@ -1,3 +1,4 @@
+import 'package:termansi/termansi.dart' as ansi;
 import 'package:termlib/color_util.dart';
 import 'package:termlib/termlib.dart';
 
@@ -13,7 +14,7 @@ Future<void> main() async {
   for (var i = 0; i < 256; i++) {
     final c256 = Color.indexed(i);
     final c16 = c256.convert(ColorKind.ansi);
-    final lum16 = colorLuminance(c16.convert(ColorKind.rgb));
+    final lum16 = colorLuminance(Color.fromRGB(ansi.ansiHex[c16.value]));
 
     if (i % 12 == 0) t.write(resetCR);
 
@@ -21,7 +22,7 @@ Future<void> main() async {
       ..bg(c16)
       ..fg(lum16 < 0.2 ? white : black);
 
-    final lum256 = colorLuminance(c256.convert(ColorKind.rgb));
+    final lum256 = colorLuminance(Color.fromRGB(ansi.ansiHex[c256.value]));
     final style256 = Style(' ${i.toString().padLeft(3)} ')
       ..bg(c256)
       ..fg(lum256 < 0.2 ? white : black);

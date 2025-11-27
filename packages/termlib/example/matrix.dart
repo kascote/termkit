@@ -148,9 +148,7 @@ class Rain {
     var r = 0;
     for (var i = lineLength; i > 0; i--) {
       final charStyle = style(tail[length - i]);
-      final char = i == lineLength
-          ? (charStyle..fg(Color.white))
-          : (charStyle..fg(Color.fromString(cl(r / lineLength).hex)));
+      final char = i == lineLength ? (charStyle..fg(Color.white)) : (charStyle..fg(cl(r / lineLength)));
       t.writeAt(y - r, x, char);
       r++;
     }

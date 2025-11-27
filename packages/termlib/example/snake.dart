@@ -201,7 +201,7 @@ class SnakeGame {
       if (i == 0) body = snakeBody[0];
       if (i == snake.length - 1) body = snakeBody[2];
 
-      final c = Color.fromString(cl(i / (snake.length - 1)).hex);
+      final c = cl(i / (snake.length - 1));
       _term.write(s(body)..fg(c));
     }
     _term

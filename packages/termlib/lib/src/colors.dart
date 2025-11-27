@@ -25,10 +25,15 @@ const _resetFg = 39;
 const _resetBg = 49;
 const _reset = -1;
 
+// ANSI SGR color code bases
+const _fgBase = 30; // standard foreground: 30-37
+const _bgOffset = 10; // background = foreground + 10
+const _brightBase = 90; // bright foreground: 90-97
+
 // Keeps a cache for the colors requested/converted by the user to save time.
-// Over time this cache must be short, because the there are no many colors
+// Over time this cache must be short, because the there are not many colors
 // that a terminal program will use
-//Map<(ColorKind, Color), Color> _colorCache = {};
+Map<(ColorKind, Color), Color> _colorCache = {};
 
 /// Color class
 @immutable
@@ -101,9 +106,6 @@ class Color {
   /// Represent a color with no color
   static const Color noColor = Color._(0, kind: ColorKind.noColor);
 
-  /// Returns the hex value of the color
-  String get hex => '#${value.toRadixString(16).padLeft(6, '0')}';
-
   /// Returns the ANSI sequence for color
   String sequence({bool background = false}) {
     switch (kind) {
@@ -112,9 +114,9 @@ class Color {
           return '${background ? _resetBg : _resetFg}';
         }
         if (value < 8) {
-          return '${background ? value + 10 + 30 : value + 30}';
+          return '${background ? value + _fgBase + _bgOffset : value + _fgBase}';
         }
-        return '${background ? value + 90 + 10 - 8 : value + 90 - 8}';
+        return '${background ? value + _brightBase + _bgOffset - 8 : value + _brightBase - 8}';
       case ColorKind.indexed:
         return '${background ? _background : _foreground};5;$value';
       case ColorKind.rgb:
@@ -141,9 +143,21 @@ class Color {
     return Color._(rgb & 0xFFFFFF, kind: ColorKind.rgb);
   }
 
-  /// Creates a color from a RGB components (0-255)
+  /// Creates a color from RGB components (0-255)
   factory Color.fromRGBComponent(int r, int g, int b) {
     return Color._((r << 16) | (g << 8) | b, kind: ColorKind.rgb);
+  }
+
+  /// Creates a color from an integer, auto-detecting the color kind.
+  ///
+  /// - 0-15: ANSI color
+  /// - 16-255: indexed color
+  /// - 256+: RGB color
+  factory Color.fromInt(int value) {
+    if (value < 0) throw ArgumentError.value(value, 'value', 'must be non-negative');
+    if (value < 16) return Color.ansi(value);
+    if (value < 256) return Color.indexed(value);
+    return Color.fromRGB(value);
   }
 
   /// Creates a new Color from a string.
@@ -157,9 +171,6 @@ class Color {
     if (value.isEmpty) return Color.noColor;
 
     Color convertFromString(String color) {
-      final tmp = int.tryParse(color, radix: 16);
-      if (tmp == null) throw ArgumentError.value(color, 'color', 'Invalid color format');
-
       if (color.length == 3) {
         final r = color.substring(0, 1).parseHex();
         final g = color.substring(1, 2).parseHex();
@@ -172,7 +183,7 @@ class Color {
         final b = color.substring(4, 6).parseHex();
         return Color.fromRGBComponent(r, g, b);
       }
-      throw ArgumentError.value(color, 'color', 'Invalid color format');
+      throw FormatException('Invalid color format', color);
     }
 
     if (value.startsWith('#')) return convertFromString(value.substring(1));
@@ -183,46 +194,37 @@ class Color {
     return convertFromString(value);
   }
 
-  /// Convert a color to another format
+  /// Convert a color to another format.
+  ///
+  /// Only downgrades colors (rgb→indexed→ansi), never upgrades.
+  /// This matches terminal capability semantics: use highest fidelity
+  /// the terminal supports, downgrade otherwise.
+  /// Results are cached for performance.
   Color convert(ColorKind newKind) {
     if (kind == newKind) return this;
     if (kind == ColorKind.noColor) return this;
     if (newKind == ColorKind.noColor) return Color.noColor;
-    if (kind == ColorKind.ansi) return this;
 
-    // final cache = _colorCache[(newKind, this)];
-    // if (cache != null) return cache;
+    if (newKind.index > kind.index) return this;
 
-    if (kind == ColorKind.indexed) {
-      if (newKind == ColorKind.ansi) {
-        final rc = indexedToAnsiColor();
-        // _colorCache[(newKind, rc)] = rc;
-        return rc;
-      }
-      if (newKind == ColorKind.rgb) {
-        // _colorCache[(newKind, this)] = this;
-        return this;
-      }
-    }
+    final cacheKey = (newKind, this);
+    final cached = _colorCache[cacheKey];
+    if (cached != null) return cached;
 
-    if (kind == ColorKind.rgb) {
-      if (newKind == ColorKind.ansi) {
-        final rc = rgbToAnsiColor();
-        // _colorCache[(newKind, rc)] = rc;
-        return rc;
-      }
-      if (newKind == ColorKind.indexed) {
-        final rc = rgbToIndexedColor();
-        // _colorCache[(newKind, rc)] = rc;
-        return rc;
-      }
-    }
+    final result = switch ((kind, newKind)) {
+      (ColorKind.indexed, ColorKind.ansi) => indexedToAnsiColor(),
+      (ColorKind.rgb, ColorKind.ansi) => rgbToAnsiColor(),
+      (ColorKind.rgb, ColorKind.indexed) => rgbToIndexedColor(),
+      _ => this, // unreachable
+    };
 
-    return this;
+    _colorCache[cacheKey] = result;
+    return result;
   }
 
   /// Convert an indexed color to Ansi Color
   Color indexedToAnsiColor() {
+    if (kind != ColorKind.indexed) throw ArgumentError.value(toString(), 'color', 'must be an indexed color');
     // gray scale range
     if (value > 231) {
       if (value < 237) return Color.black;
@@ -234,50 +236,45 @@ class Color {
     return rgb.rgbToAnsiColor();
   }
 
-  /// Convert RGB to Ansi Color
+  /// Convert RGB to Ansi Color using nearest-neighbor search
   Color rgbToAnsiColor() {
-    if (kind != ColorKind.rgb) throw ArgumentError.value(value, 'value', 'must be an RGB color');
-
-    // Use a threshold-based approach instead of simple division
-    final cmp = toRgbComponents();
-    final r = cmp.r > 90 ? 1 : 0;
-    final g = cmp.g > 90 ? 1 : 0;
-    final b = cmp.b > 90 ? 1 : 0;
-    final lum = colorLuminance(this);
-
-    final ansi16 = (b << 2) | (g << 1) | r;
-    if (lum >= 0.20) return Color.ansi(ansi16 + 8);
-    return Color.ansi(ansi16);
+    if (kind != ColorKind.rgb) throw ArgumentError.value(toString(), 'color', 'must be an RGB color');
+    final rgb = toRgbComponents();
+    return Color.ansi(findClosestAnsi16(rgb.r, rgb.g, rgb.b));
   }
 
   /// Convert RGB to Ansi256 Color
+  ///
+  /// ANSI 256 color palette structure:
+  /// - 0-15: standard ANSI colors (handled elsewhere)
+  /// - 16-231: 6x6x6 color cube (216 colors)
+  /// - 232-255: grayscale ramp (24 shades)
   Color rgbToIndexedColor() {
-    if (kind != ColorKind.rgb) throw ArgumentError.value(value, 'value', 'must be an RGB color');
+    if (kind != ColorKind.rgb) throw ArgumentError.value(toString(), 'color', 'must be an RGB color');
     final rgb = toRgbComponents();
 
+    // Grayscale detection: R, G, B within 16 of each other (same upper nibble)
     if (rgb.r >> 4 == rgb.g >> 4 && rgb.g >> 4 == rgb.b >> 4) {
-      if (rgb.r < 8) {
-        return Color.indexed(16);
-      }
-
-      if (rgb.r > 248) {
-        return Color.indexed(231);
-      }
-
+      // Near black → first color cube entry (black)
+      if (rgb.r < 8) return Color.indexed(16);
+      // Near white → last color cube entry (white)
+      if (rgb.r > 248) return Color.indexed(231);
+      // Map to grayscale ramp: 232-255 (24 shades from dark to light)
       return Color.indexed((((rgb.r - 8) / 247) * 24).round() + 232);
     }
 
+    // Map to 6x6x6 color cube (indices 16-231)
+    // Each channel maps 0-255 → 0-5, then: index = 16 + 36*r + 6*g + b
     final xr = 36 * (rgb.r / 255 * 5).round();
     final xg = 6 * (rgb.g / 255 * 5).round();
     final xb = (rgb.b / 255 * 5).round();
-    final ansi = 16 + xr + xg + xb;
 
-    return Color.indexed(ansi);
+    return Color.indexed(16 + xr + xg + xb);
   }
 
   /// Returns a record with RGB components
-  ({int r, int b, int g}) toRgbComponents() {
-    if (kind != ColorKind.rgb) throw ArgumentError.value(value, 'value', 'must be an RGB color');
+  ({int r, int g, int b}) toRgbComponents() {
+    if (kind != ColorKind.rgb) throw ArgumentError.value(toString(), 'color', 'must be an RGB color');
     return (r: (value >> 16) & 0xFF, g: (value >> 8) & 0xFF, b: value & 0xFF);
   }
 
@@ -296,9 +293,9 @@ class Color {
   ///
   /// Example:
   /// ```dart
-  /// final color = fromHSV(0, 1.0, 1.0); // Creates pure red
-  /// final color = fromHSV(0, 0.0, 1.0); // Creates white
-  /// final color = fromHSV(0, 0.0, 0.0); // Creates black
+  /// final color = Color.fromHSV(0, 1.0, 1.0); // Creates pure red
+  /// final color = Color.fromHSV(0, 0.0, 1.0); // Creates white
+  /// final color = Color.fromHSV(0, 0.0, 0.0); // Creates black
   /// ```
   factory Color.fromHSV(double hue, double saturation, double value) {
     // Converts a color component value to an RGB integer value (0-255).

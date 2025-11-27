@@ -1,25 +1,29 @@
 import 'dart:math' as math;
 
+import 'package:termansi/termansi.dart' as ansi;
+
 import '../../termlib.dart';
 import './string_extension.dart';
 
-/// Find the closest ANSI color index for a given RGB color.
-int findClosestAnsiIndex(int red, int green, int blue) {
-  // Initialize minimum distance and closest index
-  var minDistance = 1 << 32;
+/// Find the closest ANSI 16 color index for a given RGB color.
+/// Uses redmean distance with saturation penalty to avoid mapping
+/// saturated colors to grays.
+int findClosestAnsi16(int red, int green, int blue) {
+  var minDistance = double.infinity;
   var closestIndex = 0;
 
-  // Loop through all 256 ANSI colors
-  for (var i = 0; i < 256; i++) {
-    // Extract components based on ANSI color index formula
-    final ansiRed = ((i >> 8) & 0x0F) * 17;
-    final ansiGreen = (((i >> 4) & 0x0F) & 0x03) * 36 + 5;
-    final ansiBlue = (i & 0x0F) * 6 + 5;
+  final srcChroma = _chroma(red, green, blue);
 
-    // Calculate Euclidean distance between RGB and ANSI colors
-    final distance = _calculateEuclideanDistance(red, green, blue, ansiRed, ansiGreen, ansiBlue);
+  for (var i = 0; i < 16; i++) {
+    final (:r, :g, :b) = Color.fromRGB(ansi.ansiHex[i]).toRgbComponents();
+    var distance = _redmeanDistanceSquared(red, green, blue, r, g, b);
 
-    // Update minimum distance and closest index if closer color found
+    // Penalize grays when source has significant chroma
+    final ansiChroma = _chroma(r, g, b);
+    if (srcChroma > 40 && ansiChroma < 20) {
+      distance *= 3.5; // Strong penalty for mapping chromatic to gray
+    }
+
     if (distance < minDistance) {
       minDistance = distance;
       closestIndex = i;
@@ -29,14 +33,11 @@ int findClosestAnsiIndex(int red, int green, int blue) {
   return closestIndex;
 }
 
-int _calculateEuclideanDistance(int rgbRed, int rgbGreen, int rgbBlue, int ansiRed, int ansiGreen, int ansiBlue) {
-  // Calculate squared differences for each color component
-  final redDiff = (rgbRed - ansiRed) * (rgbRed - ansiRed);
-  final greenDiff = (rgbGreen - ansiGreen) * (rgbGreen - ansiGreen);
-  final blueDiff = (rgbBlue - ansiBlue) * (rgbBlue - ansiBlue);
-
-  // Calculate and return the Euclidean distance
-  return math.sqrt(redDiff + greenDiff + blueDiff).round();
+/// Returns chroma (max - min of RGB channels) as a saturation measure.
+int _chroma(int r, int g, int b) {
+  final maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
+  final minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
+  return maxC - minC;
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -48,16 +49,31 @@ final _oscColorRx = RegExp(r'rgb:(\w{1,4})\/(\w{1,4})\/(\w{1,4})');
 /// the OSC response sequence is like "rgb:1111/1111/1111"
 /// and must be convert to a TrueColor class.
 Color? oscColor(String color) {
-  Color? result;
+  final match = _oscColorRx.firstMatch(color);
+  if (match == null) return null;
 
-  _oscColorRx.allMatches(color).forEach((match) {
-    final r = match.group(1)!.padLeft(2, '0').substring(0, 2).parseHex();
-    final g = match.group(2)!.padLeft(2, '0').substring(0, 2).parseHex();
-    final b = match.group(3)!.padLeft(2, '0').substring(0, 2).parseHex();
-    result = Color.fromRGBComponent(r, g, b);
-  });
+  final r = match.group(1)!.padLeft(2, '0').substring(0, 2).parseHex();
+  final g = match.group(2)!.padLeft(2, '0').substring(0, 2).parseHex();
+  final b = match.group(3)!.padLeft(2, '0').substring(0, 2).parseHex();
+  return Color.fromRGBComponent(r, g, b);
+}
 
-  return result;
+/// Redmean squared distance - perceptual color matching.
+/// Returns squared distance (no sqrt) for efficient comparisons.
+/// ref: https://en.wikipedia.org/wiki/Color_difference
+double _redmeanDistanceSquared(int r1, int g1, int b1, int r2, int g2, int b2) {
+  final redMean = (r1 + r2) / 2.0;
+  final redWeight = 2 + redMean / 256;
+  final blueWeight = 2 + (255 - redMean) / 256;
+
+  final dr = r1 - r2;
+  final dg = g1 - g2;
+  final db = b1 - b2;
+
+  // return redWeight * dr * dr + 4 * dg * dg + blueWeight * db * db;
+
+  final distance = math.sqrt(redWeight * dr * dr + 4 * dg * dg + blueWeight * db * db);
+  return distance / _maxRedmeanDistance;
 }
 
 // Maximum possible distance in RGB color space using Redmean approximation.
@@ -74,26 +90,10 @@ double calculateRedMeanDistance(Color color1, Color color2) {
 
   final c1 = color1.toRgbComponents();
   final c2 = color2.toRgbComponents();
-  // Calculate the average of the red components.
-  final redMean = (c1.r + c2.r) / 2.0;
 
-  // Calculate the square differences for each color channel with redmean adjustment.
-  final redWeight = 2 + redMean / 256;
-  final blueWeight = 2 + (255 - redMean) / 256;
-
-  final redDiff = c2.r - c1.r;
-  final greenDiff = c2.g - c1.g;
-  final blueDiff = c2.b - c1.b;
-
-  final redComponent = redWeight * redDiff * redDiff;
-  final greenComponent = 4 * greenDiff * greenDiff;
-  final blueComponent = blueWeight * blueDiff * blueDiff;
-
-  // Calculate the Redmean distance.
-  final distance = math.sqrt(redComponent + greenComponent + blueComponent);
-
-  // Normalize the distance to a range between 0 and 1.
-  return distance / _maxRedmeanDistance;
+  return _redmeanDistanceSquared(c1.r, c1.g, c1.b, c2.r, c2.g, c2.b);
+  // final distance = math.sqrt(_redmeanDistanceSquared(c1.r, c1.g, c1.b, c2.r, c2.g, c2.b));
+  // return distance / _maxRedmeanDistance;
 }
 
 /// Type of the function returned by [colorLerp] function.

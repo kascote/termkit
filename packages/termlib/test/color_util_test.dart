@@ -12,14 +12,16 @@ void main() {
     test('convert a osc10 sequence to TrueColor color', () {
       final c = oscColor('rgb:1111/ab12/d1d1');
       expect(c, isA<Color>());
-      expect(c!.hex, equals('#11abd1'));
+      expect(c!.kind, equals(ColorKind.rgb));
     });
   });
 
-  group('findClosestAnsiIndex', () {
+  group('findClosestAnsi16', () {
     test('must return the closest ANSI color', () {
-      final c = findClosestAnsiIndex(128, 128, 128);
-      expect(c, equals(63));
+      expect(findClosestAnsi16(128, 128, 128), equals(8));
+      expect(findClosestAnsi16(255, 0, 0), equals(9));
+      expect(findClosestAnsi16(118, 118, 118), equals(8));
+      expect(findClosestAnsi16(175, 135, 95), equals(3));
     });
   });
 

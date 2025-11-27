@@ -23,10 +23,31 @@ void main() {
       expect(Color.fromString('#fafbfc'), Color.fromRGBComponent(0xfa, 0xfb, 0xfc));
     });
 
+    test('fromInt auto-detects color kind', () {
+      // ANSI range (0-15)
+      expect(Color.fromInt(0), Color.ansi(0));
+      expect(Color.fromInt(15), Color.ansi(15));
+      expect(Color.fromInt(1).kind, ColorKind.ansi);
+
+      // Indexed range (16-255)
+      expect(Color.fromInt(16), Color.indexed(16));
+      expect(Color.fromInt(255), Color.indexed(255));
+      expect(Color.fromInt(128).kind, ColorKind.indexed);
+
+      // RGB range (256+)
+      expect(Color.fromInt(256), Color.fromRGB(256));
+      expect(Color.fromInt(0xFF0000), Color.fromRGB(0xFF0000));
+      expect(Color.fromInt(0xFFFFFF).kind, ColorKind.rgb);
+    });
+
+    test('fromInt throws on negative', () {
+      expect(() => Color.fromInt(-1), throwsArgumentError);
+    });
+
     test('return default color if invalid value', () {
-      expect(() => Color.fromString('foobar'), throwsArgumentError);
-      expect(() => Color.fromString('#foobar'), throwsArgumentError);
-      expect(() => Color.fromString('foobar'), throwsArgumentError);
+      expect(() => Color.fromString('foobar'), throwsA(isA<FormatException>()));
+      expect(() => Color.fromString('#foobar'), throwsA(isA<FormatException>()));
+      expect(() => Color.fromString('foobar'), throwsA(isA<FormatException>()));
     });
   });
 
@@ -110,10 +131,10 @@ void main() {
 
     test('indexedToAnsi on colors', () {
       expect(Color.indexed(196).convert(ColorKind.ansi), Color.brightRed);
-      expect(Color.indexed(21).convert(ColorKind.ansi), Color.blue);
+      expect(Color.indexed(21).convert(ColorKind.ansi), Color.brightBlue); // RGB(0,0,255)
       expect(Color.indexed(22).convert(ColorKind.ansi), Color.green);
       expect(Color.indexed(46).convert(ColorKind.ansi), Color.brightGreen);
-      expect(Color.indexed(82).convert(ColorKind.ansi), Color.brightYellow);
+      expect(Color.indexed(82).convert(ColorKind.ansi), Color.brightGreen); // RGB(95,255,0) lime
     });
 
     test('equatable', () {
@@ -159,9 +180,9 @@ void main() {
       expect(color.sequence(), '38;2;255;0;255');
     });
 
-    test('should throw ArgumentError for invalid hex string', () {
-      expect(() => Color.fromString('#ff00ff00'), throwsArgumentError);
-      expect(() => Color.fromString('#ff00'), throwsArgumentError);
+    test('should throw ColorFormatException for invalid hex string', () {
+      expect(() => Color.fromString('#ff00ff00'), throwsA(isA<FormatException>()));
+      expect(() => Color.fromString('#ff00'), throwsA(isA<FormatException>()));
     });
 
     test('toAnsi16 should return the correct value', () {
