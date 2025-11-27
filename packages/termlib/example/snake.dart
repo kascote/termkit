@@ -9,31 +9,21 @@ const boardLines = ['═', '║', '╔', '╗', '╚', '╝'];
 // most terminals render emojis as 2 chars wide and mess up the game
 const fruitIcon = '@';
 
-void main() async {
-  final t = TermLib()
-    ..enableAlternateScreen()
-    ..eraseClear()
-    ..cursorHide()
-    ..setTerminalTitle('S N A K E S');
+Future<int> main() async {
+  final exitCode =
+      await TermRunner(
+        alternateScreen: true,
+        rawMode: true,
+        hideCursor: true,
+        title: 'S N A K E S',
+      ).run((term) async {
+        final game = SnakeGame(term)..drawBoard();
+        final letsPlay = await game.startPage();
+        if (letsPlay) await gameLoop(term, game);
+        return 0;
+      });
 
-  try {
-    final game = SnakeGame(t);
-    t.writeAt(1, 30, t.profile.name);
-
-    await t.withRawModeAsync<void>(() async {
-      game.drawBoard();
-      final letsPlay = await game.startPage();
-
-      if (letsPlay) await gameLoop(t, game);
-    });
-  } finally {
-    t
-      ..disableAlternateScreen()
-      ..cursorShow();
-  }
-
-  await t.dispose();
-  await t.flushThenExit(0);
+  return exitCode;
 }
 
 Future<void> gameLoop(TermLib t, SnakeGame game) async {

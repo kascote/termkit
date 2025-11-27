@@ -237,3 +237,26 @@ class MockStdin extends _StdStream implements Stdin {
   @override
   bool get supportsAnsiEscapes => throw UnimplementedError();
 }
+
+/// Mock stderr that captures output to a StringBuffer
+class MockStderr implements Stdout {
+  MockStderr(this._buffer);
+  final StringBuffer _buffer;
+
+  @override
+  void write(Object? object) => _buffer.write(object);
+
+  @override
+  void writeln([Object? object = '']) => _buffer.writeln(object);
+
+  @override
+  //
+  // ignore: strict_raw_type
+  void writeAll(Iterable objects, [String sep = '']) => _buffer.writeAll(objects, sep);
+
+  @override
+  void writeCharCode(int charCode) => _buffer.writeCharCode(charCode);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}

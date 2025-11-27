@@ -6,26 +6,20 @@ import './shared.dart';
 const lhsCursor = '▌';
 const rhsCursor = '▐';
 
-void main() async {
-  final t = TermLib()
-    ..enableAlternateScreen()
-    ..eraseClear()
-    ..cursorHide()
-    ..setTerminalTitle('ASCII Table')
-    ..enableRawMode();
+Future<int> main() async {
+  final exitCode =
+      await TermRunner(
+        alternateScreen: true,
+        rawMode: true,
+        hideCursor: true,
+        title: 'ASCII Table',
+      ).run((term) async {
+        final table = AsciiTable(term);
+        await table.loop();
+        return 0;
+      });
 
-  try {
-    final table = AsciiTable(t);
-    await table.loop();
-  } finally {
-    t
-      ..disableRawMode()
-      ..disableAlternateScreen()
-      ..cursorShow();
-  }
-
-  await t.dispose();
-  await t.flushThenExit(0);
+  return exitCode;
 }
 
 typedef Point = ({int x, int y});

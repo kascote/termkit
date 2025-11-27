@@ -1,6 +1,11 @@
 import 'package:termlib/termlib.dart';
 
-Future<void> main() async {
+Future<int> main() async {
+  final exitCode = await TermRunner().run(display);
+  return exitCode;
+}
+
+Future<int> display(TermLib term) async {
   final term = TermLib()..writeln(Style('ANSI 16 Colors:\n')..bold());
   final resetCR = '${Style('')..resetStyle()}\n';
 
@@ -85,6 +90,5 @@ Future<void> main() async {
   }
 
   term.write(resetCR);
-  await term.dispose();
-  await term.flushThenExit(0);
+  return 0;
 }

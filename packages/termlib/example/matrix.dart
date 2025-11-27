@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:termlib/src/shared/color_util.dart';
@@ -14,41 +13,19 @@ extension StrUtil on String {
   }
 }
 
-Future<void> main(List<String> arguments) async {
-  final t = TermLib()
-    ..eraseClear()
-    ..cursorHide()
-    ..enableRawMode()
-    ..enableAlternateScreen();
-
-  void closeTerm() {
-    t
-      ..disableAlternateScreen()
-      ..disableRawMode()
-      ..cursorShow()
-      ..softReset();
-  }
-
-  late final MatrixApp app;
-
-  await runZonedGuarded(
-    () async {
-      app = MatrixApp(t);
-      final rc = await app.run();
-      closeTerm();
-      return rc;
-    },
-    (e, st) async {
-      await app.stop();
-      closeTerm();
-      stderr
-        ..writeln(e)
-        ..writeln(st);
-    },
-  );
-
-  await t.dispose();
-  await t.flushThenExit(0);
+Future<int> main(List<String> arguments) async {
+  final exitCode =
+      await TermRunner(
+        rawMode: true,
+        hideCursor: true,
+        alternateScreen: true,
+        title: 'Matrix Rain',
+      ).run((term) async {
+        final app = MatrixApp(term);
+        await app.run();
+        return 0;
+      });
+  return exitCode;
 }
 
 class MatrixApp {
@@ -78,12 +55,6 @@ class MatrixApp {
     tickStream.onData(matrix.rainMaker);
 
     return completer.future;
-  }
-
-  Future<void> stop() async {
-    await tickStream.cancel();
-    await eventStream.cancel();
-    completer.complete(false);
   }
 }
 

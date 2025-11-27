@@ -10,9 +10,12 @@ typedef Theme = ({
   Style text,
 });
 
-Future<void> main() async {
-  final t = TermLib();
+Future<int> main() async {
+  final exitCode = await TermRunner().run(display);
+  return exitCode;
+}
 
+Future<int> display(TermLib t) async {
   final s = t.style;
   final theme = (
     magenta: s()..fg(Color.indexed(201)),
@@ -49,8 +52,7 @@ Future<void> main() async {
   t.writeln('${theme.white('Keyboard Enhancement support: ')}${renderValue(keyEnhanced.toString(), theme)}');
   if (keyEnhanced) showKeyboardCapabilities(t, theme, keyCap);
 
-  await t.dispose();
-  await t.flushThenExit(0);
+  return 0;
 }
 
 String renderValue(String value, Theme theme) {

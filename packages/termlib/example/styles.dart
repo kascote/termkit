@@ -1,7 +1,11 @@
 import 'package:termlib/termlib.dart';
 
-Future<void> main() async {
-  final t = TermLib();
+Future<int> main() async {
+  final exitCode = await TermRunner().run(display);
+  return exitCode;
+}
+
+Future<int> display(TermLib t) async {
   final resetCR = '${Style('')..resetStyle()}\n';
 
   final colors = [
@@ -68,8 +72,7 @@ Future<void> main() async {
         ..resetStyle()}',
     );
 
-  await t.dispose();
-  await t.flushThenExit(0);
+  return 0;
 }
 
 String center(String text, int length) {

@@ -2,9 +2,12 @@ import 'package:termlib/color_util.dart';
 import 'package:termlib/termlib.dart';
 
 // test to see how 256 colors downgrades to 16 colors
-Future<void> main() async {
-  final t = TermLib();
+Future<int> main() async {
+  final exitCode = await TermRunner().run(display);
+  return exitCode;
+}
 
+Future<int> display(TermLib t) async {
   final colors = [
     [
       // https://vscodethemes.com/e/ryanolsonx.solarized
@@ -75,8 +78,7 @@ Future<void> main() async {
     t.writeln('');
   }
 
-  await t.dispose();
-  await t.flushThenExit(0);
+  return 0;
 }
 
 void showColor(TermLib t, String name, String color) {

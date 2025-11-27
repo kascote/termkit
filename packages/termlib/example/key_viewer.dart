@@ -486,26 +486,19 @@ class KeyViewer {
 }
 
 // Entry point
-Future<void> main(List<String> arguments) async {
+Future<int> main(List<String> arguments) async {
   final config = KeyViewerConfig.fromArgs(arguments);
-  final t = TermLib();
 
-  if (config.withKitty) t.enableKeyboardEnhancement();
+  final exitCode =
+      await TermRunner(
+        rawMode: true,
+        keyboardEnhancement: config.withKitty,
+        mouseEvents: config.withMouse,
+      ).run((t) async {
+        final viewer = KeyViewer(t, config: config);
+        await viewer.run();
+        return 0;
+      });
 
-  ProcessSignal.sigterm.watch().listen((event) async {
-    t
-      ..disableKeyboardEnhancement()
-      ..disableRawMode()
-      ..writeln('SIGTERM received');
-
-    if (config.withMouse) {
-      t.disableMouseEvents();
-    }
-
-    await t.flushThenExit(0);
-  });
-
-  final viewer = KeyViewer(t, config: config);
-  await t.withRawModeAsync(viewer.run);
-  await t.flushThenExit(0);
+  return exitCode;
 }

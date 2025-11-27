@@ -10,4 +10,5 @@ export 'src/extensions/erase.dart';
 export 'src/extensions/term.dart';
 export 'src/extensions/types.dart';
 export 'src/style.dart';
+export 'src/term_runner.dart';
 export 'src/termlib_base.dart';
