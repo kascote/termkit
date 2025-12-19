@@ -1,5 +1,6 @@
 import '../events/event_base.dart';
 import '../events/key_event.dart';
+import '../events/key_support.dart';
 import 'parser_base.dart';
 
 /// Parse a single character
@@ -16,7 +17,8 @@ Event parseChar(String char, {bool escO = false}) {
   return switch (char) {
     '\r' || '\n' => const KeyEvent(KeyCode.named(KeyCodeName.enter)),
     '\t' => const KeyEvent(KeyCode.named(KeyCodeName.tab)),
-    '\x08' || '\x7f' => const KeyEvent(KeyCode.named(KeyCodeName.backSpace)),
+    '\x08' => const KeyEvent(KeyCode.named(KeyCodeName.backSpace), modifiers: KeyModifiers.ctrl),
+    '\x7f' => const KeyEvent(KeyCode.named(KeyCodeName.backSpace)),
     '\x1b' => const KeyEvent(KeyCode.named(KeyCodeName.escape)),
     '\x00' => const KeyEvent(KeyCode.named(KeyCodeName.none)),
     _ => ctrlOrKey(char),

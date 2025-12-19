@@ -21,7 +21,8 @@ Event parseCSISequence(Parameters params, String char) {
     'P' => _parseKeyAndModifiers(KeyCodeName.f1, params.values.length == 2 ? params.values[1] : ''),
     'Q' => _parseKeyAndModifiers(KeyCodeName.f2, params.values.length == 2 ? params.values[1] : ''),
     'S' => _parseKeyAndModifiers(KeyCodeName.f4, params.values.length == 2 ? params.values[1] : ''),
-    'Z' => _parseKeyAndModifiers(KeyCodeName.backTab, params.values.length == 2 ? params.values[1] : ''),
+    // 'Z' => _parseKeyAndModifiers(KeyCodeName.backTab, params.values.length == 2 ? params.values[1] : ''),
+    'Z' => _parseKeyAndModifiers(KeyCodeName.tab, '2'), // shift-tab
     'M' || 'm' when params.values.firstOrNull == '<' => sgrMouseParser(params, char),
     'I' => const FocusEvent(),
     'O' => const FocusEvent(hasFocus: false),
@@ -98,10 +99,7 @@ Event _parseKeyboardEnhancedMode(Parameters params, String char) {
       // if the terminal is in raw mode, the enter key sends \r
       // we need to handle this case. How to receive the raw mode status?
       0xa => const KeyCode.named(KeyCodeName.enter),
-      0x9 =>
-        modifiers.has(KeyModifiers.shift)
-            ? const KeyCode.named(KeyCodeName.backTab)
-            : const KeyCode.named(KeyCodeName.tab),
+      0x9 => const KeyCode.named(KeyCodeName.tab),
       0x7f => const KeyCode.named(KeyCodeName.backSpace),
       _ => KeyCode.char(String.fromCharCode(codePoint)),
     };

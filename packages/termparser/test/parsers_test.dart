@@ -83,6 +83,14 @@ void main() {
       expect(event4.code, const KeyCode.char('7'));
       expect(event4.modifiers.value, KeyModifiers.ctrl);
     });
+
+    test('backspace with shift modifier - 127', () {
+      final parser = Parser()..advance([0x7f]);
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.named(KeyCodeName.backSpace));
+      expect(event.modifiers, KeyModifiers.none);
+    });
   });
 
   group('osc_parser >', () {
@@ -142,7 +150,24 @@ void main() {
       final parser = Parser()..advance(keySequence('π[9;2u'));
       expect(parser.hasEvents, true);
       final event = parser.nextEvent()! as KeyEvent;
-      expect(event.code, const KeyCode.named(KeyCodeName.backTab));
+      expect(event.code, const KeyCode.named(KeyCodeName.tab));
+      expect(event.modifiers, KeyModifiers.shift);
+    });
+
+    test('tab with shift modifier - CSI Z', () {
+      final parser = Parser()..advance(keySequence('π[Z'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.named(KeyCodeName.tab));
+      expect(event.modifiers, KeyModifiers.shift);
+    });
+
+    test('backspace with shift modifier - CSI 127 u', () {
+      final parser = Parser()..advance(keySequence('π[127u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.named(KeyCodeName.backSpace));
+      expect(event.modifiers, KeyModifiers.none);
     });
 
     test('function keys F1-F20 via CSI~', () {

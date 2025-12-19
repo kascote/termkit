@@ -122,7 +122,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.named(KeyCodeName.backSpace))),
+        equals(const KeyEvent(KeyCode.named(KeyCodeName.backSpace), modifiers: KeyModifiers.ctrl)),
       );
     });
   });
