@@ -448,4 +448,112 @@ void main() {
       });
     });
   });
+
+  group('KeyEvent.toSpec', () {
+    group('single characters', () {
+      test('char key', () {
+        expect(KeyEvent.fromString('a').toSpec(), 'a');
+        expect(KeyEvent.fromString('Z').toSpec(), 'Z');
+        expect(KeyEvent.fromString('5').toSpec(), '5');
+        expect(KeyEvent.fromString('!').toSpec(), '!');
+      });
+
+      test('space char becomes space', () {
+        expect(KeyEvent.fromString(' ').toSpec(), 'space');
+        expect(KeyEvent.fromString('space').toSpec(), 'space');
+      });
+    });
+
+    group('named keys', () {
+      test('named keys use enum name', () {
+        expect(KeyEvent.fromString('enter').toSpec(), 'enter');
+        expect(KeyEvent.fromString('escape').toSpec(), 'escape');
+        expect(KeyEvent.fromString('backSpace').toSpec(), 'backSpace');
+        expect(KeyEvent.fromString('f1').toSpec(), 'f1');
+        expect(KeyEvent.fromString('f12').toSpec(), 'f12');
+        expect(KeyEvent.fromString('up').toSpec(), 'up');
+        expect(KeyEvent.fromString('pageUp').toSpec(), 'pageUp');
+      });
+
+      test('media keys', () {
+        expect(KeyEvent.fromString('play').toSpec(), 'play');
+        expect(KeyEvent.fromString('playPause').toSpec(), 'playPause');
+        expect(KeyEvent.fromString('raiseVolume').toSpec(), 'raiseVolume');
+      });
+    });
+
+    group('modifier keys normalize to generic', () {
+      test('leftCtrl becomes ctrl', () {
+        expect(KeyEvent.fromString('leftCtrl').toSpec(), 'ctrl');
+      });
+
+      test('rightCtrl becomes ctrl', () {
+        expect(KeyEvent.fromString('rightCtrl').toSpec(), 'ctrl');
+      });
+
+      test('leftShift becomes shift', () {
+        expect(KeyEvent.fromString('leftShift').toSpec(), 'shift');
+      });
+
+      test('rightAlt becomes alt', () {
+        expect(KeyEvent.fromString('rightAlt').toSpec(), 'alt');
+      });
+
+      test('leftSuper becomes super', () {
+        expect(KeyEvent.fromString('leftSuper').toSpec(), 'super');
+      });
+
+      test('rightHyper becomes hyper', () {
+        expect(KeyEvent.fromString('rightHyper').toSpec(), 'hyper');
+      });
+
+      test('leftMeta becomes meta', () {
+        expect(KeyEvent.fromString('leftMeta').toSpec(), 'meta');
+      });
+    });
+
+    group('with modifiers', () {
+      test('single modifier', () {
+        expect(KeyEvent.fromString('ctrl+a').toSpec(), 'ctrl+a');
+        expect(KeyEvent.fromString('shift+enter').toSpec(), 'shift+enter');
+        expect(KeyEvent.fromString('alt+f1').toSpec(), 'alt+f1');
+      });
+
+      test('multiple modifiers in canonical order', () {
+        expect(KeyEvent.fromString('ctrl+shift+a').toSpec(), 'ctrl+shift+a');
+        expect(KeyEvent.fromString('shift+ctrl+a').toSpec(), 'ctrl+shift+a');
+        expect(KeyEvent.fromString('alt+ctrl+a').toSpec(), 'ctrl+alt+a');
+        expect(KeyEvent.fromString('meta+hyper+super+shift+alt+ctrl+a').toSpec(), 'ctrl+alt+shift+super+hyper+meta+a');
+      });
+
+      test('specific modifiers normalize in output', () {
+        expect(KeyEvent.fromString('leftCtrl+a').toSpec(), 'ctrl+a');
+        expect(KeyEvent.fromString('rightShift+b').toSpec(), 'shift+b');
+      });
+
+      test('modifier + space', () {
+        expect(KeyEvent.fromString('ctrl+space').toSpec(), 'ctrl+space');
+      });
+    });
+
+    group('roundtrip', () {
+      test('fromString then toSpec is idempotent', () {
+        final specs = [
+          'a',
+          'A',
+          'space',
+          'enter',
+          'backSpace',
+          'f12',
+          'ctrl+a',
+          'alt+enter',
+          'ctrl+shift+delete',
+          'ctrl+alt+shift+super+hyper+meta+f1',
+        ];
+        for (final spec in specs) {
+          expect(KeyEvent.fromString(spec).toSpec(), spec);
+        }
+      });
+    });
+  });
 }

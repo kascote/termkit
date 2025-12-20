@@ -456,17 +456,54 @@ final class KeyEvent extends InputEvent {
     );
   }
 
+  /// Converts this [KeyEvent] to a specification string.
+  ///
+  /// This is the inverse of [KeyEvent.fromString].
+  /// Outputs generic modifier names in canonical order: ctrl+alt+shift+super+hyper+meta
+  ///
+  /// Does not encode: eventType, baseLayoutKey, keyPad, capsLock
+  ///
+  /// Examples:
+  /// - `KeyEvent.fromString('backSpace').toSpec()` → `'backSpace'`
+  /// - `KeyEvent.fromString('ctrl+a').toSpec()` → `'ctrl+a'`
+  /// - `KeyEvent(KeyCode.named(KeyCodeName.leftCtrl)).toSpec()` → `'ctrl'`
+  String toSpec() {
+    final parts = <String>[];
+    final keySpec = _keyToSpec(code);
+
+    for (final (modifier, name) in _modifierSpec) {
+      // Skip modifier if it matches the key (e.g., leftCtrl key → 'ctrl')
+      if (name == keySpec) continue;
+      if (modifiers.has(modifier)) {
+        parts.add(name);
+      }
+    }
+
+    parts.add(keySpec);
+    return parts.join('+');
+  }
+
   @override
   String toString() {
     return 'KeyEvent{code: $code, modifiers: ${modifiers.debugInfo()}, eventType: $eventType';
   }
 }
 
+/// Canonical modifier order for toSpec output
+const List<(KeyModifiers, String)> _modifierSpec = [
+  (KeyModifiers.ctrl, 'ctrl'),
+  (KeyModifiers.alt, 'alt'),
+  (KeyModifiers.shift, 'shift'),
+  (KeyModifiers.superKey, 'super'),
+  (KeyModifiers.hyper, 'hyper'),
+  (KeyModifiers.meta, 'meta'),
+];
+
 /// Map of generic modifier names to their bit masks
 const Map<String, KeyModifiers> _genericModifiers = {
-  'shift': KeyModifiers.shift,
   'ctrl': KeyModifiers.ctrl,
   'alt': KeyModifiers.alt,
+  'shift': KeyModifiers.shift,
   'super': KeyModifiers.superKey,
   'hyper': KeyModifiers.hyper,
   'meta': KeyModifiers.meta,
@@ -484,6 +521,22 @@ const Map<String, KeyModifiers> _genericModifiers = {
   'righthyper': KeyModifiers.hyper,
 };
 
+/// Map of modifier KeyCodeName to generic name
+const Map<KeyCodeName, String> _modifierKeyToGeneric = {
+  KeyCodeName.leftCtrl: 'ctrl',
+  KeyCodeName.rightCtrl: 'ctrl',
+  KeyCodeName.leftShift: 'shift',
+  KeyCodeName.rightShift: 'shift',
+  KeyCodeName.leftAlt: 'alt',
+  KeyCodeName.rightAlt: 'alt',
+  KeyCodeName.leftSuper: 'super',
+  KeyCodeName.rightSuper: 'super',
+  KeyCodeName.leftHyper: 'hyper',
+  KeyCodeName.rightHyper: 'hyper',
+  KeyCodeName.leftMeta: 'meta',
+  KeyCodeName.rightMeta: 'meta',
+};
+
 /// Parses a generic modifier string (shift, ctrl, alt, etc.)
 KeyModifiers? _parseGenericModifier(String mod) {
   return _genericModifiers[mod.toLowerCase()];
@@ -491,6 +544,10 @@ KeyModifiers? _parseGenericModifier(String mod) {
 
 /// Parses a key string into a KeyCode
 KeyCode _parseKey(String key) {
+  if (key.toLowerCase() == 'space') {
+    return const KeyCode.char(' ');
+  }
+
   // Try to parse as a named key
   final namedKey = _parseNamedKey(key);
   if (namedKey != null) {
@@ -503,6 +560,19 @@ KeyCode _parseKey(String key) {
   }
 
   throw ArgumentError('Unknown key: $key');
+}
+
+/// Converts a KeyCode to its spec string
+String _keyToSpec(KeyCode code) {
+  switch (code.kind) {
+    case KeyCodeKind.char:
+      if (code.char == ' ') return 'space';
+      return code.char;
+    case KeyCodeKind.named:
+      final generic = _modifierKeyToGeneric[code.name];
+      if (generic != null) return generic;
+      return code.name.name;
+  }
 }
 
 /// Parses a named key string
