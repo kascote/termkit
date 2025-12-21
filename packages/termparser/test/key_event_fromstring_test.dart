@@ -266,7 +266,7 @@ void main() {
 
       test('parses shift+b', () {
         final event = KeyEvent.fromString('shift+b');
-        expect(event.code.char, 'b');
+        expect(event.code.char, 'B');
         expect(event.modifiers, KeyModifiers.shift);
       });
 
@@ -322,7 +322,7 @@ void main() {
     group('multiple modifiers', () {
       test('parses ctrl+shift+a', () {
         final event = KeyEvent.fromString('ctrl+shift+a');
-        expect(event.code.char, 'a');
+        expect(event.code.char, 'A');
         expect(event.modifiers.has(KeyModifiers.ctrl), isTrue);
         expect(event.modifiers.has(KeyModifiers.shift), isTrue);
         expect(event.modifiers.value, KeyModifiers.ctrl | KeyModifiers.shift);
@@ -353,14 +353,14 @@ void main() {
     group('mixed generic and specific modifiers', () {
       test('parses leftCtrl+shift+a', () {
         final event = KeyEvent.fromString('leftCtrl+shift+a');
-        expect(event.code.char, 'a');
+        expect(event.code.char, 'A');
         expect(event.modifiers.has(KeyModifiers.ctrl), isTrue);
         expect(event.modifiers.has(KeyModifiers.shift), isTrue);
       });
 
       test('parses shift+rightAlt+b', () {
         final event = KeyEvent.fromString('shift+rightAlt+b');
-        expect(event.code.char, 'b');
+        expect(event.code.char, 'B');
         expect(event.modifiers.has(KeyModifiers.shift), isTrue);
         expect(event.modifiers.has(KeyModifiers.alt), isTrue);
       });
@@ -384,6 +384,49 @@ void main() {
       test('parses shift+play', () {
         final event = KeyEvent.fromString('shift+play');
         expect(event.code.name, KeyCodeName.play);
+        expect(event.modifiers.has(KeyModifiers.shift), isTrue);
+      });
+    });
+
+    group('plus and minus keys', () {
+      test('parses plus as char', () {
+        final event = KeyEvent.fromString('plus');
+        expect(event.code.kind, KeyCodeKind.char);
+        expect(event.code.char, '+');
+        expect(event.modifiers.value, 0);
+      });
+
+      test('parses minus as char', () {
+        final event = KeyEvent.fromString('minus');
+        expect(event.code.kind, KeyCodeKind.char);
+        expect(event.code.char, '-');
+        expect(event.modifiers.value, 0);
+      });
+
+      test('parses ctrl+plus', () {
+        final event = KeyEvent.fromString('ctrl+plus');
+        expect(event.code.kind, KeyCodeKind.char);
+        expect(event.code.char, '+');
+        expect(event.modifiers, KeyModifiers.ctrl);
+      });
+
+      test('parses ctrl+minus', () {
+        final event = KeyEvent.fromString('ctrl+minus');
+        expect(event.code.kind, KeyCodeKind.char);
+        expect(event.code.char, '-');
+        expect(event.modifiers, KeyModifiers.ctrl);
+      });
+
+      test('parses shift+plus', () {
+        final event = KeyEvent.fromString('shift+plus');
+        expect(event.code.char, '+'); // not a letter, no uppercase
+        expect(event.modifiers, KeyModifiers.shift);
+      });
+
+      test('parses ctrl+shift+plus', () {
+        final event = KeyEvent.fromString('ctrl+shift+plus');
+        expect(event.code.char, '+');
+        expect(event.modifiers.has(KeyModifiers.ctrl), isTrue);
         expect(event.modifiers.has(KeyModifiers.shift), isTrue);
       });
     });
@@ -553,6 +596,47 @@ void main() {
         for (final spec in specs) {
           expect(KeyEvent.fromString(spec).toSpec(), spec);
         }
+      });
+
+      test('shift+letter round trips correctly', () {
+        // shift+a → KeyCode.char('A') internally → toSpec → 'shift+a'
+        expect(KeyEvent.fromString('shift+a').toSpec(), 'shift+a');
+        expect(KeyEvent.fromString('shift+z').toSpec(), 'shift+z');
+        expect(KeyEvent.fromString('ctrl+shift+x').toSpec(), 'ctrl+shift+x');
+      });
+
+      test('shift+digit keeps digit unchanged', () {
+        expect(KeyEvent.fromString('shift+1').toSpec(), 'shift+1');
+        expect(KeyEvent.fromString('shift+9').toSpec(), 'shift+9');
+      });
+
+      test('plus and minus roundtrip', () {
+        expect(KeyEvent.fromString('plus').toSpec(), 'plus');
+        expect(KeyEvent.fromString('minus').toSpec(), 'minus');
+        expect(KeyEvent.fromString('ctrl+plus').toSpec(), 'ctrl+plus');
+        expect(KeyEvent.fromString('ctrl+minus').toSpec(), 'ctrl+minus');
+        expect(KeyEvent.fromString('ctrl+shift+plus').toSpec(), 'ctrl+shift+plus');
+      });
+
+      test('camelCase named keys roundtrip', () {
+        expect(KeyEvent.fromString('backSpace').toSpec(), 'backSpace');
+        expect(KeyEvent.fromString('pageUp').toSpec(), 'pageUp');
+        expect(KeyEvent.fromString('pageDown').toSpec(), 'pageDown');
+        expect(KeyEvent.fromString('backTab').toSpec(), 'backTab');
+        expect(KeyEvent.fromString('keypadBegin').toSpec(), 'keypadBegin');
+        expect(KeyEvent.fromString('ctrl+backSpace').toSpec(), 'ctrl+backSpace');
+        expect(KeyEvent.fromString('shift+pageUp').toSpec(), 'shift+pageUp');
+        expect(KeyEvent.fromString('ctrl+shift+pageDown').toSpec(), 'ctrl+shift+pageDown');
+      });
+
+      test('camelCase media keys roundtrip', () {
+        expect(KeyEvent.fromString('playPause').toSpec(), 'playPause');
+        expect(KeyEvent.fromString('trackNext').toSpec(), 'trackNext');
+        expect(KeyEvent.fromString('trackPrevious').toSpec(), 'trackPrevious');
+        expect(KeyEvent.fromString('raiseVolume').toSpec(), 'raiseVolume');
+        expect(KeyEvent.fromString('lowerVolume').toSpec(), 'lowerVolume');
+        expect(KeyEvent.fromString('muteVolume').toSpec(), 'muteVolume');
+        expect(KeyEvent.fromString('fastForward').toSpec(), 'fastForward');
       });
     });
   });

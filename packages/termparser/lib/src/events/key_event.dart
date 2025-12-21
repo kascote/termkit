@@ -265,6 +265,12 @@ enum KeyCodeName {
 
   /// ISO Level 5 Shift key
   isoLevel5Shift,
+
+  /// Plus key (+)
+  plus,
+
+  /// Minus key (-)
+  minus,
 }
 
 /// Enum for Key Events Types
@@ -425,8 +431,20 @@ final class KeyEvent extends InputEvent {
       }
     }
 
+    var keyCode = _parseKey(keyPart);
+
+    // Uppercase letters when shift modifier is present
+    if (modifierMask.has(KeyModifiers.shift) && keyCode.kind == KeyCodeKind.char && keyCode.char.length == 1) {
+      final char = keyCode.char;
+      final code = char.codeUnitAt(0);
+      // Check if it's a lowercase letter (a-z)
+      if (code >= 0x61 && code <= 0x7A) {
+        keyCode = KeyCode.char(char.toUpperCase());
+      }
+    }
+
     return KeyEvent(
-      _parseKey(keyPart),
+      keyCode,
       modifiers: modifierMask,
     );
   }
@@ -469,13 +487,22 @@ final class KeyEvent extends InputEvent {
   /// - `KeyEvent(KeyCode.named(KeyCodeName.leftCtrl)).toSpec()` → `'ctrl'`
   String toSpec() {
     final parts = <String>[];
-    final keySpec = _keyToSpec(code);
+    var keySpec = _keyToSpec(code);
 
     for (final (modifier, name) in _modifierSpec) {
       // Skip modifier if it matches the key (e.g., leftCtrl key → 'ctrl')
       if (name == keySpec) continue;
       if (modifiers.has(modifier)) {
         parts.add(name);
+      }
+    }
+
+    // Lowercase single uppercase letters when shift is present
+    if (modifiers.has(KeyModifiers.shift) && keySpec.length == 1) {
+      final code = keySpec.codeUnitAt(0);
+      // Check if it's an uppercase letter (A-Z)
+      if (code >= 0x41 && code <= 0x5A) {
+        keySpec = keySpec.toLowerCase();
       }
     }
 
@@ -544,8 +571,15 @@ KeyModifiers? _parseGenericModifier(String mod) {
 
 /// Parses a key string into a KeyCode
 KeyCode _parseKey(String key) {
-  if (key.toLowerCase() == 'space') {
+  final keyLower = key.toLowerCase();
+  if (keyLower == 'space') {
     return const KeyCode.char(' ');
+  }
+  if (keyLower == 'plus') {
+    return const KeyCode.char('+');
+  }
+  if (keyLower == 'minus') {
+    return const KeyCode.char('-');
   }
 
   // Try to parse as a named key
@@ -567,6 +601,8 @@ String _keyToSpec(KeyCode code) {
   switch (code.kind) {
     case KeyCodeKind.char:
       if (code.char == ' ') return 'space';
+      if (code.char == '+') return 'plus';
+      if (code.char == '-') return 'minus';
       return code.char;
     case KeyCodeKind.named:
       final generic = _modifierKeyToGeneric[code.name];
