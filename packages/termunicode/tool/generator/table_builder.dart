@@ -7,6 +7,8 @@ import 'package:termunicode/term_ucd.dart';
 import 'constants.dart';
 import 'downloader.dart';
 
+const emojiData = ['Emoji', 'Emoji_Presentation', 'Extended_Pictographic'];
+
 ///
 class Tables {
   /// EastAsianWidth UCD file
@@ -174,7 +176,9 @@ class Tables {
         // if (emo.start >= 0x1F1E6 && emo.end <= 0x1F1FF) charWidth = 2;
         // all RIS (Regional Indicator Symbols) have Emoji property set and
         // there are a couple more Emojis that are Narrow in EAW table
-        if (emo.property == 'Emoji') charWidth = 2;
+        // Don't override ambiguous chars (charWidth == 3) - they default to
+        // text presentation and terminals render them as symbols, not emoji.
+        if (emojiData.contains(emo.property) && charWidth != 3) charWidth = 2;
       }
     }
 

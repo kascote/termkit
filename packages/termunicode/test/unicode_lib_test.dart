@@ -21,6 +21,8 @@ void main() {
     expect(isEmojiChar('🔬'), true);
     expect(widthString('👩‍🔬'), 2); // Woman scientist
     expect(isEmojiChar('👩‍🔬'), true);
+    expect(widthString('🏕️'), 2); // in range data
+    expect(widthString('🏈'), 2); // standalone range
   });
 
   test('char width', () {
