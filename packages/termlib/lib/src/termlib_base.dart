@@ -49,6 +49,7 @@ class TermLib {
   Stream<List<int>>? _mockStdin;
   EventQueue? _eventQueue;
   StreamSubscription<Event>? _eventSubscription;
+  StreamController<Event>? _eventBroadcastController;
 
   /// The current terminal profile to use.
   /// The profile is resolved when the [TermLib] instance is created.
@@ -75,11 +76,14 @@ class TermLib {
 
     if (overrides?.eventQueue != null) {
       _eventQueue = overrides!.eventQueue;
+      _eventBroadcastController = StreamController<Event>.broadcast();
     } else if (overrides?.eventStream != null) {
       _eventQueue = EventQueue();
-      _eventSubscription = overrides!.eventStream!.stream.listen(_eventQueue!.enqueue);
+      _eventBroadcastController = StreamController<Event>.broadcast();
+      _eventSubscription = overrides!.eventStream!.stream.listen(_onEventParsed);
     } else if (hasTerminal) {
       _eventQueue = EventQueue();
+      _eventBroadcastController = StreamController<Event>.broadcast();
       _initEventQueue();
     }
   }
@@ -424,6 +428,39 @@ class TermLib {
   /// data incrementally.
   Stream<List<int>> get stdinStream => _broadcastStream;
 
+  /// Broadcast stream of parsed terminal events.
+  ///
+  /// Provides push-based event delivery for subscribers. Events are emitted
+  /// as they are parsed from stdin. Multiple subscribers supported.
+  ///
+  /// Coexists with [poll]/[read] - both receive same events from same source.
+  /// Use this stream for reactive/push-based patterns; use poll/read for
+  /// pull-based patterns.
+  ///
+  /// Zone overrides take precedence: if events stream is provided via
+  /// TerminalOverrides, it will be used instead of internal broadcast.
+  ///
+  /// Throws [StateError] if called on piped/redirected input (when !hasTerminal).
+  ///
+  /// Example:
+  /// ```dart
+  /// terminal.events.listen((event) {
+  ///   if (event is KeyEvent) {
+  ///     print('Key pressed: ${event.code.char}');
+  ///   }
+  /// });
+  /// ```
+  Stream<Event> get events {
+    if (!hasTerminal) {
+      throw StateError('events requires interactive terminal. Use stdinStream for piped input.');
+    }
+    final overrides = TerminalOverrides.current;
+    if (overrides?.events != null) {
+      return overrides!.events!;
+    }
+    return _eventBroadcastController!.stream;
+  }
+
   /// Enables raw mode and executes the provided function.
   /// On return sets raw mode back to its previous value
   T withRawMode<T>(T Function() fn) {
@@ -536,17 +573,25 @@ class TermLib {
 
   /// Dispose of resources used by TermLib.
   ///
-  /// Cancels event subscription and disposes event queue if active.
+  /// Cancels event subscription and disposes event queue and broadcast controller.
   /// Call this when done using TermLib to prevent resource leaks.
   Future<void> dispose() async {
     await _eventSubscription?.cancel();
     await _eventQueue?.dispose();
+    await _eventBroadcastController?.close();
     _eventQueue = null;
     _eventSubscription = null;
+    _eventBroadcastController = null;
   }
 
   void _initEventQueue() {
-    _eventSubscription = _broadcastStream.transform(eventTransformer()).listen((event) => _eventQueue!.enqueue(event));
+    _eventSubscription = _broadcastStream.transform(eventTransformer()).listen(_onEventParsed);
+  }
+
+  /// Handles parsed events: enqueues to EventQueue and broadcasts to subscribers.
+  void _onEventParsed(Event event) {
+    _eventQueue!.enqueue(event);
+    _eventBroadcastController?.add(event);
   }
 
   bool _setRawMode(bool value) {

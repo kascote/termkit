@@ -937,5 +937,205 @@ void main() {
         hasTerminal: true,
       );
     });
+
+    test('events stream emits parsed events', () async {
+      final controller = createEventController();
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+          final received = <Event>[];
+
+          final subscription = term.events.listen(received.add);
+
+          controller
+            ..add(const KeyEvent(KeyCode.char('x')))
+            ..add(const KeyEvent(KeyCode.char('y')));
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          expect(received, hasLength(2));
+          expect(received[0], isA<KeyEvent>());
+          expect((received[0] as KeyEvent).code.char, 'x');
+          expect(received[1], isA<KeyEvent>());
+          expect((received[1] as KeyEvent).code.char, 'y');
+
+          await subscription.cancel();
+          await term.dispose();
+          await controller.close();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventStream: controller,
+        hasTerminal: true,
+      );
+    });
+
+    test('events stream supports multiple subscribers', () async {
+      final controller = createEventController();
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+          final received1 = <Event>[];
+          final received2 = <Event>[];
+
+          final sub1 = term.events.listen(received1.add);
+          final sub2 = term.events.listen(received2.add);
+
+          controller.add(const KeyEvent(KeyCode.char('z')));
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          expect(received1, hasLength(1));
+          expect(received2, hasLength(1));
+          expect((received1[0] as KeyEvent).code.char, 'z');
+          expect((received2[0] as KeyEvent).code.char, 'z');
+
+          await sub1.cancel();
+          await sub2.cancel();
+          await term.dispose();
+          await controller.close();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventStream: controller,
+        hasTerminal: true,
+      );
+    });
+
+    test('events stream throws StateError when !hasTerminal', () async {
+      final mockStdin = MockStdin(streamString(''))..hasTerminal = false;
+      await mockedTest(
+        (_, _, _) {
+          final term = TermLib();
+          expect(
+            () => term.events,
+            throwsA(
+              isA<StateError>().having(
+                (e) => e.message,
+                'message',
+                contains('events requires interactive terminal'),
+              ),
+            ),
+          );
+        },
+        stdin: mockStdin,
+      );
+    });
+
+    test('events stream coexists with poll/read', () async {
+      final controller = createEventController();
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+          final streamEvents = <Event>[];
+
+          final subscription = term.events.listen(streamEvents.add);
+
+          controller
+            ..add(const KeyEvent(KeyCode.char('a')))
+            ..add(const KeyEvent(KeyCode.char('b')))
+            ..add(const KeyEvent(KeyCode.char('c')));
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          // Stream received all events
+          expect(streamEvents, hasLength(3));
+
+          // poll/read also received same events
+          final poll1 = term.poll<KeyEvent>();
+          expect((poll1 as KeyEvent).code.char, 'a');
+
+          final poll2 = term.poll<KeyEvent>();
+          expect((poll2 as KeyEvent).code.char, 'b');
+
+          final poll3 = term.poll<KeyEvent>();
+          expect((poll3 as KeyEvent).code.char, 'c');
+
+          await subscription.cancel();
+          await term.dispose();
+          await controller.close();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        eventStream: controller,
+        hasTerminal: true,
+      );
+    });
+
+    test('events can be overridden for testing', () async {
+      final mockEventsController = StreamController<Event>.broadcast();
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+          final received = <Event>[];
+
+          final subscription = term.events.listen(received.add);
+
+          mockEventsController
+            ..add(const KeyEvent(KeyCode.char('m')))
+            ..add(const KeyEvent(KeyCode.char('n')));
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          expect(received, hasLength(2));
+          expect((received[0] as KeyEvent).code.char, 'm');
+          expect((received[1] as KeyEvent).code.char, 'n');
+
+          await subscription.cancel();
+          await term.dispose();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        hasTerminal: true,
+        events: mockEventsController.stream,
+      );
+
+      await mockEventsController.close();
+    });
+
+    test('events override is independent from eventStream', () async {
+      final eventStreamController = createEventController();
+      final eventsOverrideController = StreamController<Event>.broadcast();
+
+      await TerminalOverrides.runZoned(
+        () async {
+          final term = TermLib();
+          final streamEvents = <Event>[];
+
+          final subscription = term.events.listen(streamEvents.add);
+
+          // Events from eventStream go to queue (poll/read)
+          eventStreamController.add(const KeyEvent(KeyCode.char('q')));
+
+          // Events from events override go to stream subscribers
+          eventsOverrideController.add(const KeyEvent(KeyCode.char('s')));
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+
+          // Stream only receives from events override
+          expect(streamEvents, hasLength(1));
+          expect((streamEvents[0] as KeyEvent).code.char, 's');
+
+          // Queue receives from eventStream
+          final poll1 = term.poll<KeyEvent>();
+          expect((poll1 as KeyEvent).code.char, 'q');
+
+          await subscription.cancel();
+          await term.dispose();
+          await eventStreamController.close();
+        },
+        stdout: MockStdout(),
+        stdin: MockStdin(streamString('')),
+        hasTerminal: true,
+        eventStream: eventStreamController,
+        events: eventsOverrideController.stream,
+      );
+
+      await eventsOverrideController.close();
+    });
   });
 }

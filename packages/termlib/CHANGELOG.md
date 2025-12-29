@@ -8,6 +8,7 @@
 - updated: removed unused methods from FFI interface
 - added: query functions for 2027 (Unicode Core)
 - added: implements disable individual styles (bold off, italic off, etc)
+- added: expose events controllers directly
 
 ## 0.4.0
 

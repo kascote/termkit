@@ -39,6 +39,7 @@ abstract class TerminalOverrides {
     EventQueue? eventQueue,
     bool? hasTerminal,
     StreamController<Event>? eventStream,
+    Stream<Event>? events,
   }) {
     final overrides = _TerminalOverridesScope(
       termOs,
@@ -48,6 +49,7 @@ abstract class TerminalOverrides {
       eventQueue,
       hasTerminal: hasTerminal,
       eventStream: eventStream,
+      events: events,
     );
     return dart_io.IOOverrides.runZoned(
       () => _asyncRunZoned(body, zoneValues: {_token: overrides}),
@@ -76,6 +78,12 @@ abstract class TerminalOverrides {
 
   /// Event stream for testing (zone-local override)
   StreamController<Event>? get eventStream => null;
+
+  /// Events broadcast stream override for testing (zone-local override)
+  ///
+  /// When set, TermLib.events returns this stream instead of internal broadcast.
+  /// Use for testing event subscribers without real terminal input.
+  Stream<Event>? get events => null;
 }
 
 class _TerminalOverridesScope extends TerminalOverrides {
@@ -87,8 +95,10 @@ class _TerminalOverridesScope extends TerminalOverrides {
     this._eventQueue, {
     required bool? hasTerminal,
     required StreamController<Event>? eventStream,
+    required Stream<Event>? events,
   }) : _hasTerminal = hasTerminal,
-       _eventStream = eventStream;
+       _eventStream = eventStream,
+       _events = events;
 
   final TerminalOverrides? _previous = TerminalOverrides.current;
   final TermOs? _termOs;
@@ -98,6 +108,7 @@ class _TerminalOverridesScope extends TerminalOverrides {
   final EventQueue? _eventQueue;
   final bool? _hasTerminal;
   final StreamController<Event>? _eventStream;
+  final Stream<Event>? _events;
 
   @override
   TermOs get termOs => _termOs ?? _previous?.termOs ?? super.termOs;
@@ -119,4 +130,7 @@ class _TerminalOverridesScope extends TerminalOverrides {
 
   @override
   StreamController<Event>? get eventStream => _eventStream ?? _previous?.eventStream ?? super.eventStream;
+
+  @override
+  Stream<Event>? get events => _events ?? _previous?.events ?? super.events;
 }
