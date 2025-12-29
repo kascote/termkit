@@ -5,6 +5,7 @@
 - feature: improve tests for ucd parsers
 - chore: update unicode data to 16.0.0
 - fix: correct width for some ambiguous characters
+- fix: emoji-ambiguous characters widths
 
 ## 0.2.0
 
