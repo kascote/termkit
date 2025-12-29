@@ -220,6 +220,48 @@ void main() {
     expect(isEmojiCp(0x20), false); // Space
   });
 
+  test('ambiguous characters', () {
+    // ▶ (U+25B6) BLACK RIGHT-POINTING TRIANGLE - ambiguous AND emoji
+    expect(widthString('\u25B6'), 1); // non-CJK: ambiguous = 1
+    expect(widthString('\u25B6', cjk: true), 2); // CJK: ambiguous = 2
+    expect(isEmojiCp(0x25B6), true); // is emoji
+
+    // ▼ (U+25BC) BLACK DOWN-POINTING TRIANGLE - ambiguous but NOT emoji
+    expect(widthString('\u25BC'), 1); // non-CJK: ambiguous = 1
+    expect(widthString('\u25BC', cjk: true), 2); // CJK: ambiguous = 2
+    expect(isEmojiCp(0x25BC), false); // not emoji
+
+    // ◀ (U+25C0) BLACK LEFT-POINTING TRIANGLE - ambiguous AND emoji
+    expect(widthString('\u25C0'), 1);
+    expect(widthString('\u25C0', cjk: true), 2);
+    expect(isEmojiCp(0x25C0), true);
+
+    // ◆ (U+25C6) BLACK DIAMOND - ambiguous but NOT emoji
+    expect(widthString('\u25C6'), 1);
+    expect(widthString('\u25C6', cjk: true), 2);
+    expect(isEmojiCp(0x25C6), false);
+
+    // ☆ (U+2606) WHITE STAR - ambiguous but NOT emoji
+    expect(widthString('\u2606'), 1);
+    expect(widthString('\u2606', cjk: true), 2);
+    expect(isEmojiCp(0x2606), false);
+
+    // ★ (U+2605) BLACK STAR - ambiguous AND emoji
+    expect(widthString('\u2605'), 1);
+    expect(widthString('\u2605', cjk: true), 2);
+    expect(isEmojiCp(0x2605), true);
+
+    // → (U+2192) RIGHTWARDS ARROW - ambiguous but NOT emoji
+    expect(widthString('\u2192'), 1);
+    expect(widthString('\u2192', cjk: true), 2);
+    expect(isEmojiCp(0x2192), false);
+
+    // ○ (U+25CB) WHITE CIRCLE - ambiguous but NOT emoji
+    expect(widthString('\u25CB'), 1);
+    expect(widthString('\u25CB', cjk: true), 2);
+    expect(isEmojiCp(0x25CB), false);
+  });
+
   test('emoji string detection', () {
     // Single emojis
     expect(isEmojiChar('😀'), true);

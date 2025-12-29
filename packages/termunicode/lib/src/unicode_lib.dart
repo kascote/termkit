@@ -21,7 +21,7 @@ int _getValue(int codePoint, {bool cjk = false}) {
     // U+0001 to U+0020 (exclusive) are control codes
     return 0;
   } else if (codePoint >= _asciiControlEnd) {
-    final value = _getCPData(codePoint);
+    final value = _getCPData(codePoint) & 0x3;
     // if value is 3, means that is a ambiguous character
     // in a cjk context will be `wide` if not is `normal`
     if (value == 3) return cjk ? 2 : 1;
@@ -43,7 +43,7 @@ int widthCp(int codePoint, {bool cjk = false}) {
   if (codePoint < 0 || codePoint > _maxCodePoints) {
     throw ArgumentError.value(codePoint, 'codePoint', 'Must be 0-0x10FFFF');
   }
-  return _getValue(codePoint, cjk: cjk) & 0x3;
+  return _getValue(codePoint, cjk: cjk);
 }
 
 /// Returns the terminal display width of a given string.
