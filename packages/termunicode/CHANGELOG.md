@@ -6,6 +6,7 @@
 - chore: update unicode data to 16.0.0
 - fix: correct width for some ambiguous characters
 - fix: emoji-ambiguous characters widths
+- fix: improve performance of width calculation
 
 ## 0.2.0
 

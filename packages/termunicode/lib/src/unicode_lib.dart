@@ -64,13 +64,23 @@ int widthString(String value, {bool cjk = false}) {
 /// If [cjk] is true, means that is working in a Chinese, Japanese, Korean
 /// context, on that case `ambiguous` characters are treated as `wide`.
 ///
-/// The rationale to use Characters is that it can handle grapheme clusters and
-/// surrogate pairs. We only take the first rune to calculate the width,
-/// assuming that all other codepoints work as variations of the first one, but
-/// not modify the final width.
+/// Uses Characters to handle grapheme clusters. If VS16 (U+FE0F) is present,
+/// the character has emoji presentation and width 2. Otherwise, decodes the
+/// first codepoint (handling UTF-16 surrogate pairs) for table lookup.
 int widthChars(Characters value, {bool cjk = false}) {
   if (value.isEmpty) return 0;
-  return value.fold(0, (width, char) => width + widthCp(char.runes.first, cjk: cjk));
+  return value.fold(0, (width, char) {
+    // VS16 (FE0F) forces emoji presentation → width 2
+    if (char.contains('\uFE0F')) return width + 2;
+
+    // Decode first codepoint from UTF-16 code units (handles surrogate pairs)
+    final cu = char.codeUnitAt(0);
+    final cp = (cu >= 0xD800 && cu <= 0xDBFF && char.length > 1)
+        ? 0x10000 + ((cu - 0xD800) << 10) + (char.codeUnitAt(1) - 0xDC00)
+        : cu;
+
+    return width + widthCp(cp, cjk: cjk);
+  });
 }
 
 /// Check if a given code point is an emoji.
