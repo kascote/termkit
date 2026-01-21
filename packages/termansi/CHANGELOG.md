@@ -1,11 +1,10 @@
-### unreleased
+### 0.4.0
 
 - added: CSI 2027 - unicode core
 - added: CSI 2024 - bracketed paste mode
 - refactor: Changed ansiHex and x11Colors to use integers instead of strings
   to avoid conversion BREAKING CHANGE
 - refactored: changes field definitions to const
-- feat: improved documentation for 1 based functions
 - feat: added assertions to improve development issues detection
 - fix: fixed disableMousePixelsEvents definition
 - refactor: unify multiple functions to reset underlines under resetUnderlineStyle

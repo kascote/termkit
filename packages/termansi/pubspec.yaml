@@ -1,6 +1,6 @@
 name: termansi
 description: Collection of ANSI escape sequences definitions for terminal applications.
-version: 0.3.1
+version: 0.4.0
 repository: https://github.com/kascote/termkit/tree/master/packages/termansi
 homepage: https://github.com/kascote/termkit
 issue_tracker: https://github.com/kascote/termkit/issues
