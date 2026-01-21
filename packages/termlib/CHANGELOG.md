@@ -1,4 +1,4 @@
-## unreleased
+## 0.5.0
 
 - breaking change
   - changed how reset styles works. Now need explicit reset.
