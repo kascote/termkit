@@ -1,6 +1,6 @@
 name: termunicode
 description: Unicode library to get character properties (width, emoji, printable, etc)
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/kascote/termkit/tree/main/packages/termunicode
 homepage: https://github.com/kascote/termkit
 issue_tracker: https://github.com/kascote/termkit/issues

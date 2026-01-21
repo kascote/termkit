@@ -1,4 +1,4 @@
-## unreleased
+## 0.2.0
 
 - fix: include RIS emojis as double width
 - feature: refactor generator and added smoke tests
@@ -7,9 +7,6 @@
 - fix: correct width for some ambiguous characters
 - fix: emoji-ambiguous characters widths
 - fix: improve performance of width calculation
-
-## 0.2.0
-
 - Added new function `widthChars` that use the Characters package.
 - Updated `widthString` string to use `widthChars` function.
 
