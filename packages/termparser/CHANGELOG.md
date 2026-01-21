@@ -1,4 +1,4 @@
-## unreleased
+## 0.4.0
 
 - fixed: event filter for eventTransformer
 - added: helper functions to check for single key modifiers
@@ -7,12 +7,12 @@
 - refactor: simplify provider parser with an eventQueue
 - refactor: content blocks handle to unify for example bracketed paste and text content (terminal version)
 
-## 0.2.0
+## 0.3.0
 
 - added: QueryTerminalWindowSizeEvent to return window size event
 - added: ClipboardCopyEvent to return clipboard content
 
-## 0.3.0
+## 0.2.0
 
 - fixed: fixed OSC10 parsing
 
