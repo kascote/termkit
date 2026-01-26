@@ -7,32 +7,38 @@ void main() {
     ..write('${Color.yellow} TermAnsi ${Color.reset}')
     ..write('${Color.color256Bg(120)}${Color.black} TermAnsi ${Color.reset} ')
     ..writeln('${Color.trueColorBg(220, 98, 217)}${Color.white} TermAnsi ${Color.reset}')
-    ..write('Cursor Block: ${Cursor.setCursorStyle(CursorStyle.steadyBlock)}');
+    ..write('Cursor Block: ${Cursor.setCursorStyle(CursorStyle.steadyBlock)}')
+    ..write(Term.setProgress(ProgressState.normal, 10));
 
   sleep(const Duration(seconds: 3));
   stdout
     ..write('${Erase.lineAll}${Cursor.moveToColumn(0)}')
-    ..write('Cursor Blinking Block: ${Cursor.setCursorStyle(CursorStyle.blinkingBlock)}');
+    ..write('Cursor Blinking Block: ${Cursor.setCursorStyle(CursorStyle.blinkingBlock)}')
+    ..write(Term.setProgress(ProgressState.normal, 20));
 
   sleep(const Duration(seconds: 3));
   stdout
     ..write('${Erase.lineAll}${Cursor.moveToColumn(0)}')
-    ..write('Cursor Blinking Bar: ${Cursor.setCursorStyle(CursorStyle.blinkingBar)}');
+    ..write('Cursor Blinking Bar: ${Cursor.setCursorStyle(CursorStyle.blinkingBar)}')
+    ..write(Term.setProgress(ProgressState.normal, 30));
 
   sleep(const Duration(seconds: 3));
   stdout
     ..write('${Erase.lineAll}${Cursor.moveToColumn(0)}')
-    ..write('Cursor Blinking Underscore: ${Cursor.setCursorStyle(CursorStyle.blinkingUnderScore)}');
+    ..write('Cursor Blinking Underscore: ${Cursor.setCursorStyle(CursorStyle.blinkingUnderScore)}')
+    ..write(Term.setProgress(ProgressState.error, 50));
 
   sleep(const Duration(seconds: 3));
   stdout
     ..write('${Erase.lineAll}${Cursor.moveToColumn(0)}')
-    ..write('Cursor Steady Bar: ${Cursor.setCursorStyle(CursorStyle.steadyBar)}');
+    ..write('Cursor Steady Bar: ${Cursor.setCursorStyle(CursorStyle.steadyBar)}')
+    ..write(Term.setProgress(ProgressState.warning, 80));
 
   sleep(const Duration(seconds: 3));
   stdout
     ..write('${Erase.lineAll}${Cursor.moveToColumn(0)}')
-    ..write('Move Cursor: ${Cursor.setCursorStyle(CursorStyle.steadyBlock)}');
+    ..write('Move Cursor: ${Cursor.setCursorStyle(CursorStyle.steadyBlock)}')
+    ..write(Term.setProgress(ProgressState.indeterminate));
 
   const cursorPath = [
     Cursor.moveRight,
@@ -49,6 +55,7 @@ void main() {
   }
 
   stdout
+    ..write(Term.setProgress(ProgressState.hidden))
     ..writeln()
     ..writeln('Text Attributes:')
     ..writeln(' ${Text.bold}Bold${Text.resetBold}')

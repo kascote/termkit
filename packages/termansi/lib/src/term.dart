@@ -1,5 +1,33 @@
 import './escape_codes.dart';
 
+/// Progress bar state for ConEmu OSC 9;4 sequences.
+///
+/// Used with [Term.setProgress] to display progress in terminal tab
+/// and taskbar (Windows Terminal, ConEmu, etc.).
+///
+/// https://learn.microsoft.com/en-us/windows/terminal/tutorials/progress-bar-sequences
+enum ProgressState {
+  /// Hidden/default state - clears progress bar (0)
+  hidden(0),
+
+  /// Default progress state (1)
+  normal(1),
+
+  /// Error state - typically shown in red (2)
+  error(2),
+
+  /// Indeterminate state - ignores progress value (3)
+  indeterminate(3),
+
+  /// Warning state - typically shown in yellow (4)
+  warning(4);
+
+  const ProgressState(this.value);
+
+  /// The numeric value for the escape sequence.
+  final int value;
+}
+
 /// Support code for terminal output.
 abstract class Term {
   /// Show a hyperlink.
@@ -181,4 +209,22 @@ abstract class Term {
 
   /// Disable Bracketed Paste
   static const String disableBracketedPaste = '$CSI?2004l';
+
+  /// Set progress bar in terminal tab/taskbar (ConEmu OSC 9;4).
+  ///
+  /// [state] determines the visual appearance of the progress bar.
+  /// [progress] is the percentage (0-100), ignored for [ProgressState.indeterminate].
+  ///
+  /// Supported by Windows Terminal 1.6+, ConEmu, and compatible terminals.
+  ///
+  /// https://learn.microsoft.com/en-us/windows/terminal/tutorials/progress-bar-sequences
+  static String setProgress(ProgressState state, [int progress = 0]) {
+    assert(progress >= 0 && progress <= 100, 'progress should be 0-100, got $progress');
+    return '${OSC}9;4;${state.value};$progress$BEL';
+  }
+
+  /// Clear/hide progress bar in terminal tab/taskbar.
+  ///
+  /// Equivalent to `setProgress(ProgressState.hidden, 0)`.
+  static const String clearProgress = '${OSC}9;4;0;0$BEL';
 }

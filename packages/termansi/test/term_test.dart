@@ -295,4 +295,52 @@ void main() {
       expect(Term.softTerminalReset, equals('\x1b[!p'));
     });
   });
+
+  group('Term progress bar >', () {
+    test('clearProgress produces correct sequence', () {
+      expect(Term.clearProgress, equals('\x1b]9;4;0;0\x07'));
+    });
+
+    group('setProgress >', () {
+      test('generates correct sequence for normal state', () {
+        expect(Term.setProgress(ProgressState.normal, 50), equals('\x1b]9;4;1;50\x07'));
+      });
+
+      test('generates correct sequence for all states', () {
+        expect(Term.setProgress(ProgressState.hidden, 0), equals('\x1b]9;4;0;0\x07'));
+        expect(Term.setProgress(ProgressState.normal, 25), equals('\x1b]9;4;1;25\x07'));
+        expect(Term.setProgress(ProgressState.error, 75), equals('\x1b]9;4;2;75\x07'));
+        expect(Term.setProgress(ProgressState.indeterminate, 0), equals('\x1b]9;4;3;0\x07'));
+        expect(Term.setProgress(ProgressState.warning, 100), equals('\x1b]9;4;4;100\x07'));
+      });
+
+      test('default progress is 0', () {
+        expect(Term.setProgress(ProgressState.normal), equals('\x1b]9;4;1;0\x07'));
+      });
+
+      test('assertions fire for progress below 0', () {
+        expect(
+          () => Term.setProgress(ProgressState.normal, -1),
+          throwsA(isA<AssertionError>()),
+        );
+      });
+
+      test('assertions fire for progress above 100', () {
+        expect(
+          () => Term.setProgress(ProgressState.normal, 101),
+          throwsA(isA<AssertionError>()),
+        );
+      });
+    });
+
+    group('ProgressState >', () {
+      test('has correct values', () {
+        expect(ProgressState.hidden.value, equals(0));
+        expect(ProgressState.normal.value, equals(1));
+        expect(ProgressState.error.value, equals(2));
+        expect(ProgressState.indeterminate.value, equals(3));
+        expect(ProgressState.warning.value, equals(4));
+      });
+    });
+  });
 }
