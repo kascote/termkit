@@ -1,3 +1,7 @@
+## unreleased
+
+- added: probe to check terminal capabilities and return TermInfo
+
 ## 0.5.0
 
 - breaking change

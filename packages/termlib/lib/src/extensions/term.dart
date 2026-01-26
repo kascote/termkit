@@ -4,6 +4,8 @@ import 'package:termansi/termansi.dart' as ansi;
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
+import '../probe/raw_queries.dart';
+
 /// Default timeout to wait for terminal query responses.
 ///
 /// This value is used in various query methods in the TermUtils extension
@@ -63,28 +65,22 @@ extension TermUtils on TermLib {
 
   /// Query Sync status
   Future<QuerySyncUpdateEvent?> querySyncUpdate({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<QuerySyncUpdateEvent?>(() async {
-      write(ansi.Term.querySyncUpdate);
-      final event = await pollTimeout<QuerySyncUpdateEvent>(timeout: timeout);
-      return (event is QuerySyncUpdateEvent) ? event : null;
-    });
+    return withRawModeAsync<QuerySyncUpdateEvent?>(() => rawQuerySyncUpdateStatus(timeout));
   }
 
   /// Request terminal name and version
   Future<String> queryTerminalVersion({int timeout = defaultQueryTimeout}) async {
     return withRawModeAsync<String>(() async {
-      write(ansi.Term.requestTermVersion);
-      final event = await pollTimeout<NameAndVersionEvent>(timeout: timeout);
-      return (event is NameAndVersionEvent) ? event.value : '';
+      final event = await rawQueryTerminalVersion(timeout);
+      return event?.value ?? '';
     });
   }
 
   /// Returns the current terminal status report.
   Future<Color?> queryOSCStatus(int status, {int timeout = defaultQueryTimeout}) async {
     return withRawModeAsync<Color?>(() async {
-      write(ansi.Term.queryOSCColors(status));
-      final event = await pollTimeout<ColorQueryEvent>(timeout: timeout);
-      return (event is ColorQueryEvent) ? Color.fromRGBComponent(event.r, event.g, event.b) : null;
+      final event = await rawQueryColor(status, timeout);
+      return (event != null) ? Color.fromRGBComponent(event.r, event.g, event.b) : null;
     });
   }
 
@@ -99,20 +95,12 @@ extension TermUtils on TermLib {
 
   /// Query Primary Device Attributes
   Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<PrimaryDeviceAttributesEvent?>(() async {
-      write(ansi.Term.queryPrimaryDeviceAttributes);
-      final event = await pollTimeout<PrimaryDeviceAttributesEvent>(timeout: timeout);
-      return (event is PrimaryDeviceAttributesEvent) ? event : null;
-    });
+    return withRawModeAsync<PrimaryDeviceAttributesEvent?>(() => rawQueryDeviceAttrs(timeout));
   }
 
   /// Query Terminal window size in pixels
   Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<QueryTerminalWindowSizeEvent?>(() async {
-      write(ansi.Term.queryWindowSizePixels);
-      final event = await pollTimeout<QueryTerminalWindowSizeEvent>(timeout: timeout);
-      return (event is QueryTerminalWindowSizeEvent) ? event : null;
-    });
+    return withRawModeAsync<QueryTerminalWindowSizeEvent?>(() => rawQueryWindowSizePixels(timeout));
   }
 
   /// Set Clipboard content
@@ -144,12 +132,7 @@ extension TermUtils on TermLib {
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
   Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() async {
-      write(ansi.Term.requestKeyboardCapabilities);
-
-      final event = await pollTimeout<KeyboardEnhancementFlagsEvent>(timeout: timeout);
-      return (event is KeyboardEnhancementFlagsEvent) ? event : null;
-    });
+    return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() => rawQueryKeyboardFlags(timeout));
   }
 
   /// Set keyboard flags
@@ -208,10 +191,6 @@ extension TermUtils on TermLib {
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
   Future<UnicodeCoreEvent?> queryUnicodeCore({int timeout = defaultQueryTimeout}) {
-    return withRawModeAsync<UnicodeCoreEvent?>(() async {
-      write(ansi.Term.queryUnicodeCore);
-      final event = await pollTimeout<UnicodeCoreEvent>(timeout: timeout);
-      return (event is UnicodeCoreEvent) ? event : null;
-    });
+    return withRawModeAsync<UnicodeCoreEvent?>(() => rawQueryUnicodeCoreStatus(timeout));
   }
 }

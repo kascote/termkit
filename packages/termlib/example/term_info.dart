@@ -1,117 +1,120 @@
 import 'package:termlib/termlib.dart';
-import 'package:termparser/termparser_events.dart';
 
+// Theme record for consistent styling
 typedef Theme = ({
   Style green,
   Style magenta,
   Style yellow,
-  Style error,
   Style white,
   Style text,
 });
 
 Future<int> main() async {
-  final exitCode = await TermRunner().run(display);
-  return exitCode;
+  return TermRunner().run(display);
 }
 
 Future<int> display(TermLib t) async {
-  final s = t.style;
-  final theme = (
-    magenta: s()..fg(Color.indexed(201)),
-    green: s()..fg(Color.indexed(40)),
-    yellow: s()..fg(Color.indexed(190)),
-    error: s()..fg(Color.indexed(160)),
-    white: s()..fg(Color.indexed(15)),
-    text: s()..fg(Color.indexed(7)),
-  );
+  final theme = _buildTheme(t);
 
-  final version = await t.queryTerminalVersion();
-  final keyCap = await t.queryKeyboardCapabilities();
-  final fgColor = await t.foregroundColor;
-  final bgColor = await t.backgroundColor;
-  final syncStatus = await t.querySyncUpdate();
-  final keyEnhanced = await t.queryKeyboardEnhancementSupport();
-  final deviceAttr = await t.queryPrimaryDeviceAttributes();
-  final termPixels = await t.queryWindowSizeInPixels();
-  final unicodeCore = await t.queryUnicodeCore();
+  final info = await t.probe();
 
-  t
-    ..writeln('${theme.white('Terminal version: ')}${theme.green(version)}')
-    ..writeln('${theme.white('dimension chars: ')}${theme.green('${t.terminalColumns}x${t.terminalLines}')}')
-    ..writeln(
-      '${theme.white('dimension pixels: ')}${theme.green('${termPixels?.width ?? ''}x${termPixels?.height ?? ''}')}',
-    )
-    ..writeln('${theme.white('Color profile: ')}${theme.green(t.profile.name)}')
-    ..writeln('${theme.white('Sync update status: ')}${renderValue(syncStatus?.status.name ?? 'unsupported', theme)}')
-    ..writeln('${theme.white('Foreground color: ')}${theme.yellow(fgColor.toString())}')
-    ..writeln('${theme.white('Background color: ')}${theme.yellow(bgColor.toString())}')
-    ..writeln('${theme.white('Unicode Core: ')}${renderValue(unicodeCore?.status.name ?? 'unsupported', theme)}')
-    ..writeln(theme.white('Primary device Attrs:'));
-  showDeviceAttr(t, deviceAttr, theme);
-  t.writeln('${theme.white('Keyboard Enhancement support: ')}${renderValue(keyEnhanced.toString(), theme)}');
-  if (keyEnhanced) showKeyboardCapabilities(t, theme, keyCap);
+  _section(t, theme, 'Terminal Info');
+  _showResult(t, theme, 'Version', info.terminalVersion);
+  t.writeln('  ${theme.text('Dimensions (chars)')}: ${theme.green('${t.terminalColumns}x${t.terminalLines}')}');
+  _showResult(t, theme, 'Dimensions (pixels)', info.windowSizePixels, (v) => '${v.width}x${v.height}');
+  t.writeln('  ${theme.text('Color profile')}: ${theme.green(t.profile.name)}');
+
+  _section(t, theme, 'Colors');
+  _showResult(t, theme, 'Foreground', info.foregroundColor, (v) => v.value.toRadixString(16));
+  _showResult(t, theme, 'Background', info.backgroundColor, (v) => v.value.toRadixString(16));
+
+  _section(t, theme, 'Protocol Support');
+  _showResult(t, theme, 'Sync update', info.syncUpdate, (v) => v.name);
+  _showResult(t, theme, 'Unicode Core', info.unicodeCore, (v) => v.name);
+
+  _section(t, theme, 'Device Attributes');
+  _showDeviceAttrs(t, theme, info.deviceAttrs);
+
+  _section(t, theme, 'Keyboard');
+  _showKeyboardFlags(t, theme, info.keyboardCapabilities);
 
   return 0;
 }
 
-String renderValue(String value, Theme theme) {
-  return switch (value) {
-    'enabled' || 'true' => theme.green(value),
-    'disabled' || 'unknown' || 'false' || 'unsupported' => theme.magenta(value),
-    _ => theme.error(value),
+Theme _buildTheme(TermLib t) {
+  final s = t.style;
+  return (
+    green: s()..fg(Color.indexed(40)),
+    magenta: s()..fg(Color.indexed(201)),
+    yellow: s()..fg(Color.indexed(190)),
+    white: s()..fg(Color.indexed(15)),
+    text: s()..fg(Color.indexed(7)),
+  );
+}
+
+// --- Display helpers ---
+
+void _section(TermLib t, Theme theme, String title) {
+  t
+    ..writeln('')
+    ..writeln(theme.white(title));
+}
+
+void _showResult<T>(
+  TermLib t,
+  Theme theme,
+  String label,
+  QueryResult<T> result, [
+  String Function(T)? format,
+]) {
+  final styled = switch (result) {
+    Supported(:final value) => theme.green(format != null ? format(value) : value.toString()),
+    Unavailable(:final reason) => theme.magenta(reason.name),
+    Pending() => theme.yellow('pending'),
   };
+  t.writeln('  ${theme.text(label)}: $styled');
 }
 
-void showKeyboardCapabilities(TermLib t, Theme theme, KeyboardEnhancementFlagsEvent? flags) {
-  if (flags == null) {
-    return t.writeln(theme.error('unable to retrieve keyboard capabilities'));
+// --- Device attributes ---
+
+void _showDeviceAttrs(TermLib t, Theme theme, QueryResult<DeviceAttributes> result) {
+  switch (result) {
+    case Supported(:final value):
+      t.writeln('  ${theme.text('Type')}: ${theme.green(value.type.name)}');
+      if (value.params.isEmpty) {
+        t.writeln('  ${theme.text('Params')}: ${theme.yellow('none')}');
+      } else {
+        t.writeln('  ${theme.text('Params')}:');
+        for (final p in value.params) {
+          t.writeln('    ${theme.green(p.name)}');
+        }
+      }
+    case Unavailable(:final reason):
+      t.writeln('  ${theme.magenta(reason.name)}');
+    case Pending():
+      t.writeln('  ${theme.yellow('pending')}');
   }
-
-  String showFlag(String value, String name) => '  ${renderValue(value, theme)} ${theme.text(name)}';
-
-  t
-    ..writeln(theme.white('Keyboard capabilities:'))
-    ..writeln(
-      '  ${showFlag(
-        flags.has(KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes).toString(),
-        "Disambiguate Escape Codes",
-      )}',
-    )
-    ..writeln(
-      '  ${showFlag(
-        flags.has(KeyboardEnhancementFlagsEvent.reportEventTypes).toString(),
-        "Report Event Types",
-      )}',
-    )
-    ..writeln(
-      '  ${showFlag(
-        flags.has(KeyboardEnhancementFlagsEvent.reportAlternateKeys).toString(),
-        "Report Alternate Keys",
-      )}',
-    )
-    ..writeln(
-      '  ${showFlag(
-        flags.has(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes).toString(),
-        "Report All Keys As Escape Codes",
-      )}',
-    );
 }
 
-void showDeviceAttr(TermLib t, PrimaryDeviceAttributesEvent? deviceAttr, Theme theme) {
-  if (deviceAttr == null) {
-    return t.writeln('  ${theme.error('unable to retrieve device attributes')}');
-  }
+// --- Keyboard flags ---
 
-  t
-    ..writeln('  ${theme.white('Type: ')}${theme.green(deviceAttr.type.name)}')
-    ..writeln('  ${theme.white('Params:')}');
-  if (deviceAttr.params.isEmpty) {
-    t.writeln('    ${theme.yellow('no params')}');
-    return;
+void _showKeyboardFlags(TermLib t, Theme theme, QueryResult<KeyboardFlags> result) {
+  switch (result) {
+    case Supported(:final value):
+      t.writeln('  ${theme.text('Enhanced keyboard')}: ${theme.green('supported')}');
+      _flag(t, theme, 'Disambiguate escape codes', value.disambiguateEscapeCodes);
+      _flag(t, theme, 'Report event types', value.reportEventTypes);
+      _flag(t, theme, 'Report alternate keys', value.reportAlternateKeys);
+      _flag(t, theme, 'Report all keys as escape codes', value.reportAllKeysAsEscapeCodes);
+      _flag(t, theme, 'Report associated text', value.reportAssociatedText);
+    case Unavailable(:final reason):
+      t.writeln('  ${theme.text('Enhanced keyboard')}: ${theme.magenta(reason.name)}');
+    case Pending():
+      t.writeln('  ${theme.yellow('pending')}');
   }
+}
 
-  for (final p in deviceAttr.params) {
-    t.writeln('    ${theme.green(p.name)}');
-  }
+void _flag(TermLib t, Theme theme, String name, bool value) {
+  final status = value ? theme.green('yes') : theme.magenta('no');
+  t.writeln('    ${theme.text(name)}: $status');
 }

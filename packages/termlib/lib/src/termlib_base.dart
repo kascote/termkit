@@ -10,6 +10,8 @@ import './event_queue.dart';
 import './extensions/cursor.dart';
 import './extensions/term.dart';
 import './ffi/termos.dart';
+import './probe/probe.dart';
+import './probe/term_info.dart';
 import './readline.dart';
 import './shared/color_util.dart';
 import './style.dart';
@@ -560,6 +562,29 @@ class TermLib {
   Future<String?> readLine([String initBuffer = '']) async {
     return (await Readline.create(this, initBuffer)).read();
   }
+
+  /// Probe terminal capabilities.
+  ///
+  /// Runs sequential queries to detect terminal capabilities. Returns [TermInfo]
+  /// with detected capabilities.
+  ///
+  /// Parameters:
+  /// - [skip]: Queries to skip (default: none)
+  /// - [timeout]: Timeout in milliseconds for each query (default: 500)
+  ///
+  /// Throws [StateError] if terminal is non-interactive (!hasTerminal).
+  ///
+  /// Example:
+  /// ```dart
+  /// final info = await term.probe();
+  /// if (info.syncUpdate case Supported(:final value)) {
+  ///   print('Sync updates: $value');
+  /// }
+  /// ```
+  Future<TermInfo> probe({
+    Set<ProbeQuery> skip = const {},
+    int timeout = 500,
+  }) => probeTerminal(this, skip: skip, timeout: timeout);
 
   /// Flushes the stdout and stderr streams, then exits the program with the given
   /// status code.
