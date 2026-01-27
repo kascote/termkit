@@ -32,6 +32,7 @@ Event parseCSISequence(Parameters params, String char) {
     'R' => _parseCursorPosition(params),
     'y' => _parseDECRPMStatus(params),
     't' => _parseWindowSize(params),
+    'n' => _parseColorScheme(params),
     _ => const NoneEvent(),
   };
 }
@@ -229,6 +230,16 @@ Event _parseWindowSize(Parameters params) {
       final width = int.tryParse(params.values[1]) ?? -1;
       final height = int.tryParse(params.values[2]) ?? -1;
       return QueryTerminalWindowSizeEvent(width, height);
+    default:
+      return const NoneEvent();
+  }
+}
+
+Event _parseColorScheme(Parameters params) {
+  switch (params.values) {
+    case ['997', ...]:
+      final mode = int.tryParse(params.values.elementAtOrNull(1) ?? '') ?? 0;
+      return ColorSchemeEvent(mode);
     default:
       return const NoneEvent();
   }

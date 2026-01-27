@@ -347,6 +347,52 @@ void main() {
     });
   });
 
+  group('ColorSchemeEvent >', () {
+    test('constructor with dark mode', () {
+      final event = ColorSchemeEvent(1);
+      expect(event.code, 1);
+      expect(event.mode, ColorSchemeMode.dark);
+    });
+
+    test('constructor with light mode', () {
+      final event = ColorSchemeEvent(2);
+      expect(event.code, 2);
+      expect(event.mode, ColorSchemeMode.light);
+    });
+
+    test('constructor with unknown mode', () {
+      final event = ColorSchemeEvent(0);
+      expect(event.code, 0);
+      expect(event.mode, ColorSchemeMode.unknown);
+    });
+
+    test('constructor with invalid code defaults to unknown', () {
+      final event = ColorSchemeEvent(999);
+      expect(event.code, 999);
+      expect(event.mode, ColorSchemeMode.unknown);
+    });
+
+    test('equality - identical events', () {
+      final event1 = ColorSchemeEvent(1);
+      final event2 = ColorSchemeEvent(1);
+
+      expect(event1, equals(event2));
+      expect(event1.hashCode, equals(event2.hashCode));
+    });
+
+    test('equality - different code', () {
+      final event1 = ColorSchemeEvent(1);
+      final event2 = ColorSchemeEvent(2);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
+    test('hashCode - consistent', () {
+      final event = ColorSchemeEvent(1);
+      expect(event.hashCode, equals(event.hashCode));
+    });
+  });
+
   group('UnicodeCoreEvent >', () {
     test('constructor with enabled status', () {
       final event = UnicodeCoreEvent(1);

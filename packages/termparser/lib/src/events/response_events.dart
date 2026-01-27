@@ -345,6 +345,45 @@ final class ClipboardCopyEvent extends ResponseEvent {
   int get hashCode => Object.hash(source, text);
 }
 
+/// Color scheme mode reported by terminal.
+enum ColorSchemeMode {
+  /// Unknown color scheme
+  unknown(0),
+
+  /// Dark mode
+  dark(1),
+
+  /// Light mode
+  light(2);
+
+  const ColorSchemeMode(this.value);
+
+  /// The numeric value for the color scheme.
+  final int value;
+}
+
+/// Color scheme preference event (response to CSI 996 n).
+@immutable
+final class ColorSchemeEvent extends ResponseEvent {
+  /// The color scheme mode code reported by the terminal.
+  final int code;
+
+  /// Get the color scheme mode.
+  late final ColorSchemeMode mode;
+
+  /// Constructs a new instance of [ColorSchemeEvent].
+  ColorSchemeEvent(this.code) {
+    mode = ColorSchemeMode.values.firstWhere((e) => e.value == code, orElse: () => ColorSchemeMode.unknown);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is ColorSchemeEvent && runtimeType == other.runtimeType && code == other.code;
+
+  @override
+  int get hashCode => code.hashCode;
+}
+
 /// Unicode Core Event
 @immutable
 final class UnicodeCoreEvent extends ResponseEvent {

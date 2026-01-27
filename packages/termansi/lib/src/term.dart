@@ -217,7 +217,7 @@ abstract class Term {
   ///
   /// Supported by Windows Terminal 1.6+, ConEmu, and compatible terminals.
   ///
-  /// https://learn.microsoft.com/en-us/windows/terminal/tutorials/progress-bar-sequences
+  /// ref: https://learn.microsoft.com/en-us/windows/terminal/tutorials/progress-bar-sequences
   static String setProgress(ProgressState state, [int progress = 0]) {
     assert(progress >= 0 && progress <= 100, 'progress should be 0-100, got $progress');
     return '${OSC}9;4;${state.value};$progress$BEL';
@@ -227,4 +227,11 @@ abstract class Term {
   ///
   /// Equivalent to `setProgress(ProgressState.hidden, 0)`.
   static const String clearProgress = '${OSC}9;4;0;0$BEL';
+
+  /// Query terminal color scheme preference (light/dark mode).
+  ///
+  /// Terminal responds with `CSI 997 ; Ps n` where Ps indicates the mode.
+  ///
+  /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+  static const String queryColorScheme = '${CSI}996n';
 }
