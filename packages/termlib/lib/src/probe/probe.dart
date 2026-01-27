@@ -56,6 +56,8 @@ Future<TermInfo> probeTerminal(
         builder.set(q, const Unavailable<WindowSize>(UnavailableReason.skipped));
       case ProbeQuery.unicodeCore:
         builder.set(q, const Unavailable<UnicodeCoreStatus>(UnavailableReason.skipped));
+      case ProbeQuery.colorScheme:
+        builder.set(q, const Unavailable<ColorSchemeMode>(UnavailableReason.skipped));
     }
   }
 
@@ -129,6 +131,14 @@ Future<TermInfo> probeTerminal(
       builder.set(
         ProbeQuery.unicodeCore,
         e != null ? Supported(_mapUnicodeStatus(e)) : const Unavailable<UnicodeCoreStatus>(UnavailableReason.timeout),
+      );
+    }
+
+    if (!skip.contains(ProbeQuery.colorScheme)) {
+      final e = await term.rawQueryColorScheme(timeout);
+      builder.set(
+        ProbeQuery.colorScheme,
+        e != null ? Supported(e.mode) : const Unavailable<ColorSchemeMode>(UnavailableReason.timeout),
       );
     }
   });

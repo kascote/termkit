@@ -25,6 +25,7 @@ Future<int> display(TermLib t) async {
   t.writeln('  ${theme.text('Color profile')}: ${theme.green(t.profile.name)}');
 
   _section(t, theme, 'Colors');
+  _showResult(t, theme, 'Color scheme', info.colorScheme, (v) => v.name);
   _showResult(t, theme, 'Foreground', info.foregroundColor, (v) => v.value.toRadixString(16));
   _showResult(t, theme, 'Background', info.backgroundColor, (v) => v.value.toRadixString(16));
 

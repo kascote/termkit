@@ -5,7 +5,8 @@ import '../colors.dart';
 import 'query_result.dart';
 
 // Re-export termparser types used in TermInfo
-export 'package:termparser/termparser_events.dart' show DECRPMStatus, DeviceAttributeParams, DeviceAttributeType;
+export 'package:termparser/termparser_events.dart'
+    show ColorSchemeMode, DECRPMStatus, DeviceAttributeParams, DeviceAttributeType;
 
 /// Query types for terminal capability probing.
 enum ProbeQuery {
@@ -32,6 +33,9 @@ enum ProbeQuery {
 
   /// Unicode Core support
   unicodeCore,
+
+  /// Color scheme (light/dark mode)
+  colorScheme,
 }
 
 /// Device attributes from DA1 query.
@@ -235,6 +239,10 @@ class TermInfo {
   /// Window size in pixels.
   QueryResult<WindowSize> get windowSizePixels =>
       _results[ProbeQuery.windowSizePixels] as QueryResult<WindowSize>? ?? const Unavailable(UnavailableReason.skipped);
+
+  /// Color scheme (light/dark mode).
+  QueryResult<ColorSchemeMode> get colorScheme =>
+      _results[ProbeQuery.colorScheme] as QueryResult<ColorSchemeMode>? ?? const Unavailable(UnavailableReason.skipped);
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

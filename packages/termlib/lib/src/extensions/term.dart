@@ -193,4 +193,24 @@ extension TermUtils on TermLib {
   Future<UnicodeCoreEvent?> queryUnicodeCore({int timeout = defaultQueryTimeout}) {
     return withRawModeAsync<UnicodeCoreEvent?>(() => rawQueryUnicodeCoreStatus(timeout));
   }
+
+  /// Enable color palette update notifications.
+  ///
+  /// When enabled, terminal sends `ColorSchemeEvent` when OS theme or
+  /// terminal profile changes.
+  ///
+  /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+  void enableColorPaletteUpdates() => write(ansi.Term.enableColorPaletteUpdates);
+
+  /// Disable color palette update notifications.
+  ///
+  /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+  void disableColorPaletteUpdates() => write(ansi.Term.disableColorPaletteUpdates);
+
+  /// Query terminal color scheme preference (light/dark mode).
+  ///
+  /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+  Future<ColorSchemeEvent?> queryColorScheme({int timeout = defaultQueryTimeout}) {
+    return withRawModeAsync<ColorSchemeEvent?>(() => rawQueryColorScheme(timeout));
+  }
 }

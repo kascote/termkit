@@ -1,3 +1,7 @@
+## unreleased
+
+- added: ColorSchemeEvent to report terminal color scheme (CSI 997)
+
 ## 0.4.0
 
 - fixed: event filter for eventTransformer

@@ -418,7 +418,7 @@ void main() {
 
   group('ProbeQuery >', () {
     test('all values exist', () {
-      expect(ProbeQuery.values, hasLength(8));
+      expect(ProbeQuery.values, hasLength(9));
       expect(ProbeQuery.values, contains(ProbeQuery.deviceAttrs));
       expect(ProbeQuery.values, contains(ProbeQuery.terminalVersion));
       expect(ProbeQuery.values, contains(ProbeQuery.foregroundColor));
@@ -427,6 +427,7 @@ void main() {
       expect(ProbeQuery.values, contains(ProbeQuery.keyboardCapabilities));
       expect(ProbeQuery.values, contains(ProbeQuery.windowSizePixels));
       expect(ProbeQuery.values, contains(ProbeQuery.unicodeCore));
+      expect(ProbeQuery.values, contains(ProbeQuery.colorScheme));
     });
   });
 

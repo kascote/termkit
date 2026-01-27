@@ -237,8 +237,9 @@ Event _parseWindowSize(Parameters params) {
 
 Event _parseColorScheme(Parameters params) {
   switch (params.values) {
-    case ['997', ...]:
-      final mode = int.tryParse(params.values.elementAtOrNull(1) ?? '') ?? 0;
+    // CSI ? 997 ; Ps n - color scheme response (with private marker)
+    case ['?', '997', ...]:
+      final mode = int.tryParse(params.values.elementAtOrNull(2) ?? '') ?? 0;
       return ColorSchemeEvent(mode);
     default:
       return const NoneEvent();

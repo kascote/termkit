@@ -1,3 +1,9 @@
+### unreleased
+
+- added: OSC 9;4 - to set Progress bar
+- added: CSI ? 996 n - Color Scheme Reporting
+- added: CSI ? 2031 h/l - Enable/Disable Color Scheme event changes
+
 ### 0.4.0
 
 - added: CSI 2027 - unicode core

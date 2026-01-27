@@ -146,16 +146,16 @@ void main() {
       expect(event.status, DECRPMStatus.enabled);
     });
 
-    test('color scheme event dark - CSI 997;1n', () {
-      final parser = Parser()..advance(keySequence('π[997;1n'));
+    test('color scheme event dark - CSI ?997;1n', () {
+      final parser = Parser()..advance(keySequence('π[?997;1n'));
       expect(parser.hasEvents, true);
       final event = parser.nextEvent()! as ColorSchemeEvent;
       expect(event.code, 1);
       expect(event.mode, ColorSchemeMode.dark);
     });
 
-    test('color scheme event light - CSI 997;2n', () {
-      final parser = Parser()..advance(keySequence('π[997;2n'));
+    test('color scheme event light - CSI ?997;2n', () {
+      final parser = Parser()..advance(keySequence('π[?997;2n'));
       expect(parser.hasEvents, true);
       final event = parser.nextEvent()! as ColorSchemeEvent;
       expect(event.code, 2);

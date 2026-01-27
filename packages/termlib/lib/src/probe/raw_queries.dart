@@ -59,4 +59,11 @@ extension RawQueries on TermLib {
     final event = await pollTimeout<UnicodeCoreEvent>(timeout: timeout);
     return (event is UnicodeCoreEvent) ? event : null;
   }
+
+  /// Query color scheme (light/dark mode).
+  Future<ColorSchemeEvent?> rawQueryColorScheme(int timeout) async {
+    write(ansi.Term.queryColorScheme);
+    final event = await pollTimeout<ColorSchemeEvent>(timeout: timeout);
+    return (event is ColorSchemeEvent) ? event : null;
+  }
 }

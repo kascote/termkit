@@ -230,8 +230,21 @@ abstract class Term {
 
   /// Query terminal color scheme preference (light/dark mode).
   ///
-  /// Terminal responds with `CSI 997 ; Ps n` where Ps indicates the mode.
+  /// Terminal responds with `CSI ? 997 ; Ps n` where Ps indicates the mode.
   ///
   /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
-  static const String queryColorScheme = '${CSI}996n';
+  static const String queryColorScheme = '$CSI?996n';
+
+  /// Enable color palette update notifications.
+  ///
+  /// When enabled, terminal sends unsolicited `CSI ? 997 ; Ps n` when
+  /// color scheme changes (OS theme switch or terminal profile change).
+  ///
+  /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+  static const String enableColorPaletteUpdates = '$CSI?2031h';
+
+  /// Disable color palette update notifications.
+  ///
+  /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+  static const String disableColorPaletteUpdates = '$CSI?2031l';
 }
