@@ -45,7 +45,7 @@ void main() {
       expect(OSC, equals('$ESC]'));
     });
 
-    test('ST is ESC followed by \\', () {
+    test(r'ST is ESC followed by \', () {
       expect(ST, equals('$ESC\\'));
     });
   });

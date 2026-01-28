@@ -219,6 +219,8 @@ Event _parseDECRPMStatus(Parameters params) {
       return QuerySyncUpdateEvent(int.tryParse(params.values[2]) ?? 0);
     case ['?', '2027', ...]:
       return UnicodeCoreEvent(int.tryParse(params.values[2]) ?? 0);
+    case ['?', '2048', ...]:
+      return QueryWindowResizeEvent(int.tryParse(params.values[2]) ?? 0);
     default:
       return const NoneEvent();
   }
@@ -230,6 +232,14 @@ Event _parseWindowSize(Parameters params) {
       final width = int.tryParse(params.values[1]) ?? -1;
       final height = int.tryParse(params.values[2]) ?? -1;
       return QueryTerminalWindowSizeEvent(width, height);
+    case ['48', ...]:
+      // In-band resize: CSI 48 ; height_chars ; width_chars ; height_pix ; width_pix t
+      // Fields may have sub-params (colon-separated), use first value only.
+      final heightChars = int.tryParse(params.values.elementAtOrNull(1)?.split(':').first ?? '') ?? 0;
+      final widthChars = int.tryParse(params.values.elementAtOrNull(2)?.split(':').first ?? '') ?? 0;
+      final heightPix = int.tryParse(params.values.elementAtOrNull(3)?.split(':').first ?? '') ?? 0;
+      final widthPix = int.tryParse(params.values.elementAtOrNull(4)?.split(':').first ?? '') ?? 0;
+      return WindowResizeEvent(heightChars, widthChars, heightPix, widthPix);
     default:
       return const NoneEvent();
   }

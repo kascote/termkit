@@ -66,4 +66,11 @@ extension RawQueries on TermLib {
     final event = await pollTimeout<ColorSchemeEvent>(timeout: timeout);
     return (event is ColorSchemeEvent) ? event : null;
   }
+
+  /// Query in-band window resize status.
+  Future<QueryWindowResizeEvent?> rawQueryInBandResize(int timeout) async {
+    write(ansi.Term.queryInBandResize);
+    final event = await pollTimeout<QueryWindowResizeEvent>(timeout: timeout);
+    return (event is QueryWindowResizeEvent) ? event : null;
+  }
 }

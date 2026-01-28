@@ -247,4 +247,25 @@ abstract class Term {
   ///
   /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
   static const String disableColorPaletteUpdates = '$CSI?2031l';
+
+  /// Query in-band window resize reporting status.
+  ///
+  /// Terminal responds with `CSI ? 2048 ; Ps $ y` (DECRPM).
+  /// A Ps value of 0 or 4 indicates unsupported mode.
+  ///
+  /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+  static const String queryInBandResize = '$CSI?2048\$p';
+
+  /// Enable in-band window resize reporting.
+  ///
+  /// When enabled, terminal sends `CSI 48 ; height ; width ; height_pix ; width_pix t`
+  /// on window resize. An immediate report is sent when first enabled.
+  ///
+  /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+  static const String enableInBandResize = '$CSI?2048h';
+
+  /// Disable in-band window resize reporting.
+  ///
+  /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+  static const String disableInBandResize = '$CSI?2048l';
 }

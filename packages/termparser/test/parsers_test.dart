@@ -162,6 +162,52 @@ void main() {
       expect(event.mode, ColorSchemeMode.light);
     });
 
+    test(r'query window resize event - CSI ?2048;1$y', () {
+      final parser = Parser()..advance(keySequence(r'π[?2048;1$y'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as QueryWindowResizeEvent;
+      expect(event.code, 1);
+      expect(event.status, DECRPMStatus.enabled);
+    });
+
+    test(r'query window resize event disabled - CSI ?2048;2$y', () {
+      final parser = Parser()..advance(keySequence(r'π[?2048;2$y'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as QueryWindowResizeEvent;
+      expect(event.code, 2);
+      expect(event.status, DECRPMStatus.disabled);
+    });
+
+    test('window resize event - CSI 48;24;80;480;1280t', () {
+      final parser = Parser()..advance(keySequence('π[48;24;80;480;1280t'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as WindowResizeEvent;
+      expect(event.heightChars, 24);
+      expect(event.widthChars, 80);
+      expect(event.heightPixels, 480);
+      expect(event.widthPixels, 1280);
+    });
+
+    test('window resize event no pixels - CSI 48;24;80;0;0t', () {
+      final parser = Parser()..advance(keySequence('π[48;24;80;0;0t'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as WindowResizeEvent;
+      expect(event.heightChars, 24);
+      expect(event.widthChars, 80);
+      expect(event.heightPixels, 0);
+      expect(event.widthPixels, 0);
+    });
+
+    test('window resize event minimal - CSI 48;24;80t', () {
+      final parser = Parser()..advance(keySequence('π[48;24;80t'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as WindowResizeEvent;
+      expect(event.heightChars, 24);
+      expect(event.widthChars, 80);
+      expect(event.heightPixels, 0);
+      expect(event.widthPixels, 0);
+    });
+
     test('tab with shift modifier - CSI 9;2u', () {
       final parser = Parser()..advance(keySequence('π[9;2u'));
       expect(parser.hasEvents, true);

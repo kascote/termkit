@@ -296,6 +296,20 @@ void main() {
     });
   });
 
+  group('Term in-band resize >', () {
+    test('queryInBandResize produces correct sequence', () {
+      expect(Term.queryInBandResize, equals('\x1b[?2048\$p'));
+    });
+
+    test('enableInBandResize produces correct sequence', () {
+      expect(Term.enableInBandResize, equals('\x1b[?2048h'));
+    });
+
+    test('disableInBandResize produces correct sequence', () {
+      expect(Term.disableInBandResize, equals('\x1b[?2048l'));
+    });
+  });
+
   group('Term progress bar >', () {
     test('clearProgress produces correct sequence', () {
       expect(Term.clearProgress, equals('\x1b]9;4;0;0\x07'));
@@ -307,10 +321,10 @@ void main() {
       });
 
       test('generates correct sequence for all states', () {
-        expect(Term.setProgress(ProgressState.hidden, 0), equals('\x1b]9;4;0;0\x07'));
+        expect(Term.setProgress(ProgressState.hidden), equals('\x1b]9;4;0;0\x07'));
         expect(Term.setProgress(ProgressState.normal, 25), equals('\x1b]9;4;1;25\x07'));
         expect(Term.setProgress(ProgressState.error, 75), equals('\x1b]9;4;2;75\x07'));
-        expect(Term.setProgress(ProgressState.indeterminate, 0), equals('\x1b]9;4;3;0\x07'));
+        expect(Term.setProgress(ProgressState.indeterminate), equals('\x1b]9;4;3;0\x07'));
         expect(Term.setProgress(ProgressState.warning, 100), equals('\x1b]9;4;4;100\x07'));
       });
 

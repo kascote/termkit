@@ -418,7 +418,7 @@ void main() {
 
   group('ProbeQuery >', () {
     test('all values exist', () {
-      expect(ProbeQuery.values, hasLength(9));
+      expect(ProbeQuery.values, hasLength(10));
       expect(ProbeQuery.values, contains(ProbeQuery.deviceAttrs));
       expect(ProbeQuery.values, contains(ProbeQuery.terminalVersion));
       expect(ProbeQuery.values, contains(ProbeQuery.foregroundColor));
@@ -428,6 +428,7 @@ void main() {
       expect(ProbeQuery.values, contains(ProbeQuery.windowSizePixels));
       expect(ProbeQuery.values, contains(ProbeQuery.unicodeCore));
       expect(ProbeQuery.values, contains(ProbeQuery.colorScheme));
+      expect(ProbeQuery.values, contains(ProbeQuery.inBandResize));
     });
   });
 
@@ -484,6 +485,13 @@ void main() {
     test('WindowSize toString', () {
       const size = WindowSize(800, 600);
       expect(size.toString(), 'WindowSize(800, 600)');
+    });
+
+    test('InBandResizeStatus values', () {
+      expect(InBandResizeStatus.values, hasLength(3));
+      expect(InBandResizeStatus.values, contains(InBandResizeStatus.enabled));
+      expect(InBandResizeStatus.values, contains(InBandResizeStatus.disabled));
+      expect(InBandResizeStatus.values, contains(InBandResizeStatus.unknown));
     });
   });
 }

@@ -201,5 +201,33 @@ void main() {
         stdin: MockStdin(streamString('\x1B]52;p;YmFuYW5hcw==\x1B\\')),
       );
     });
+
+    test('enableInBandResize', () async {
+      await mockedTest((out, _, _) async {
+        TermLib().enableInBandResize();
+        expect(out.buf.toString(), equals('\x1B[?2048h'));
+      });
+    });
+
+    test('disableInBandResize', () async {
+      await mockedTest((out, _, _) async {
+        TermLib().disableInBandResize();
+        expect(out.buf.toString(), equals('\x1B[?2048l'));
+      });
+    });
+
+    test('queryInBandResize', () async {
+      await mockedTest(
+        (out, _, tos) async {
+          final term = TermLib();
+          final status = await term.queryInBandResize();
+          expect(status, isA<QueryWindowResizeEvent>());
+          expect(out.buf.toString(), equals('\x1B[?2048\$p'));
+          expect(tos.callStack[0], 'enableRawMode');
+          expect(tos.callStack[1], 'disableRawMode');
+        },
+        stdin: MockStdin(streamString('\x1B[?2048;1\$y')),
+      );
+    });
   });
 }

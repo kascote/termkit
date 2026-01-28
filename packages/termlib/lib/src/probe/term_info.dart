@@ -36,6 +36,9 @@ enum ProbeQuery {
 
   /// Color scheme (light/dark mode)
   colorScheme,
+
+  /// In-band window resize reporting
+  inBandResize,
 }
 
 /// Device attributes from DA1 query.
@@ -153,6 +156,18 @@ enum UnicodeCoreStatus {
   unknown,
 }
 
+/// In-band window resize status.
+enum InBandResizeStatus {
+  /// In-band resize is supported and enabled.
+  enabled,
+
+  /// In-band resize is supported but disabled.
+  disabled,
+
+  /// Status is unknown or unsupported.
+  unknown,
+}
+
 /// Window size in pixels.
 @immutable
 class WindowSize {
@@ -243,6 +258,11 @@ class TermInfo {
   /// Color scheme (light/dark mode).
   QueryResult<ColorSchemeMode> get colorScheme =>
       _results[ProbeQuery.colorScheme] as QueryResult<ColorSchemeMode>? ?? const Unavailable(UnavailableReason.skipped);
+
+  /// In-band window resize reporting capability.
+  QueryResult<InBandResizeStatus> get inBandResize =>
+      _results[ProbeQuery.inBandResize] as QueryResult<InBandResizeStatus>? ??
+      const Unavailable(UnavailableReason.skipped);
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

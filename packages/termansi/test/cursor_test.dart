@@ -89,7 +89,7 @@ void main() {
     });
 
     test('generates correct sequences with parameter', () {
-      expect(Cursor.moveUp(1), equals('\x1b[1A'));
+      expect(Cursor.moveUp(), equals('\x1b[1A'));
       expect(Cursor.moveUp(5), equals('\x1b[5A'));
       expect(Cursor.moveUp(12), equals('\x1b[12A'));
     });
@@ -106,7 +106,7 @@ void main() {
     });
 
     test('generates correct sequences with parameter', () {
-      expect(Cursor.moveDown(1), equals('\x1b[1B'));
+      expect(Cursor.moveDown(), equals('\x1b[1B'));
       expect(Cursor.moveDown(5), equals('\x1b[5B'));
       expect(Cursor.moveDown(12), equals('\x1b[12B'));
     });
@@ -123,7 +123,7 @@ void main() {
     });
 
     test('generates correct sequences with parameter', () {
-      expect(Cursor.moveRight(1), equals('\x1b[1C'));
+      expect(Cursor.moveRight(), equals('\x1b[1C'));
       expect(Cursor.moveRight(5), equals('\x1b[5C'));
       expect(Cursor.moveRight(12), equals('\x1b[12C'));
     });
@@ -140,7 +140,7 @@ void main() {
     });
 
     test('generates correct sequences with parameter', () {
-      expect(Cursor.moveLeft(1), equals('\x1b[1D'));
+      expect(Cursor.moveLeft(), equals('\x1b[1D'));
       expect(Cursor.moveLeft(5), equals('\x1b[5D'));
       expect(Cursor.moveLeft(12), equals('\x1b[12D'));
     });
@@ -157,7 +157,7 @@ void main() {
     });
 
     test('generates correct sequences with parameter', () {
-      expect(Cursor.moveToNextLine(1), equals('\x1b[1E'));
+      expect(Cursor.moveToNextLine(), equals('\x1b[1E'));
       expect(Cursor.moveToNextLine(5), equals('\x1b[5E'));
       expect(Cursor.moveToNextLine(12), equals('\x1b[12E'));
     });
@@ -174,7 +174,7 @@ void main() {
     });
 
     test('generates correct sequences with parameter', () {
-      expect(Cursor.moveToPrevLine(1), equals('\x1b[1F'));
+      expect(Cursor.moveToPrevLine(), equals('\x1b[1F'));
       expect(Cursor.moveToPrevLine(5), equals('\x1b[5F'));
       expect(Cursor.moveToPrevLine(13), equals('\x1b[13F'));
     });

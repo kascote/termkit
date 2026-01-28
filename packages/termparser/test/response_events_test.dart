@@ -438,4 +438,109 @@ void main() {
       expect(event.hashCode, equals(event.hashCode));
     });
   });
+
+  group('QueryWindowResizeEvent >', () {
+    test('constructor with enabled status', () {
+      final event = QueryWindowResizeEvent(1);
+      expect(event.code, 1);
+      expect(event.status, DECRPMStatus.enabled);
+    });
+
+    test('constructor with disabled status', () {
+      final event = QueryWindowResizeEvent(2);
+      expect(event.code, 2);
+      expect(event.status, DECRPMStatus.disabled);
+    });
+
+    test('constructor with not recognized status', () {
+      final event = QueryWindowResizeEvent(0);
+      expect(event.code, 0);
+      expect(event.status, DECRPMStatus.notRecognized);
+    });
+
+    test('constructor with unknown code defaults to not recognized', () {
+      final event = QueryWindowResizeEvent(999);
+      expect(event.code, 999);
+      expect(event.status, DECRPMStatus.notRecognized);
+    });
+
+    test('equality - identical events', () {
+      final event1 = QueryWindowResizeEvent(1);
+      final event2 = QueryWindowResizeEvent(1);
+
+      expect(event1, equals(event2));
+      expect(event1.hashCode, equals(event2.hashCode));
+    });
+
+    test('equality - different code', () {
+      final event1 = QueryWindowResizeEvent(1);
+      final event2 = QueryWindowResizeEvent(2);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
+    test('hashCode - consistent', () {
+      final event = QueryWindowResizeEvent(3);
+      expect(event.hashCode, equals(event.hashCode));
+    });
+  });
+
+  group('WindowResizeEvent >', () {
+    test('constructor', () {
+      const event = WindowResizeEvent(24, 80, 480, 1280);
+      expect(event.heightChars, 24);
+      expect(event.widthChars, 80);
+      expect(event.heightPixels, 480);
+      expect(event.widthPixels, 1280);
+    });
+
+    test('constructor with default pixels', () {
+      const event = WindowResizeEvent(24, 80);
+      expect(event.heightChars, 24);
+      expect(event.widthChars, 80);
+      expect(event.heightPixels, 0);
+      expect(event.widthPixels, 0);
+    });
+
+    test('equality - identical events', () {
+      const event1 = WindowResizeEvent(24, 80, 480, 1280);
+      const event2 = WindowResizeEvent(24, 80, 480, 1280);
+
+      expect(event1, equals(event2));
+      expect(event1.hashCode, equals(event2.hashCode));
+    });
+
+    test('equality - different heightChars', () {
+      const event1 = WindowResizeEvent(24, 80, 480, 1280);
+      const event2 = WindowResizeEvent(25, 80, 480, 1280);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
+    test('equality - different widthChars', () {
+      const event1 = WindowResizeEvent(24, 80, 480, 1280);
+      const event2 = WindowResizeEvent(24, 120, 480, 1280);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
+    test('equality - different heightPixels', () {
+      const event1 = WindowResizeEvent(24, 80, 480, 1280);
+      const event2 = WindowResizeEvent(24, 80, 600, 1280);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
+    test('equality - different widthPixels', () {
+      const event1 = WindowResizeEvent(24, 80, 480, 1280);
+      const event2 = WindowResizeEvent(24, 80, 480, 1920);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
+    test('hashCode - consistent', () {
+      const event = WindowResizeEvent(24, 80, 480, 1280);
+      expect(event.hashCode, equals(event.hashCode));
+    });
+  });
 }

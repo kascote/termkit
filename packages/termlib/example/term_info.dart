@@ -32,6 +32,7 @@ Future<int> display(TermLib t) async {
   _section(t, theme, 'Protocol Support');
   _showResult(t, theme, 'Sync update', info.syncUpdate, (v) => v.name);
   _showResult(t, theme, 'Unicode Core', info.unicodeCore, (v) => v.name);
+  _showResult(t, theme, 'In-band resize', info.inBandResize, (v) => v.name);
 
   _section(t, theme, 'Device Attributes');
   _showDeviceAttrs(t, theme, info.deviceAttrs);

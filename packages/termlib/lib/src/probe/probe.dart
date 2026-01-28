@@ -58,6 +58,8 @@ Future<TermInfo> probeTerminal(
         builder.set(q, const Unavailable<UnicodeCoreStatus>(UnavailableReason.skipped));
       case ProbeQuery.colorScheme:
         builder.set(q, const Unavailable<ColorSchemeMode>(UnavailableReason.skipped));
+      case ProbeQuery.inBandResize:
+        builder.set(q, const Unavailable<InBandResizeStatus>(UnavailableReason.skipped));
     }
   }
 
@@ -141,6 +143,16 @@ Future<TermInfo> probeTerminal(
         e != null ? Supported(e.mode) : const Unavailable<ColorSchemeMode>(UnavailableReason.timeout),
       );
     }
+
+    if (!skip.contains(ProbeQuery.inBandResize)) {
+      final e = await term.rawQueryInBandResize(timeout);
+      builder.set(
+        ProbeQuery.inBandResize,
+        e != null
+            ? Supported(_mapInBandResizeStatus(e))
+            : const Unavailable<InBandResizeStatus>(UnavailableReason.timeout),
+      );
+    }
   });
 
   return builder.build();
@@ -159,5 +171,13 @@ UnicodeCoreStatus _mapUnicodeStatus(UnicodeCoreEvent e) {
     DECRPMStatus.enabled || DECRPMStatus.permanentlyEnabled => UnicodeCoreStatus.enabled,
     DECRPMStatus.disabled || DECRPMStatus.permanentlyDisabled => UnicodeCoreStatus.disabled,
     _ => UnicodeCoreStatus.unknown,
+  };
+}
+
+InBandResizeStatus _mapInBandResizeStatus(QueryWindowResizeEvent e) {
+  return switch (e.status) {
+    DECRPMStatus.enabled || DECRPMStatus.permanentlyEnabled => InBandResizeStatus.enabled,
+    DECRPMStatus.disabled || DECRPMStatus.permanentlyDisabled => InBandResizeStatus.disabled,
+    _ => InBandResizeStatus.unknown,
   };
 }

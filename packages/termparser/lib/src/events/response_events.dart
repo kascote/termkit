@@ -405,3 +405,69 @@ final class UnicodeCoreEvent extends ResponseEvent {
   @override
   int get hashCode => code.hashCode;
 }
+
+/// Query in-band window resize status (DECRPM response for mode 2048).
+///
+/// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+@immutable
+final class QueryWindowResizeEvent extends ResponseEvent {
+  /// The status code reported by the terminal.
+  final int code;
+
+  /// Get the DECRPM status.
+  late final DECRPMStatus status;
+
+  /// Constructs a new instance of [QueryWindowResizeEvent].
+  QueryWindowResizeEvent(this.code) {
+    status = DECRPMStatus.values.firstWhere((e) => e.value == code, orElse: () => DECRPMStatus.notRecognized);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is QueryWindowResizeEvent && runtimeType == other.runtimeType && code == other.code;
+
+  @override
+  int get hashCode => code.hashCode;
+}
+
+/// Window resize event (in-band resize notification).
+///
+/// Sent when terminal is resized and in-band resize reporting is enabled.
+///
+/// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+@immutable
+final class WindowResizeEvent extends ResponseEvent {
+  /// Terminal height in characters.
+  final int heightChars;
+
+  /// Terminal width in characters.
+  final int widthChars;
+
+  /// Terminal height in pixels (0 if unsupported).
+  final int heightPixels;
+
+  /// Terminal width in pixels (0 if unsupported).
+  final int widthPixels;
+
+  /// Constructs a new instance of [WindowResizeEvent].
+  const WindowResizeEvent(
+    this.heightChars,
+    this.widthChars, [
+    this.heightPixels = 0,
+    this.widthPixels = 0,
+  ]);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WindowResizeEvent &&
+          runtimeType == other.runtimeType &&
+          heightChars == other.heightChars &&
+          widthChars == other.widthChars &&
+          heightPixels == other.heightPixels &&
+          widthPixels == other.widthPixels;
+
+  @override
+  int get hashCode => Object.hash(heightChars, widthChars, heightPixels, widthPixels);
+}

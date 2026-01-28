@@ -213,4 +213,24 @@ extension TermUtils on TermLib {
   Future<ColorSchemeEvent?> queryColorScheme({int timeout = defaultQueryTimeout}) {
     return withRawModeAsync<ColorSchemeEvent?>(() => rawQueryColorScheme(timeout));
   }
+
+  /// Enable in-band window resize reporting.
+  ///
+  /// When enabled, terminal sends [WindowResizeEvent] on window resize.
+  /// An immediate report is sent when first enabled.
+  ///
+  /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+  void enableInBandResize() => write(ansi.Term.enableInBandResize);
+
+  /// Disable in-band window resize reporting.
+  ///
+  /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+  void disableInBandResize() => write(ansi.Term.disableInBandResize);
+
+  /// Query in-band window resize reporting status.
+  ///
+  /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+  Future<QueryWindowResizeEvent?> queryInBandResize({int timeout = defaultQueryTimeout}) {
+    return withRawModeAsync<QueryWindowResizeEvent?>(() => rawQueryInBandResize(timeout));
+  }
 }
