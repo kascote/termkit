@@ -1,6 +1,7 @@
 ## unreleased
 
 - added: ColorSchemeEvent to report terminal color scheme (CSI 997)
+- added: InBandResizeEvent to report terminal resize in band (CSI 2048)
 
 ## 0.4.0
 

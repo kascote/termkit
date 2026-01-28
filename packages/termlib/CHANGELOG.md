@@ -1,6 +1,10 @@
 ## unreleased
 
 - added: probe to check terminal capabilities and return TermInfo
+- added: OSC 9;4 - to set Progress bar
+- added: CSI ? 2031 h/l - Enable/Disable Color Scheme event changes
+- added: CSI ? 2048 h/l - Enable/Disable in band resize events
+- added: CSI ? 2048 - query in band resize support
 
 ## 0.5.0
 
