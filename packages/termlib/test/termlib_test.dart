@@ -2,151 +2,140 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:termlib/src/event_queue.dart';
-import 'package:termlib/src/shared/terminal_overrides.dart';
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
 import './shared.dart';
-import 'termlib_mock.dart';
 
 void main() {
   group('TermLib tests >', () {
     test('hasOutputTerminal should return true if stdout is attached to a TTY', () async {
-      await mockedTest((out, _, _) {
-        final term = TermLib();
+      await mockedTest((term, _, _) {
         expect(term.hasOutputTerminal, isTrue);
-        expect(out.callStack[0], 'hasTerminal');
       });
     });
 
     test('hasOutputTerminal should return false if stdout is not attached to a TTY', () async {
-      final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (out, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.hasOutputTerminal, isFalse);
         },
-        stdout: stdOut,
+        stdout: BufferTermSink(hasTerminal: false),
       );
     });
 
     test('foregroundColor should return the foreground color', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.foregroundColor, Color.fromRGBComponent(0xc7, 0xc7, 0xc7));
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString(r'π]10;rgb:c7f1/c7f1/c7f1π\\')),
+        stdin: streamString(r'π]10;rgb:c7f1/c7f1/c7f1π\\'),
       );
     });
 
     test('foregroundColor must try to parse COLORFGBG if is set and is unable to determine color', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.foregroundColor, Color.ansi(9));
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString('')),
+        stdin: streamString(''),
         env: {'COLORFGBG': '9;0'},
       );
     });
 
     test('foregroundColor must return null if unable to determine the color', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.foregroundColor, null);
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString('')),
+        stdin: streamString(''),
       );
     });
+
     test('foregroundColor must return null if unable to parse COLORFGBG', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.foregroundColor, null);
           expect(out.output, '\x1B]10;?\x1B\\');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString('')),
+        stdin: streamString(''),
         env: {'COLORFGBG': 'bananas'},
       );
     });
 
     test('backgroundColor should return the background color', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.backgroundColor, Color.fromRGBComponent(0xab, 0xcd, 0xef));
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString(r'π]11;rgb:abf1/cdf1/eff1π\\')),
+        stdin: streamString(r'π]11;rgb:abf1/cdf1/eff1π\\'),
       );
     });
 
     test('backgroundColor should return the background based on environment', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.backgroundColor, Color.ansi(11));
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
         env: {'COLORFGBG': '7;11'},
-        stdin: MockStdin(streamString('bananas')),
+        stdin: streamString('bananas'),
       );
     });
 
     test('backgroundColor should return null if is unable to resolve it', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.backgroundColor, null);
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString('bananas')),
+        stdin: streamString('bananas'),
       );
     });
 
     test('enableRawMode must call enableRawMode on TermOs', () async {
-      await mockedTest((_, _, tos) {
-        TermLib().enableRawMode();
+      await mockedTest((term, _, tos) {
+        term.enableRawMode();
         expect(tos.callStack[0], 'enableRawMode');
       });
     });
 
     test('disableRawMode must call disableRawMode on TermOs', () async {
-      await mockedTest((_, _, tos) {
-        TermLib().disableRawMode();
+      await mockedTest((term, _, tos) {
+        term.disableRawMode();
         expect(tos.callStack[0], 'disableRawMode');
       });
     });
 
     test('style must return a new Style with the terminal profile setup', () async {
-      await mockedTest((_, _, tos) {
-        final term = TermLib(profile: ProfileEnum.ansi16);
-        final style = term.style();
-        expect(style, isA<Style>());
-        expect(style.profile, ProfileEnum.ansi16);
-      });
+      await mockedTest(
+        (term, _, _) {
+          final style = term.style();
+          expect(style, isA<Style>());
+          expect(style.profile, ProfileEnum.ansi16);
+        },
+        profile: ProfileEnum.ansi16,
+      );
     });
 
     test('newLine must return the correct sequence depending on the rawMode setup', () async {
-      await mockedTest((_, _, tos) {
-        final term = TermLib();
+      await mockedTest((term, _, _) {
         expect(term.newLine, '\n');
         term.enableRawMode();
         expect(term.newLine, '\r\n');
@@ -156,15 +145,15 @@ void main() {
     });
 
     test('write must send the object to the stdout', () async {
-      await mockedTest((out, _, _) {
-        TermLib().write('hello world');
+      await mockedTest((term, out, _) {
+        term.write('hello world');
         expect(out.output, 'hello world');
       });
     });
 
     test('writeLn must send the object to the stdout followed by a new line', () async {
-      await mockedTest((out, _, _) {
-        final term = TermLib()..writeln('hello world');
+      await mockedTest((term, out, _) {
+        term.writeln('hello world');
         expect(out.output, 'hello world\n');
 
         out.clearOutput();
@@ -176,41 +165,38 @@ void main() {
     });
 
     test('writeAt must write the text at the expected position', () async {
-      await mockedTest((out, _, _) {
-        TermLib().writeAt(10, 11, 'hello world');
+      await mockedTest((term, out, _) {
+        term.writeAt(10, 11, 'hello world');
         expect(out.output, '\x1B[10;11Hhello world');
       });
     });
 
     test('isBackgroundDark check the dark threshold', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           expect(await term.isBackgroundDark(), false);
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString(r'π]10;rgb:abf1/cdf1/eff1π\\')),
+        stdin: streamString(r'π]10;rgb:abf1/cdf1/eff1π\\'),
       );
     });
 
     test('cursorPosition return cursor position on screen', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           final pos = await term.cursorPosition;
           expect(pos, (row: 10, col: 11));
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString(r'π[10;11Rπ\\')),
+        stdin: streamString(r'π[10;11Rπ\\'),
       );
     });
 
     test('envNoColor must return true if NO_COLOR is set', () async {
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envNoColor(), isTrue);
         },
         env: {'NO_COLOR': 'anything'},
@@ -219,8 +205,7 @@ void main() {
 
     test('envNoColor must return false if CLICOLOR is set', () async {
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envNoColor(), isFalse);
         },
         env: {'CLICOLOR': 'anything'},
@@ -229,8 +214,7 @@ void main() {
 
     test('envNoColor must return false CLICOLOR_FORCE is set', () async {
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envNoColor(), isFalse);
         },
         env: {'CLICOLOR_FORCE': 'anything'},
@@ -238,20 +222,17 @@ void main() {
     });
 
     test('envNoColor must return true if terminal is not interactive', () async {
-      final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envNoColor(), isTrue);
         },
-        stdout: stdOut,
+        stdout: BufferTermSink(hasTerminal: false),
       );
     });
 
     test('envColorProfile must return noColor if NO_COLOR is set', () async {
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envColorProfile(), ProfileEnum.noColor);
         },
         env: {'NO_COLOR': 'anything'},
@@ -260,8 +241,7 @@ void main() {
 
     test('envColorProfile must return ansi16 can no detect from ENV but is forced', () async {
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envColorProfile(), ProfileEnum.ansi16);
         },
         env: {'CLICOLOR_FORCE': 'anything'},
@@ -269,30 +249,25 @@ void main() {
     });
 
     test('envColorProfile must return noColor if terminal is not interactive', () async {
-      final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envColorProfile(), ProfileEnum.noColor);
         },
-        stdout: stdOut,
+        stdout: BufferTermSink(hasTerminal: false),
       );
     });
 
     test('envColorProfile must return noColor if unable to detect from environment', () async {
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envColorProfile(), ProfileEnum.noColor);
         },
-        env: {},
       );
     });
 
     test('envColorProfile must return trueColor GOOGLE_CLOUD_SHELL is set to true', () async {
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(term.envColorProfile(), ProfileEnum.trueColor);
         },
         env: {'GOOGLE_CLOUD_SHELL': 'true'},
@@ -301,259 +276,230 @@ void main() {
 
     test('envColorProfile must return trueColor for supported COLORTERM', () async {
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.trueColor),
         env: {'COLORTERM': 'truecolor'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.trueColor),
         env: {'COLORTERM': '24bit'},
       );
     });
 
     test('envColorProfile must return ansi256 for supported COLORTERM', () async {
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.ansi256),
         env: {'COLORTERM': '256color'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.ansi256),
         env: {'COLORTERM': 'yes'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.ansi256),
         env: {'COLORTERM': 'true'},
       );
     });
 
     test('envColorProfile must return color for supported TERM', () async {
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'kitty'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'xterm-kitty'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'wezterm'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'alacritty'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.trueColor),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.trueColor),
         env: {'TERM': 'contour'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.ansi16),
         env: {'TERM': 'linux'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi256),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.ansi256),
         env: {'TERM': 'banana-256color'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.ansi16),
         env: {'TERM': 'banana-color'},
       );
       await mockedTest(
-        (_, _, _) => expect(TermLib().envColorProfile(), ProfileEnum.ansi16),
+        (term, _, _) => expect(term.envColorProfile(), ProfileEnum.ansi16),
         env: {'TERM': 'banana-ansi'},
       );
     });
 
     test('terminalColumns must return 80 if the terminal is not interactive', () async {
-      final stdOut = MockStdout()..hasTerminal = false;
-      await mockedTest((_, _, _) => expect(TermLib().terminalColumns, 80), stdout: stdOut);
+      await mockedTest(
+        (term, _, _) => expect(term.terminalColumns, 80),
+        stdout: BufferTermSink(hasTerminal: false),
+      );
     });
 
     test('terminalColumns must honor COLUMNS env variables if set and is not interactive', () async {
-      final stdOut = MockStdout()
-        ..setTermColumns(999)
-        ..hasTerminal = false;
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalColumns, 222),
-        stdout: stdOut,
+        (term, _, _) => expect(term.terminalColumns, 222),
+        stdout: BufferTermSink(columns: 999, hasTerminal: false),
         env: {'COLUMNS': '222'},
       );
     });
 
     test('terminalColumns must honor COLUMNS env variables if set and is interactive', () async {
-      final stdOut = MockStdout()
-        ..setTermColumns(999)
-        ..hasTerminal = true;
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalColumns, 221),
-        stdout: stdOut,
+        (term, _, _) => expect(term.terminalColumns, 221),
+        stdout: BufferTermSink(columns: 999),
         env: {'COLUMNS': '221'},
       );
     });
 
     test('terminalColumns must return the terminal columns', () async {
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalColumns, 999),
-        stdout: MockStdout()..setTermColumns(999),
+        (term, _, _) => expect(term.terminalColumns, 999),
+        stdout: BufferTermSink(columns: 999),
       );
     });
 
     test('terminalColumns must return default value if terminalColumns is 0', () async {
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalColumns, 80),
-        stdout: MockStdout()..setTermColumns(0),
+        (term, _, _) => expect(term.terminalColumns, 80),
+        stdout: BufferTermSink(columns: 0),
       );
     });
 
     test('terminalLines must return 25 if the terminal is not interactive', () async {
-      final stdOut = MockStdout()..hasTerminal = false;
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalLines, 25),
-        stdout: stdOut,
+        (term, _, _) => expect(term.terminalLines, 25),
+        stdout: BufferTermSink(hasTerminal: false),
       );
     });
 
     test('terminalLines must honor LINES env variable if set and is not interactive', () async {
-      final stdOut = MockStdout()
-        ..setTermLines(999)
-        ..hasTerminal = false;
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalLines, 222),
-        stdout: stdOut,
+        (term, _, _) => expect(term.terminalLines, 222),
+        stdout: BufferTermSink(rows: 999, hasTerminal: false),
         env: {'LINES': '222'},
       );
     });
 
     test('terminalLines must honor LINES env variables if set and is interactive', () async {
-      final stdOut = MockStdout()
-        ..setTermLines(999)
-        ..hasTerminal = true;
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalLines, 221),
-        stdout: stdOut,
+        (term, _, _) => expect(term.terminalLines, 221),
+        stdout: BufferTermSink(rows: 999),
         env: {'LINES': '221'},
       );
     });
 
     test('terminalLines must return the terminal lines', () async {
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalLines, 999),
-        stdout: MockStdout()..setTermLines(999),
+        (term, _, _) => expect(term.terminalLines, 999),
+        stdout: BufferTermSink(rows: 999),
       );
     });
 
     test('terminalLines must return default value if terminalColumns is 0', () async {
       await mockedTest(
-        (_, _, _) => expect(TermLib().terminalLines, 25),
-        stdout: MockStdout()..setTermLines(0),
+        (term, _, _) => expect(term.terminalLines, 25),
+        stdout: BufferTermSink(rows: 0),
       );
     });
 
     test('withRawMode must enable/disable raw mode while executing the callback', () async {
       var ran = false;
-      await mockedTest(
-        (_, _, tos) async {
-          TermLib().withRawMode(() => ran = true);
-          expect(tos.callStack[0], 'enableRawMode');
-          expect(tos.callStack[1], 'disableRawMode');
-          expect(ran, true);
-        },
-      );
+      await mockedTest((term, _, tos) async {
+        term.withRawMode(() => ran = true);
+        expect(tos.callStack[0], 'enableRawMode');
+        expect(tos.callStack[1], 'disableRawMode');
+        expect(ran, true);
+      });
     });
 
     test('withRawModeAsync must enable/disable raw mode while execute callback', () async {
       var ran = false;
-      await mockedTest(
-        (_, _, tos) async {
-          await TermLib().withRawModeAsync(() async => ran = true);
-          expect(tos.callStack[0], 'enableRawMode');
-          expect(tos.callStack[1], 'disableRawMode');
-          expect(ran, true);
-        },
-      );
+      await mockedTest((term, _, tos) async {
+        await term.withRawModeAsync(() async => ran = true);
+        expect(tos.callStack[0], 'enableRawMode');
+        expect(tos.callStack[1], 'disableRawMode');
+        expect(ran, true);
+      });
     });
 
     test('queryKeyboardCapabilities must return event with data', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, out, tos) async {
           final caps = await term.queryKeyboardCapabilities();
           expect(caps, isA<KeyboardEnhancementFlagsEvent>());
-          expect(out.buf.toString(), '\x1B[?u');
+          expect(out.output, '\x1B[?u');
           expect(tos.callStack[0], 'enableRawMode');
           expect(tos.callStack[1], 'disableRawMode');
         },
-        stdin: MockStdin(streamString('π[?0u')),
+        stdin: streamString('π[?0u'),
       );
     });
 
     test('setKeyboardFlags must send the flag to the terminal', () async {
-      await mockedTest(
-        (out, _, tos) async {
-          TermLib().setKeyboardFlags(const KeyboardEnhancementFlagsEvent(1));
-          expect(out.buf.toString(), '\x1B[=1;1u');
-        },
-      );
+      await mockedTest((term, out, _) async {
+        term.setKeyboardFlags(const KeyboardEnhancementFlagsEvent(1));
+        expect(out.output, '\x1B[=1;1u');
+      });
     });
 
     test('pushKeyboardFlags must send the flag to the terminal', () async {
-      await mockedTest(
-        (out, _, tos) async {
-          TermLib().pushKeyboardFlags(const KeyboardEnhancementFlagsEvent(3));
-          expect(out.buf.toString(), '\x1B[>3u');
-        },
-      );
+      await mockedTest((term, out, _) async {
+        term.pushKeyboardFlags(const KeyboardEnhancementFlagsEvent(3));
+        expect(out.output, '\x1B[>3u');
+      });
     });
 
     test('enableKeyboardEnhancement must send base modes', () async {
-      await mockedTest(
-        (out, _, tos) async {
-          TermLib().enableKeyboardEnhancement();
-          expect(out.buf.toString(), '\x1B[=15;1u');
-        },
-      );
+      await mockedTest((term, out, _) async {
+        term.enableKeyboardEnhancement();
+        expect(out.output, '\x1B[=15;1u');
+      });
     });
 
     test('enableKeyboardEnhancementFull must send all modes', () async {
-      await mockedTest(
-        (out, _, tos) async {
-          TermLib().enableKeyboardEnhancementFull();
-          expect(out.buf.toString(), '\x1B[=31;1u');
-        },
-      );
+      await mockedTest((term, out, _) async {
+        term.enableKeyboardEnhancementFull();
+        expect(out.output, '\x1B[=31;1u');
+      });
     });
 
     test('disableKeyboardEnhancement must reset the flags', () async {
-      await mockedTest(
-        (out, _, tos) async {
-          TermLib().disableKeyboardEnhancement();
-          expect(out.buf.toString(), '\x1B[=0;1u');
-        },
-      );
+      await mockedTest((term, out, _) async {
+        term.disableKeyboardEnhancement();
+        expect(out.output, '\x1B[=0;1u');
+      });
     });
 
     test('popKeyboardFlags must send the command to pop N flags', () async {
-      await mockedTest(
-        (out, _, tos) async {
-          TermLib().popKeyboardFlags(3);
-          expect(out.buf.toString(), '\x1B[<3u');
-        },
-      );
+      await mockedTest((term, out, _) async {
+        term.popKeyboardFlags(3);
+        expect(out.output, '\x1B[<3u');
+      });
     });
 
     test(
       'readLine must read input until ENTER',
       () async {
         await mockedTest(
-          (out, _, tos) async {
-            final term = TermLib();
+          (term, out, tos) async {
             final line = await term.readLine();
             expect(line, 'hello world');
-            expect(out.buf.toString(), 'hello world');
+            expect(out.output, 'hello world');
             expect(tos.callStack[0], 'enableRawMode');
             expect(tos.callStack[1], 'disableRawMode');
           },
-          stdin: MockStdin(streamString('hello world\n')),
+          stdin: streamString('hello world\n'),
         );
       },
       skip: true,
@@ -563,15 +509,14 @@ void main() {
       'readLine must return empty if kit ESC is pressed',
       () async {
         await mockedTest(
-          (out, _, tos) async {
-            final term = TermLib();
+          (term, out, tos) async {
             final line = await term.readLine();
             expect(line, '');
-            expect(out.buf.toString(), '');
+            expect(out.output, '');
             expect(tos.callStack[0], 'enableRawMode');
             expect(tos.callStack[1], 'disableRawMode');
           },
-          stdin: MockStdin(streamString('hello world\x1B')),
+          stdin: streamString('hello world\x1B'),
         );
       },
       skip: true,
@@ -581,26 +526,23 @@ void main() {
       'readLine must support initialize the buffer with some text',
       () async {
         await mockedTest(
-          (out, _, tos) async {
-            final term = TermLib();
+          (term, out, tos) async {
             final line = await term.readLine('bananas');
             expect(line, 'bananas hello world');
-            expect(out.buf.toString(), 'bananas hello world');
+            expect(out.output, 'bananas hello world');
             expect(tos.callStack[0], 'enableRawMode');
             expect(tos.callStack[1], 'disableRawMode');
           },
-          stdin: MockStdin(streamString(' hello world\n')),
+          stdin: streamString(' hello world\n'),
         );
       },
       skip: true,
     );
 
     test('read() must block until event arrives', () async {
-      final controller = StreamController<List<int>>();
+      final controller = StreamController<List<int>>.broadcast();
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
-
+        (term, out, tos) async {
           var eventReceived = false;
           final readFuture = term.read<KeyEvent>().then((event) {
             eventReceived = true;
@@ -619,15 +561,13 @@ void main() {
           await term.dispose();
           await controller.close();
         },
-        stdin: MockStdin(controller.stream.asBroadcastStream()),
+        stdin: controller.stream,
       );
     });
 
     test('read() must throw StateError when !hasTerminal', () async {
-      final mockStdin = MockStdin(streamString(''))..hasTerminal = false;
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(
             () => term.read<KeyEvent>(),
             throwsA(
@@ -639,15 +579,13 @@ void main() {
             ),
           );
         },
-        stdin: mockStdin,
+        hasTerminal: false,
       );
     });
 
     test('read() with type filter must wait for matching event type', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
-
+        (term, out, tos) async {
           final readFuture = term.read<KeyEvent>();
 
           await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -658,15 +596,13 @@ void main() {
 
           await term.dispose();
         },
-        stdin: MockStdin(streamString('x')),
+        stdin: streamString('x'),
       );
     });
 
     test('poll() must return NoneEvent when queue is empty', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
-
+        (term, out, tos) async {
           await Future<void>.delayed(const Duration(milliseconds: 50));
 
           final event = term.poll<KeyEvent>();
@@ -674,15 +610,13 @@ void main() {
 
           await term.dispose();
         },
-        stdin: MockStdin(streamString('')),
+        stdin: streamString(''),
       );
     });
 
     test('poll() must throw StateError when !hasTerminal', () async {
-      final mockStdin = MockStdin(streamString(''))..hasTerminal = false;
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(
             () => term.poll<KeyEvent>(),
             throwsA(
@@ -694,32 +628,27 @@ void main() {
             ),
           );
         },
-        stdin: mockStdin,
+        hasTerminal: false,
       );
     });
 
     test('dispose() must cancel subscription and clear queue', () async {
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
-
+        (term, _, _) async {
           await term.dispose();
-
           expect(() => term.poll<KeyEvent>(), throwsA(isA<TypeError>()));
         },
-        stdin: MockStdin(streamString('abc')),
+        stdin: streamString('abc'),
       );
     });
 
-    test('zone override: eventQueue injection via TerminalOverrides', () async {
+    test('backend: eventQueue injection seeds events', () async {
       final queue = EventQueue();
       injectEvent(queue, const KeyEvent(KeyCode.char('a')));
       injectEvent(queue, const KeyEvent(KeyCode.char('b')));
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-
+      await mockedTest(
+        (term, _, _) async {
           final event1 = term.poll<KeyEvent>();
           expect(event1, isA<KeyEvent>());
           expect((event1 as KeyEvent).code.char, 'a');
@@ -733,20 +662,15 @@ void main() {
 
           await term.dispose();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
         eventQueue: queue,
-        hasTerminal: true,
       );
     });
 
-    test('zone override: eventStream injection via TerminalOverrides', () async {
+    test('backend: eventSource injection feeds events into queue', () async {
       final controller = createEventController();
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-
+      await mockedTest(
+        (term, _, _) async {
           controller
             ..add(const KeyEvent(KeyCode.char('x')))
             ..add(const KeyEvent(KeyCode.char('y')));
@@ -764,44 +688,23 @@ void main() {
           await term.dispose();
           await controller.close();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        eventStream: controller,
-        hasTerminal: true,
+        eventSource: controller.stream,
       );
     });
 
-    test('zone override: hasTerminal override for testing', () async {
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
+    test('hasTerminal override for testing', () async {
+      await mockedTest(
+        (term, _, _) {
           expect(term.hasTerminal, isFalse);
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
         hasTerminal: false,
       );
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-          expect(term.hasTerminal, isTrue);
-        },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        hasTerminal: true,
-      );
-    });
-
-    test('zone override: default behavior when no override', () async {
-      final mockStdin = MockStdin(streamString(''))..hasTerminal = true;
       await mockedTest(
-        (out, _, tos) async {
-          final term = TermLib();
+        (term, _, _) async {
           expect(term.hasTerminal, isTrue);
           await term.dispose();
         },
-        stdin: mockStdin,
       );
     });
 
@@ -813,10 +716,8 @@ void main() {
       injectEvent(queue, const MouseEvent(10, 20, MouseButton(MouseButtonKind.left, MouseButtonAction.down)));
       injectEvent(queue, const KeyEvent(KeyCode.char('d')));
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-
+      await mockedTest(
+        (term, _, _) async {
           final key1 = term.poll<KeyEvent>();
           expect(key1, isA<KeyEvent>());
           expect((key1 as KeyEvent).code.char, 'a');
@@ -843,10 +744,7 @@ void main() {
 
           await term.dispose();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
         eventQueue: queue,
-        hasTerminal: true,
       );
     });
 
@@ -858,10 +756,8 @@ void main() {
       injectEvent(queue, const MouseEvent(3, 3, MouseButton(MouseButtonKind.middle, MouseButtonAction.down)));
       injectEvent(queue, const KeyEvent(KeyCode.char('y')));
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-
+      await mockedTest(
+        (term, _, _) async {
           final key1 = term.poll<KeyEvent>();
           expect(key1, isA<KeyEvent>());
           expect((key1 as KeyEvent).code.char, 'x');
@@ -890,20 +786,15 @@ void main() {
 
           await term.dispose();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
         eventQueue: queue,
-        hasTerminal: true,
       );
     });
 
     test('concurrent poll() and read() can be mixed', () async {
       final controller = createEventController();
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-
+      await mockedTest(
+        (term, _, _) async {
           controller
             ..add(const KeyEvent(KeyCode.char('a')))
             ..add(const KeyEvent(KeyCode.char('b')));
@@ -931,21 +822,16 @@ void main() {
           await term.dispose();
           await controller.close();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        eventStream: controller,
-        hasTerminal: true,
+        eventSource: controller.stream,
       );
     });
 
     test('events stream emits parsed events', () async {
       final controller = createEventController();
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
+      await mockedTest(
+        (term, _, _) async {
           final received = <Event>[];
-
           final subscription = term.events.listen(received.add);
 
           controller
@@ -964,19 +850,15 @@ void main() {
           await term.dispose();
           await controller.close();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        eventStream: controller,
-        hasTerminal: true,
+        eventSource: controller.stream,
       );
     });
 
     test('events stream supports multiple subscribers', () async {
       final controller = createEventController();
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
+      await mockedTest(
+        (term, _, _) async {
           final received1 = <Event>[];
           final received2 = <Event>[];
 
@@ -997,18 +879,13 @@ void main() {
           await term.dispose();
           await controller.close();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        eventStream: controller,
-        hasTerminal: true,
+        eventSource: controller.stream,
       );
     });
 
     test('events stream throws StateError when !hasTerminal', () async {
-      final mockStdin = MockStdin(streamString(''))..hasTerminal = false;
       await mockedTest(
-        (_, _, _) {
-          final term = TermLib();
+        (term, _, _) {
           expect(
             () => term.events,
             throwsA(
@@ -1020,18 +897,16 @@ void main() {
             ),
           );
         },
-        stdin: mockStdin,
+        hasTerminal: false,
       );
     });
 
     test('events stream coexists with poll/read', () async {
       final controller = createEventController();
 
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
+      await mockedTest(
+        (term, _, _) async {
           final streamEvents = <Event>[];
-
           final subscription = term.events.listen(streamEvents.add);
 
           controller
@@ -1041,10 +916,8 @@ void main() {
 
           await Future<void>.delayed(const Duration(milliseconds: 50));
 
-          // Stream received all events
           expect(streamEvents, hasLength(3));
 
-          // poll/read also received same events
           final poll1 = term.poll<KeyEvent>();
           expect((poll1 as KeyEvent).code.char, 'a');
 
@@ -1058,84 +931,8 @@ void main() {
           await term.dispose();
           await controller.close();
         },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        eventStream: controller,
-        hasTerminal: true,
+        eventSource: controller.stream,
       );
-    });
-
-    test('events can be overridden for testing', () async {
-      final mockEventsController = StreamController<Event>.broadcast();
-
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-          final received = <Event>[];
-
-          final subscription = term.events.listen(received.add);
-
-          mockEventsController
-            ..add(const KeyEvent(KeyCode.char('m')))
-            ..add(const KeyEvent(KeyCode.char('n')));
-
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-
-          expect(received, hasLength(2));
-          expect((received[0] as KeyEvent).code.char, 'm');
-          expect((received[1] as KeyEvent).code.char, 'n');
-
-          await subscription.cancel();
-          await term.dispose();
-        },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        hasTerminal: true,
-        events: mockEventsController.stream,
-      );
-
-      await mockEventsController.close();
-    });
-
-    test('events override is independent from eventStream', () async {
-      final eventStreamController = createEventController();
-      final eventsOverrideController = StreamController<Event>.broadcast();
-
-      await TerminalOverrides.runZoned(
-        () async {
-          final term = TermLib();
-          final streamEvents = <Event>[];
-
-          final subscription = term.events.listen(streamEvents.add);
-
-          // Events from eventStream go to queue (poll/read)
-          eventStreamController.add(const KeyEvent(KeyCode.char('q')));
-
-          // Events from events override go to stream subscribers
-          eventsOverrideController.add(const KeyEvent(KeyCode.char('s')));
-
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-
-          // Stream only receives from events override
-          expect(streamEvents, hasLength(1));
-          expect((streamEvents[0] as KeyEvent).code.char, 's');
-
-          // Queue receives from eventStream
-          final poll1 = term.poll<KeyEvent>();
-          expect((poll1 as KeyEvent).code.char, 'q');
-
-          await subscription.cancel();
-          await term.dispose();
-          await eventStreamController.close();
-        },
-        stdout: MockStdout(),
-        stdin: MockStdin(streamString('')),
-        hasTerminal: true,
-        eventStream: eventStreamController,
-        events: eventsOverrideController.stream,
-      );
-
-      await eventsOverrideController.close();
     });
   });
 }

@@ -38,7 +38,7 @@ class MatrixApp {
     matrix = Matrix(t, t.terminalColumns ~/ 2, t.terminalLines);
     completer = Completer<bool>();
     tickStream = Stream.periodic(const Duration(milliseconds: 1000 ~/ 30), (tick) => tick).listen(null);
-    eventStream = t.eventStreamer<KeyEvent>().listen(null);
+    eventStream = t.events.where((e) => e is KeyEvent).cast<KeyEvent>().listen(null);
   }
 
   Future<bool> run() async {

@@ -340,7 +340,7 @@ void main() {
       expect(queue.dequeue<InternalEvent>(), noneEvent);
     });
 
-    test('dispose should clear queue and close notifier', () async {
+    test('dispose should clear queue', () async {
       final queue = EventQueue()
         ..enqueue(KeyEvent.fromString('a'))
         ..enqueue(KeyEvent.fromString('b'));
@@ -352,70 +352,81 @@ void main() {
       expect(queue.length, 0);
     });
 
-    test('onEvent should emit when event enqueued', () async {
-      final queue = EventQueue();
-      var signalReceived = false;
+    test('awaitEvent<T> returns matching buffered event immediately', () async {
+      final queue = EventQueue()..enqueue(KeyEvent.fromString('a'));
 
-      final subscription = queue.onEvent.listen((_) => signalReceived = true);
-
-      queue.enqueue(KeyEvent.fromString('a'));
-
-      await Future<void>.delayed(Duration.zero);
-
-      expect(signalReceived, isTrue);
-
-      await subscription.cancel();
+      final event = await queue.awaitEvent<KeyEvent>();
+      expect(event, isA<KeyEvent>());
+      expect(event?.code.char, 'a');
+      expect(queue.length, 0);
       await queue.dispose();
     });
 
-    test('onEvent should emit for each enqueue', () async {
+    test('awaitEvent<T> waits for next matching enqueue when buffer is empty', () async {
       final queue = EventQueue();
-      var signalCount = 0;
 
-      final subscription = queue.onEvent.listen((_) => signalCount++);
+      final future = queue.awaitEvent<KeyEvent>();
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      queue.enqueue(KeyEvent.fromString('x'));
+
+      final event = await future;
+      expect(event?.code.char, 'x');
+      expect(queue.length, 0);
+      await queue.dispose();
+    });
+
+    test('awaitEvent<T> routes non-matching enqueues to buffer, not waiter', () async {
+      final queue = EventQueue();
+
+      final keyFuture = queue.awaitEvent<KeyEvent>();
+
+      queue.enqueue(
+        const MouseEvent(0, 0, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      );
+      expect(queue.length, 1);
+
+      queue.enqueue(KeyEvent.fromString('k'));
+      final event = await keyFuture;
+      expect(event?.code.char, 'k');
+      expect(queue.length, 1);
+      await queue.dispose();
+    });
+
+    test('awaitEvent<T> returns null on timeout and removes waiter', () async {
+      final queue = EventQueue();
+
+      final event = await queue.awaitEvent<KeyEvent>(
+        timeout: const Duration(milliseconds: 20),
+      );
+      expect(event, isNull);
+
+      queue.enqueue(KeyEvent.fromString('q'));
+      expect(queue.length, 1);
+      await queue.dispose();
+    });
+
+    test('dispose completes pending awaiters with TermDisposed', () async {
+      final queue = EventQueue();
+      final future = queue.awaitEvent<KeyEvent>();
+
+      final expectation = expectLater(future, throwsA(isA<TermDisposed>()));
+      await queue.dispose();
+      await expectation;
+    });
+
+    test('multiple awaiters resolve in FIFO order per matching type', () async {
+      final queue = EventQueue();
+
+      final f1 = queue.awaitEvent<KeyEvent>();
+      final f2 = queue.awaitEvent<KeyEvent>();
 
       queue
         ..enqueue(KeyEvent.fromString('a'))
-        ..enqueue(KeyEvent.fromString('b'))
-        ..enqueue(KeyEvent.fromString('c'));
+        ..enqueue(KeyEvent.fromString('b'));
 
-      await Future<void>.delayed(Duration.zero);
-
-      expect(signalCount, 3);
-
-      await subscription.cancel();
-      await queue.dispose();
-    });
-
-    test('onEvent.first should complete when event enqueued', () async {
-      final queue = EventQueue();
-
-      final future = queue.onEvent.first;
-
-      queue.enqueue(KeyEvent.fromString('x'));
-
-      await expectLater(future, completes);
-
-      await queue.dispose();
-    });
-
-    test('multiple listeners on onEvent should all receive signal', () async {
-      final queue = EventQueue();
-      var listener1Count = 0;
-      var listener2Count = 0;
-
-      final sub1 = queue.onEvent.listen((_) => listener1Count++);
-      final sub2 = queue.onEvent.listen((_) => listener2Count++);
-
-      queue.enqueue(KeyEvent.fromString('a'));
-
-      await Future<void>.delayed(Duration.zero);
-
-      expect(listener1Count, 1);
-      expect(listener2Count, 1);
-
-      await sub1.cancel();
-      await sub2.cancel();
+      expect((await f1)?.code.char, 'a');
+      expect((await f2)?.code.char, 'b');
       await queue.dispose();
     });
   });

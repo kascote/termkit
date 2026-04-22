@@ -81,6 +81,10 @@ class TermRunner {
   @visibleForTesting
   final ExitCallback? exitCallback;
 
+  /// Backend override for testing. If null, [TermLib] uses [TermBackend.io].
+  @visibleForTesting
+  final TermBackend? backend;
+
   StreamSubscription<ProcessSignal>? _sigintSub;
   StreamSubscription<ProcessSignal>? _sigtermSub;
   bool _disposed = false;
@@ -99,11 +103,12 @@ class TermRunner {
     this.onError,
     this.onCleanup,
     @visibleForTesting this.exitCallback,
+    @visibleForTesting this.backend,
   });
 
   /// Build and configure terminal
   TermLib build() {
-    final term = TermLib(profile: profile);
+    final term = TermLib(backend: backend, profile: profile);
     if (alternateScreen) term.enableAlternateScreen();
     if (rawMode) term.enableRawMode();
     if (hideCursor) term.cursorHide();

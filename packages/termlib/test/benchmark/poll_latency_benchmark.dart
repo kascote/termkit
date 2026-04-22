@@ -2,12 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:termlib/src/event_queue.dart';
-import 'package:termlib/src/shared/terminal_overrides.dart';
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
-import '../shared.dart';
-import '../termlib_mock.dart';
 import 'benchmark_stats.dart';
 
 void main() async {
@@ -48,9 +45,9 @@ void main() async {
   });
 
   if (allPassed) {
-    stdout.writeln('✅ All scenarios pass target <1ms');
+    stdout.writeln('All scenarios pass target <1ms');
   } else {
-    stdout.writeln('❌ Some scenarios failed to meet target');
+    stdout.writeln('Some scenarios failed to meet target');
     exit(1);
   }
 
@@ -76,346 +73,262 @@ int _getTarget(String scenario) {
   }
 }
 
+({TermLib term, EventQueue queue}) _buildTerm() {
+  final queue = EventQueue();
+  final term = TermLib(backend: TermBackend.fake(eventQueue: queue));
+  return (term: term, queue: queue);
+}
+
 Future<BenchmarkStats> _benchmarkHotPath() async {
   stdout.writeln('Running: Hot path (event ready)...');
 
-  return await TerminalOverrides.runZoned(
-    () async {
-      final queue = TerminalOverrides.current!.eventQueue!;
-      final term = TermLib();
+  final setup = _buildTerm();
+  final term = setup.term;
+  final queue = setup.queue;
 
-      const warmupIterations = 100;
-      for (var i = 0; i < warmupIterations; i++) {
-        queue.enqueue(KeyEvent.fromString('a'));
-        term.poll<KeyEvent>();
-      }
+  const warmupIterations = 100;
+  for (var i = 0; i < warmupIterations; i++) {
+    queue.enqueue(KeyEvent.fromString('a'));
+    term.poll<KeyEvent>();
+  }
 
-      final samples = <int>[];
-      final stopwatch = Stopwatch();
-      const measurementIterations = 1000;
+  final samples = <int>[];
+  final stopwatch = Stopwatch();
+  const measurementIterations = 1000;
 
-      for (var i = 0; i < measurementIterations; i++) {
-        queue.enqueue(KeyEvent.fromString('a'));
+  for (var i = 0; i < measurementIterations; i++) {
+    queue.enqueue(KeyEvent.fromString('a'));
 
-        stopwatch.start();
-        term.poll<KeyEvent>();
-        stopwatch.stop();
+    stopwatch.start();
+    term.poll<KeyEvent>();
+    stopwatch.stop();
 
-        samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch.reset();
-      }
+    samples.add(stopwatch.elapsedMicroseconds);
+    stopwatch.reset();
+  }
 
-      await term.dispose();
-      return BenchmarkStats.calculate(samples);
-    },
-    stdout: MockStdout(),
-    stdin: MockStdin(streamString('')),
-    eventQueue: EventQueue(),
-    hasTerminal: true,
-  );
+  await term.dispose();
+  return BenchmarkStats.calculate(samples);
 }
 
 Future<BenchmarkStats> _benchmarkEmptyQueue() async {
   stdout.writeln('Running: Empty queue (miss)...');
 
-  return await TerminalOverrides.runZoned(
-    () async {
-      final term = TermLib();
+  final setup = _buildTerm();
+  final term = setup.term;
 
-      const warmupIterations = 100;
-      for (var i = 0; i < warmupIterations; i++) {
-        term.poll<KeyEvent>();
-      }
+  const warmupIterations = 100;
+  for (var i = 0; i < warmupIterations; i++) {
+    term.poll<KeyEvent>();
+  }
 
-      final samples = <int>[];
-      final stopwatch = Stopwatch();
-      const measurementIterations = 1000;
+  final samples = <int>[];
+  final stopwatch = Stopwatch();
+  const measurementIterations = 1000;
 
-      for (var i = 0; i < measurementIterations; i++) {
-        stopwatch.start();
-        term.poll<KeyEvent>();
-        stopwatch.stop();
+  for (var i = 0; i < measurementIterations; i++) {
+    stopwatch.start();
+    term.poll<KeyEvent>();
+    stopwatch.stop();
 
-        samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch.reset();
-      }
+    samples.add(stopwatch.elapsedMicroseconds);
+    stopwatch.reset();
+  }
 
-      await term.dispose();
-      return BenchmarkStats.calculate(samples);
-    },
-    stdout: MockStdout(),
-    stdin: MockStdin(streamString('')),
-    eventQueue: EventQueue(),
-    hasTerminal: true,
-  );
+  await term.dispose();
+  return BenchmarkStats.calculate(samples);
 }
 
 Future<BenchmarkStats> _benchmarkTypeFiltering() async {
   stdout.writeln('Running: Type filtering (skip non-matching)...');
 
-  return await TerminalOverrides.runZoned(
-    () async {
-      final queue = TerminalOverrides.current!.eventQueue!;
-      final term = TermLib();
+  final setup = _buildTerm();
+  final term = setup.term;
+  final queue = setup.queue;
 
-      const warmupIterations = 100;
-      for (var i = 0; i < warmupIterations; i++) {
-        queue
-          ..enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          )
-          ..enqueue(
-            const MouseEvent(
-              2,
-              2,
-              MouseButton(MouseButtonKind.right, MouseButtonAction.up),
-            ),
-          )
-          ..enqueue(KeyEvent.fromString('x'));
-        term.poll<KeyEvent>();
-      }
+  const warmupIterations = 100;
+  for (var i = 0; i < warmupIterations; i++) {
+    queue
+      ..enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      )
+      ..enqueue(
+        const MouseEvent(2, 2, MouseButton(MouseButtonKind.right, MouseButtonAction.up)),
+      )
+      ..enqueue(KeyEvent.fromString('x'));
+    term.poll<KeyEvent>();
+  }
 
-      final samples = <int>[];
-      final stopwatch = Stopwatch();
-      const measurementIterations = 1000;
+  final samples = <int>[];
+  final stopwatch = Stopwatch();
+  const measurementIterations = 1000;
 
-      for (var i = 0; i < measurementIterations; i++) {
-        queue
-          ..enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          )
-          ..enqueue(
-            const MouseEvent(
-              2,
-              2,
-              MouseButton(MouseButtonKind.right, MouseButtonAction.up),
-            ),
-          )
-          ..enqueue(KeyEvent.fromString('x'));
+  for (var i = 0; i < measurementIterations; i++) {
+    queue
+      ..enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      )
+      ..enqueue(
+        const MouseEvent(2, 2, MouseButton(MouseButtonKind.right, MouseButtonAction.up)),
+      )
+      ..enqueue(KeyEvent.fromString('x'));
 
-        stopwatch.start();
-        term.poll<KeyEvent>();
-        stopwatch.stop();
+    stopwatch.start();
+    term.poll<KeyEvent>();
+    stopwatch.stop();
 
-        samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch.reset();
-      }
+    samples.add(stopwatch.elapsedMicroseconds);
+    stopwatch.reset();
+  }
 
-      await term.dispose();
-      return BenchmarkStats.calculate(samples);
-    },
-    stdout: MockStdout(),
-    stdin: MockStdin(streamString('')),
-    eventQueue: EventQueue(),
-    hasTerminal: true,
-  );
+  await term.dispose();
+  return BenchmarkStats.calculate(samples);
 }
 
 Future<BenchmarkStats> _benchmarkDeepTypeFiltering() async {
   stdout.writeln('Running: Deep type filtering (skip 50 events)...');
 
-  return await TerminalOverrides.runZoned(
-    () async {
-      final queue = TerminalOverrides.current!.eventQueue!;
-      final term = TermLib();
+  final setup = _buildTerm();
+  final term = setup.term;
+  final queue = setup.queue;
 
-      const warmupIterations = 100;
-      for (var i = 0; i < warmupIterations; i++) {
-        for (var j = 0; j < 50; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          );
-        }
-        queue.enqueue(KeyEvent.fromString('x'));
-        term.poll<KeyEvent>();
-      }
+  const warmupIterations = 100;
+  for (var i = 0; i < warmupIterations; i++) {
+    for (var j = 0; j < 50; j++) {
+      queue.enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      );
+    }
+    queue.enqueue(KeyEvent.fromString('x'));
+    term.poll<KeyEvent>();
+  }
 
-      final samples = <int>[];
-      final stopwatch = Stopwatch();
-      const measurementIterations = 1000;
+  final samples = <int>[];
+  final stopwatch = Stopwatch();
+  const measurementIterations = 1000;
 
-      for (var i = 0; i < measurementIterations; i++) {
-        for (var j = 0; j < 50; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          );
-        }
-        queue.enqueue(KeyEvent.fromString('x'));
+  for (var i = 0; i < measurementIterations; i++) {
+    for (var j = 0; j < 50; j++) {
+      queue.enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      );
+    }
+    queue.enqueue(KeyEvent.fromString('x'));
 
-        stopwatch.start();
-        term.poll<KeyEvent>();
-        stopwatch.stop();
+    stopwatch.start();
+    term.poll<KeyEvent>();
+    stopwatch.stop();
 
-        samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch.reset();
-      }
+    samples.add(stopwatch.elapsedMicroseconds);
+    stopwatch.reset();
+  }
 
-      await term.dispose();
-      return BenchmarkStats.calculate(samples);
-    },
-    stdout: MockStdout(),
-    stdin: MockStdin(streamString('')),
-    eventQueue: EventQueue(),
-    hasTerminal: true,
-  );
+  await term.dispose();
+  return BenchmarkStats.calculate(samples);
 }
 
 Future<BenchmarkStats> _benchmarkMidQueueSearch() async {
   stdout.writeln('Running: Mid-queue search (500 events)...');
 
-  return await TerminalOverrides.runZoned(
-    () async {
-      final queue = TerminalOverrides.current!.eventQueue!;
-      final term = TermLib();
+  final setup = _buildTerm();
+  final term = setup.term;
+  final queue = setup.queue;
 
-      const warmupIterations = 100;
-      for (var i = 0; i < warmupIterations; i++) {
-        for (var j = 0; j < 250; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          );
-        }
-        queue.enqueue(KeyEvent.fromString('k'));
-        for (var j = 0; j < 249; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              2,
-              2,
-              MouseButton(MouseButtonKind.right, MouseButtonAction.up),
-            ),
-          );
-        }
-        queue.enqueue(const FocusEvent());
+  const warmupIterations = 100;
+  for (var i = 0; i < warmupIterations; i++) {
+    for (var j = 0; j < 250; j++) {
+      queue.enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      );
+    }
+    queue.enqueue(KeyEvent.fromString('k'));
+    for (var j = 0; j < 249; j++) {
+      queue.enqueue(
+        const MouseEvent(2, 2, MouseButton(MouseButtonKind.right, MouseButtonAction.up)),
+      );
+    }
+    queue.enqueue(const FocusEvent());
 
-        term
-          ..poll<KeyEvent>()
-          ..poll<FocusEvent>();
-      }
+    term
+      ..poll<KeyEvent>()
+      ..poll<FocusEvent>();
+  }
 
-      final samples = <int>[];
-      final stopwatch = Stopwatch();
-      const measurementIterations = 1000;
+  final samples = <int>[];
+  final stopwatch = Stopwatch();
+  const measurementIterations = 1000;
 
-      for (var i = 0; i < measurementIterations; i++) {
-        for (var j = 0; j < 250; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          );
-        }
-        queue.enqueue(KeyEvent.fromString('k'));
-        for (var j = 0; j < 249; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              2,
-              2,
-              MouseButton(MouseButtonKind.right, MouseButtonAction.up),
-            ),
-          );
-        }
-        queue.enqueue(const FocusEvent());
+  for (var i = 0; i < measurementIterations; i++) {
+    for (var j = 0; j < 250; j++) {
+      queue.enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      );
+    }
+    queue.enqueue(KeyEvent.fromString('k'));
+    for (var j = 0; j < 249; j++) {
+      queue.enqueue(
+        const MouseEvent(2, 2, MouseButton(MouseButtonKind.right, MouseButtonAction.up)),
+      );
+    }
+    queue.enqueue(const FocusEvent());
 
-        stopwatch.start();
-        term.poll<KeyEvent>();
-        stopwatch.stop();
-        samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch
-          ..reset()
-          ..start();
-        term.poll<FocusEvent>();
-        stopwatch.stop();
-        samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch.reset();
-      }
+    stopwatch.start();
+    term.poll<KeyEvent>();
+    stopwatch.stop();
+    samples.add(stopwatch.elapsedMicroseconds);
+    stopwatch
+      ..reset()
+      ..start();
+    term.poll<FocusEvent>();
+    stopwatch.stop();
+    samples.add(stopwatch.elapsedMicroseconds);
+    stopwatch.reset();
+  }
 
-      await term.dispose();
-      return BenchmarkStats.calculate(samples);
-    },
-    stdout: MockStdout(),
-    stdin: MockStdin(streamString('')),
-    eventQueue: EventQueue(),
-    hasTerminal: true,
-  );
+  await term.dispose();
+  return BenchmarkStats.calculate(samples);
 }
 
 Future<BenchmarkStats> _benchmarkWorstCaseSearch() async {
   stdout.writeln('Running: Worst case search (1000 events)...');
 
-  return await TerminalOverrides.runZoned(
-    () async {
-      final queue = TerminalOverrides.current!.eventQueue!;
-      final term = TermLib();
+  final setup = _buildTerm();
+  final term = setup.term;
+  final queue = setup.queue;
 
-      const warmupIterations = 100;
-      for (var i = 0; i < warmupIterations; i++) {
-        for (var j = 0; j < 999; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          );
-        }
-        queue.enqueue(KeyEvent.fromString('k'));
-        term.poll<KeyEvent>();
-      }
+  const warmupIterations = 100;
+  for (var i = 0; i < warmupIterations; i++) {
+    for (var j = 0; j < 999; j++) {
+      queue.enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      );
+    }
+    queue.enqueue(KeyEvent.fromString('k'));
+    term.poll<KeyEvent>();
+  }
 
-      final samples = <int>[];
-      final stopwatch = Stopwatch();
-      const measurementIterations = 1000;
+  final samples = <int>[];
+  final stopwatch = Stopwatch();
+  const measurementIterations = 1000;
 
-      for (var i = 0; i < measurementIterations; i++) {
-        for (var j = 0; j < 999; j++) {
-          queue.enqueue(
-            const MouseEvent(
-              1,
-              1,
-              MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-            ),
-          );
-        }
-        queue.enqueue(KeyEvent.fromString('k'));
+  for (var i = 0; i < measurementIterations; i++) {
+    for (var j = 0; j < 999; j++) {
+      queue.enqueue(
+        const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)),
+      );
+    }
+    queue.enqueue(KeyEvent.fromString('k'));
 
-        stopwatch.start();
-        term.poll<KeyEvent>();
-        stopwatch.stop();
+    stopwatch.start();
+    term.poll<KeyEvent>();
+    stopwatch.stop();
 
-        samples.add(stopwatch.elapsedMicroseconds);
-        stopwatch.reset();
-      }
+    samples.add(stopwatch.elapsedMicroseconds);
+    stopwatch.reset();
+  }
 
-      await term.dispose();
-      return BenchmarkStats.calculate(samples);
-    },
-    stdout: MockStdout(),
-    stdin: MockStdin(streamString('')),
-    eventQueue: EventQueue(),
-    hasTerminal: true,
-  );
+  await term.dispose();
+  return BenchmarkStats.calculate(samples);
 }
 
 Future<void> _saveResults(Map<String, BenchmarkStats> results) async {

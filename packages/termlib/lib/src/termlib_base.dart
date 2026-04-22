@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io' show Platform, Stdout, exit, stderr, stdin, stdout;
+import 'dart:io' show exit, stderr;
 
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser.dart';
@@ -9,16 +9,15 @@ import './colors.dart';
 import './event_queue.dart';
 import './extensions/cursor.dart';
 import './extensions/term.dart';
-import './ffi/termos.dart';
 import './probe/probe.dart';
 import './probe/term_info.dart';
 import './readline.dart';
 import './shared/color_util.dart';
+import './shared/term_backend.dart';
 import './style.dart';
-import 'shared/terminal_overrides.dart';
 
-/// Type similar to Platform.environment, used for dependency injection
-typedef EnvironmentData = Map<String, String>;
+export './shared/term_backend.dart' show EnvironmentData, TermBackend;
+export './shared/term_sink.dart' show BufferTermSink, TermSink;
 
 /// Record that represent a coordinate position
 typedef Pos = ({int row, int col});
@@ -38,17 +37,13 @@ enum ProfileEnum {
   trueColor,
 }
 
-final Stream<List<int>> _bStream = stdin.asBroadcastStream();
 const _defaultColumns = 80;
 const _defaultRows = 25;
 
-/// Terminal library
+/// Terminal library.
 class TermLib {
-  late TermOs _termOs;
-  late Stdout _stdout;
-  late EnvironmentData _env;
+  final TermBackend _b;
   bool _isRawMode = false;
-  Stream<List<int>>? _mockStdin;
   EventQueue? _eventQueue;
   StreamSubscription<Event>? _eventSubscription;
   StreamController<Event>? _eventBroadcastController;
@@ -58,62 +53,49 @@ class TermLib {
   /// It will use the value returned by the [envColorProfile] function.
   late ProfileEnum profile;
 
-  /// Initialize the Terminal
+  /// Initialize the Terminal.
   ///
-  /// If no [profile] is provided, it will use the value returned by the
-  /// [envColorProfile] function. That means that the default profile will be
-  /// resolved based on the environment settings.
+  /// [backend] defaults to [TermBackend.io] (real stdin/stdout). Tests pass
+  /// [TermBackend.fake] to inject stdin bytes, capture stdout, and control
+  /// tty / env / termOs.
   ///
-  /// Event queue only initialized for interactive terminal (stdin.hasTerminal).
-  /// For piped/redirected input, event queue is not created.
-  ///
-  /// Zone overrides take precedence: if eventQueue is provided via
-  /// TerminalOverrides, it will be used instead of creating a new one.
-  TermLib({ProfileEnum? profile}) {
-    final overrides = TerminalOverrides.current;
-    _stdout = overrides?.stdout ?? stdout;
-    _env = overrides?.environmentData ?? Platform.environment;
-    _termOs = overrides?.termOs ?? TermOs();
+  /// Event queue is only initialized when [TermBackend.hasTerminal] is true.
+  /// In piped mode, [poll]/[read]/[events] throw [StateError]; [stdinStream]
+  /// is the supported path.
+  TermLib({TermBackend? backend, ProfileEnum? profile}) : _b = backend ?? TermBackend.io() {
     this.profile = profile ?? envColorProfile();
 
-    if (overrides?.eventQueue != null) {
-      _eventQueue = overrides!.eventQueue;
+    if (_b.eventQueue != null) {
+      _eventQueue = _b.eventQueue;
       _eventBroadcastController = StreamController<Event>.broadcast();
-    } else if (overrides?.eventStream != null) {
+      if (_b.eventSource != null) {
+        _eventSubscription = _b.eventSource!.listen(_onEventParsed);
+      }
+    } else if (_b.eventSource != null) {
       _eventQueue = EventQueue();
       _eventBroadcastController = StreamController<Event>.broadcast();
-      _eventSubscription = overrides!.eventStream!.stream.listen(_onEventParsed);
-    } else if (hasTerminal) {
+      _eventSubscription = _b.eventSource!.listen(_onEventParsed);
+    } else if (_b.hasTerminal) {
       _eventQueue = EventQueue();
       _eventBroadcastController = StreamController<Event>.broadcast();
-      _initEventQueue();
+      _eventSubscription = _b.stdin.transform(eventTransformer()).listen(_onEventParsed, onError: _onParserError);
     }
   }
 
-  Stream<List<int>> get _broadcastStream {
-    final overrides = TerminalOverrides.current;
-    if (overrides?.stdin != null && _mockStdin == null) {
-      _mockStdin = overrides!.stdin.asBroadcastStream();
-    }
-    return _mockStdin ?? _bStream;
-  }
+  /// Underlying transport. Exposed for tests that need to seed the event queue
+  /// or inspect captured stdout.
+  TermBackend get backend => _b;
 
   /// Returns true if stdin is connected to an interactive terminal.
   ///
   /// Use this to detect if input capabilities are available (keyboard, mouse events).
   /// For piped/redirected input, this returns false.
-  ///
-  /// Zone overrides take precedence: if hasTerminal is provided via
-  /// TerminalOverrides, it will be used for testing.
-  bool get hasTerminal {
-    final overrides = TerminalOverrides.current;
-    return overrides?.hasTerminal ?? stdin.hasTerminal;
-  }
+  bool get hasTerminal => _b.hasTerminal;
 
   /// Returns true if stdout is connected to an interactive terminal.
   ///
   /// Use this to detect if output capabilities are available (colors, cursor control).
-  bool get hasOutputTerminal => _stdout.hasTerminal;
+  bool get hasOutputTerminal => _b.stdout.hasTerminal;
 
   /// Returns true if both stdin and stdout are connected to interactive terminals.
   ///
@@ -149,7 +131,7 @@ class TermLib {
   String get newLine => _isRawMode ? '\r\n' : '\n';
 
   /// Write the Object's string representation to the terminal.
-  void write(Object s) => _stdout.write(s);
+  void write(Object s) => _b.stdout.write(s);
 
   /// Writes the specified object followed by a line break to the standard output.
   void writeln(Object s) {
@@ -157,13 +139,13 @@ class TermLib {
     if (_isRawMode) {
       text = text.replaceAll('\n', '\r\n');
     }
-    _stdout.write('$text$newLine');
+    _b.stdout.write('$text$newLine');
   }
 
   /// Write a string to the terminal at the specified position.
   void writeAt(int row, int col, Object s) {
     moveTo(row, col);
-    _stdout.write(s);
+    _b.stdout.write(s);
   }
 
   /// Returns true or false depending if the background is dark or not.
@@ -182,7 +164,7 @@ class TermLib {
   /// Read cursor position on the terminal and return a [Pos] record
   Future<Pos?> get cursorPosition async {
     return withRawModeAsync<Pos?>(() async {
-      _stdout.write(ansi.Cursor.requestPosition);
+      _b.stdout.write(ansi.Cursor.requestPosition);
 
       final event = await pollTimeout<CursorPositionEvent>();
       return (event is CursorPositionEvent) ? (row: event.x, col: event.y) : null;
@@ -200,15 +182,15 @@ class TermLib {
   ///    NO_COLOR - https://no-color.org/
   ///    CLICOLOR https://bixense.com/clicolors/
   bool envNoColor() {
-    if (_env.containsKey('NO_COLOR')) return true;
-    if (_env['CLICOLOR'] != null || isColorForced) return false;
+    if (_b.env.containsKey('NO_COLOR')) return true;
+    if (_b.env['CLICOLOR'] != null || isColorForced) return false;
     return !hasOutputTerminal;
   }
 
   /// Returns true if the terminal is forced to support colors
   ///
   /// `CLICOLOR_FORCE` environment variable is set
-  bool get isColorForced => _env['CLICOLOR_FORCE'] != null;
+  bool get isColorForced => _b.env['CLICOLOR_FORCE'] != null;
 
   /// Returns the color profile based on environment variables inspection.
   ///
@@ -234,9 +216,9 @@ class TermLib {
   /// Will honor the value of COLUMNS environment variable if set over the
   /// reported value.
   int get terminalColumns {
-    final envCols = int.tryParse(_env['COLUMNS'] ?? '');
+    final envCols = int.tryParse(_b.env['COLUMNS'] ?? '');
     if (hasOutputTerminal) {
-      return envCols ?? (_stdout.terminalColumns == 0 ? _defaultColumns : _stdout.terminalColumns);
+      return envCols ?? (_b.stdout.terminalColumns == 0 ? _defaultColumns : _b.stdout.terminalColumns);
     }
     return envCols ?? _defaultColumns;
   }
@@ -247,30 +229,12 @@ class TermLib {
   /// Will honor the value of LINES environment variable if set over the
   /// reported value.
   int get terminalLines {
-    final envRows = int.tryParse(_env['LINES'] ?? '');
+    final envRows = int.tryParse(_b.env['LINES'] ?? '');
     if (hasOutputTerminal) {
-      return envRows ?? (_stdout.terminalLines == 0 ? _defaultRows : _stdout.terminalLines);
+      return envRows ?? (_b.stdout.terminalLines == 0 ? _defaultRows : _b.stdout.terminalLines);
     }
     return envRows ?? _defaultRows;
   }
-
-  /// Returns an Stream of events parsed from the standard input.
-  ///
-  /// The events can be filtered by type using the generic type parameter like
-  /// this:
-  ///
-  /// ```dart
-  /// terminal.eventStreamer<KeyEvent>().listen((event) {
-  ///   if (event.code.name == KeyCodeName.escape) {
-  ///     terminal.writeln('You pressed ESC');
-  ///   }
-  /// });
-  /// ```
-  ///
-  /// If the [rawKeys] parameter is set to true, it will return [RawKeyEvent]
-  /// events without using the parsing.
-  Stream<T> eventStreamer<T extends Event>({bool rawKeys = false}) =>
-      _bStream.transform(eventTransformer<T>(rawKeys: rawKeys));
 
   /// Poll for events without blocking
   ///
@@ -300,7 +264,7 @@ class TermLib {
     return _eventQueue!.dequeue<T>() ?? const NoneEvent();
   }
 
-  /// Waits for event using signal-based notification. Returns immediately when
+  /// Waits for event using per-waiter notification. Returns immediately when
   /// matching event arrives or [NoneEvent] if timeout reached.
   ///
   /// Type parameter [T] filters events by type. For example, `pollTimeout<KeyEvent>()`
@@ -323,21 +287,8 @@ class TermLib {
     if (!hasTerminal) {
       throw StateError('pollTimeout() requires interactive terminal. Use stdinStream for piped input.');
     }
-    final deadlineMs = DateTime.now().millisecondsSinceEpoch + timeout;
-
-    while (true) {
-      final event = _eventQueue!.dequeue<T>();
-      if (event != null) return event;
-
-      final remainingMs = deadlineMs - DateTime.now().millisecondsSinceEpoch;
-      if (remainingMs <= 0) break;
-
-      await Future.any<void>([
-        _eventQueue!.onEvent.first,
-        Future<void>.delayed(Duration(milliseconds: remainingMs)),
-      ]);
-    }
-    return const NoneEvent();
+    final event = await _eventQueue!.awaitEvent<T>(timeout: Duration(milliseconds: timeout));
+    return event ?? const NoneEvent();
   }
 
   /// Read event, blocking until one arrives
@@ -351,6 +302,8 @@ class TermLib {
   ///
   /// Throws [StateError] if called on piped/redirected input (when !hasTerminal).
   /// Use [stdinStream] for piped input instead.
+  ///
+  /// Throws [TermDisposed] if the terminal is disposed while waiting.
   ///
   /// Contrast with [poll] which is synchronous and returns immediately (non-blocking).
   ///
@@ -368,11 +321,8 @@ class TermLib {
     if (!hasTerminal) {
       throw StateError('read() requires interactive terminal. Use stdinStream for piped input.');
     }
-    while (true) {
-      final event = _eventQueue!.dequeue<T>();
-      if (event != null) return event;
-      await _eventQueue!.onEvent.first;
-    }
+    final event = await _eventQueue!.awaitEvent<T>();
+    return event ?? const NoneEvent();
   }
 
   /// Raw stdin stream for piped/redirected input.
@@ -428,7 +378,7 @@ class TermLib {
   /// WARNING: Avoid loading entire piped input into memory with `.toList()` or
   /// similar operations on large inputs. Prefer streaming patterns that process
   /// data incrementally.
-  Stream<List<int>> get stdinStream => _broadcastStream;
+  Stream<List<int>> get stdinStream => _b.stdin;
 
   /// Broadcast stream of parsed terminal events.
   ///
@@ -438,9 +388,6 @@ class TermLib {
   /// Coexists with [poll]/[read] - both receive same events from same source.
   /// Use this stream for reactive/push-based patterns; use poll/read for
   /// pull-based patterns.
-  ///
-  /// Zone overrides take precedence: if events stream is provided via
-  /// TerminalOverrides, it will be used instead of internal broadcast.
   ///
   /// Throws [StateError] if called on piped/redirected input (when !hasTerminal).
   ///
@@ -453,12 +400,8 @@ class TermLib {
   /// });
   /// ```
   Stream<Event> get events {
-    if (!hasTerminal) {
+    if (_eventBroadcastController == null) {
       throw StateError('events requires interactive terminal. Use stdinStream for piped input.');
-    }
-    final overrides = TerminalOverrides.current;
-    if (overrides?.events != null) {
-      return overrides!.events!;
     }
     return _eventBroadcastController!.stream;
   }
@@ -485,13 +428,13 @@ class TermLib {
   ProfileEnum colorProfile() {
     if (!hasOutputTerminal) return ProfileEnum.noColor;
 
-    if (_env['GOOGLE_CLOUD_SHELL'] == 'true') {
+    if (_b.env['GOOGLE_CLOUD_SHELL'] == 'true') {
       return ProfileEnum.trueColor;
     }
 
-    final envTerm = _env['TERM'] ?? '';
+    final envTerm = _b.env['TERM'] ?? '';
 
-    switch (_env['COLORTERM']) {
+    switch (_b.env['COLORTERM']) {
       case 'truecolor':
       case '24bit':
         return ProfileEnum.trueColor;
@@ -525,7 +468,7 @@ class TermLib {
   Color? _parseFGBG(int fgbg) {
     assert(fgbg == _fgIdx || fgbg == _bgIdx, 'fgbg must be 0 or 1');
 
-    final envColorFgBg = _env['COLORFGBG'];
+    final envColorFgBg = _b.env['COLORFGBG'];
     if (envColorFgBg == null) return null;
 
     final colors = envColorFgBg.split(';');
@@ -593,12 +536,13 @@ class TermLib {
   /// exited already. This is useful to prevent Future chains from proceeding
   /// after you've decided to exit.
   Future<void> flushThenExit(int status) {
-    return Future.wait<void>([_stdout.close(), stderr.close()]).then<void>((_) => exit(status));
+    return Future.wait<void>([_b.stdout.close(), stderr.close()]).then<void>((_) => exit(status));
   }
 
   /// Dispose of resources used by TermLib.
   ///
   /// Cancels event subscription and disposes event queue and broadcast controller.
+  /// Pending `read`/`pollTimeout` futures complete with [TermDisposed].
   /// Call this when done using TermLib to prevent resource leaks.
   Future<void> dispose() async {
     await _eventSubscription?.cancel();
@@ -609,23 +553,25 @@ class TermLib {
     _eventBroadcastController = null;
   }
 
-  void _initEventQueue() {
-    _eventSubscription = _broadcastStream.transform(eventTransformer()).listen(_onEventParsed);
-  }
-
   /// Handles parsed events: enqueues to EventQueue and broadcasts to subscribers.
   void _onEventParsed(Event event) {
     _eventQueue!.enqueue(event);
     _eventBroadcastController?.add(event);
   }
 
+  /// Forwards parser errors as [EngineErrorEvent] without tearing down the
+  /// subscription.
+  void _onParserError(Object error, StackTrace stack) {
+    _onEventParsed(EngineErrorEvent(const [], message: error.toString()));
+  }
+
   bool _setRawMode(bool value) {
     final original = _isRawMode;
     _isRawMode = value;
     if (value) {
-      _termOs.enableRawMode();
+      _b.termOs.enableRawMode();
     } else {
-      _termOs.disableRawMode();
+      _b.termOs.disableRawMode();
     }
     return original;
   }

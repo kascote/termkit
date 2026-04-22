@@ -175,20 +175,12 @@ class KeyViewer {
   }
 
   Future<void> _mainLoop() async {
-    final events = t.eventStreamer<Event>(rawKeys: true);
+    // Raw-key path: subscribe directly to stdin bytes and wrap each chunk as
+    // a RawKeyEvent. Bypasses the VT parser for a byte-level view of input.
+    final rawKeys = t.stdinStream.map(RawKeyEvent.new);
 
-    await for (final event in events) {
-      var keepRunning = true;
-
-      switch (event) {
-        case EngineErrorEvent():
-          t.writeln('EngineErrorEvent: $event');
-        case RawKeyEvent():
-          keepRunning = _handleRawKeyEvent(event);
-        default:
-          t.writeln('Unknown event: $event - ${event.runtimeType} - ${event is NoneEvent}');
-      }
-
+    await for (final event in rawKeys) {
+      final keepRunning = _handleRawKeyEvent(event);
       if (!keepRunning) break;
     }
   }
