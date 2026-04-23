@@ -30,8 +30,8 @@ class Readline {
   /// Position in the buffer index
   int bufferIndex = 0;
 
-  /// TermLib instance
-  final TermLib term;
+  /// Terminal handle.
+  final InteractiveTerm term;
 
   /// Initial cursor position
   final Pos cursor;
@@ -39,7 +39,7 @@ class Readline {
   Readline._(this.term, this.cursor, this.buffer);
 
   /// Readline constructor
-  static Future<Readline> create(TermLib t, [String initBuffer = '']) async {
+  static Future<Readline> create(InteractiveTerm t, [String initBuffer = '']) async {
     final pos = await t.cursorPosition;
     final buf = initBuffer.split('');
 
@@ -58,8 +58,8 @@ class Readline {
     if (buffer.isNotEmpty) term.writeAt(cursor.row, cursor.col, buffer.join());
 
     while (readingChars) {
-      final key = await term.pollTimeout<KeyEvent>(timeout: 60000);
-      if (key is! KeyEvent) continue;
+      final key = await term.awaitEvent<KeyEvent>(timeout: const Duration(seconds: 60));
+      if (key == null) continue;
       if (key.eventType != KeyEventType.keyPress) continue;
 
       final keyCode = _keyMapping[key] ?? 'none';

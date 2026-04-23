@@ -57,7 +57,7 @@ class EventQueue {
   ///
   /// Returns null if no matching event found.
   /// If T is Event (base type), returns first event regardless of subtype.
-  Event? dequeue<T extends Event>() {
+  T? dequeue<T extends Event>() {
     final iterator = _queue.iterator;
     while (iterator.moveNext()) {
       final event = iterator.current;
@@ -80,7 +80,7 @@ class EventQueue {
       return Future<T?>.error(const TermDisposed());
     }
     final buffered = dequeue<T>();
-    if (buffered != null) return Future<T?>.value(buffered as T);
+    if (buffered != null) return Future<T?>.value(buffered);
 
     final waiter = _Waiter<T>();
     _waiters.add(waiter);

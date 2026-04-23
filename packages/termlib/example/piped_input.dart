@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:termlib/termlib.dart';
 
 Future<void> main() async {
-  final term = TermLib();
+  final term = Term.open();
 
-  if (term.hasTerminal) {
+  if (term is! PipedTerm) {
     term
       ..writeln('Running in interactive mode. Use piped input instead:')
       ..writeln(r'  echo "hello\nworld" | dart run example/piped_input.dart');
@@ -15,7 +15,7 @@ Future<void> main() async {
 
   term.writeln('Processing piped input line-by-line:');
 
-  await for (final line in term.stdinStream.transform(utf8.decoder).transform(const LineSplitter())) {
+  await for (final line in term.stdinBytes.transform(utf8.decoder).transform(const LineSplitter())) {
     term.writeln('Received: $line');
   }
 

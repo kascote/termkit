@@ -10,7 +10,7 @@ import 'termlib_mock.dart';
 /// run [fn] with the three pieces exposed.
 Future<T> withFakeBackend<T>(
   Future<T> Function(TermBackend backend, BufferTermSink stdout, TermOsMock tos) fn, {
-  bool hasTerminal = false,
+  bool hasTerminal = true,
 }) async {
   final stdout = BufferTermSink(hasTerminal: hasTerminal);
   final tos = TermOsMock();

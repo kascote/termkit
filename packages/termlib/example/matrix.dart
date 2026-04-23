@@ -34,7 +34,7 @@ class MatrixApp {
   late final StreamSubscription<int> tickStream;
   late final StreamSubscription<KeyEvent> eventStream;
 
-  MatrixApp(TermLib t) {
+  MatrixApp(InteractiveTerm t) {
     matrix = Matrix(t, t.terminalColumns ~/ 2, t.terminalLines);
     completer = Completer<bool>();
     tickStream = Stream.periodic(const Duration(milliseconds: 1000 ~/ 30), (tick) => tick).listen(null);
@@ -59,7 +59,7 @@ class MatrixApp {
 }
 
 class Matrix {
-  final TermLib t;
+  final InteractiveTerm t;
   final int width;
   final int height;
   late List<Rain> rain;
@@ -86,7 +86,7 @@ final _headColor = Color.fromString('#007676');
 final _tailColor = Color.fromString('#001414');
 
 class Rain {
-  final TermLib t;
+  final InteractiveTerm t;
   final int x;
   int y;
   final rnd = Random();

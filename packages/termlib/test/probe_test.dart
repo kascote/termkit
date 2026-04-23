@@ -9,13 +9,12 @@ import 'shared.dart';
 void main() {
   group('probeTerminal() >', () {
     group('basic behavior >', () {
-      test('throws StateError when !hasTerminal', () async {
-        await mockedTest(
-          (term, _, _) async {
-            expect(() => probeTerminal(term), throwsStateError);
-          },
-          hasTerminal: false,
-        );
+      test('Term.open returns PipedTerm when !hasTerminal', () async {
+        // Probe now takes InteractiveTerm — piped mode is ruled out at the
+        // type level rather than by a runtime StateError.
+        await mockedPipedTest((term, _, _) {
+          expect(term, isA<PipedTerm>());
+        });
       });
 
       test('returns Future<TermInfo>', () async {

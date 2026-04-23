@@ -14,7 +14,7 @@ import '../probe/raw_queries.dart';
 const defaultQueryTimeout = 500;
 
 /// Support function that add some extra features to the terminal.
-extension TermUtils on TermLib {
+extension TermUtils on InteractiveTerm {
   /// Write a hyperlink to the terminal.
   void hyperlink(String link, String name) => write(ansi.Term.hyperLink(link, name));
 
@@ -88,8 +88,8 @@ extension TermUtils on TermLib {
   Future<bool> queryKeyboardEnhancementSupport({int timeout = defaultQueryTimeout}) async {
     return withRawModeAsync<bool>(() async {
       write(ansi.Term.queryKeyboardEnhancementSupport);
-      final event = await pollTimeout<KeyboardEnhancementFlagsEvent>(timeout: timeout);
-      return event is KeyboardEnhancementFlagsEvent;
+      final event = await awaitEvent<KeyboardEnhancementFlagsEvent>(timeout: Duration(milliseconds: timeout));
+      return event != null;
     });
   }
 
@@ -123,8 +123,7 @@ extension TermUtils on TermLib {
   Future<ClipboardCopyEvent?> queryClipboard(Clipboard clipboard, {int timeout = defaultQueryTimeout}) {
     return withRawModeAsync<ClipboardCopyEvent?>(() async {
       write(ansi.Term.clipboard(clipboard.target, ClipboardMode.query.mode));
-      final event = await pollTimeout<ClipboardCopyEvent>(timeout: timeout);
-      return (event is ClipboardCopyEvent) ? event : null;
+      return awaitEvent<ClipboardCopyEvent>(timeout: Duration(milliseconds: timeout));
     });
   }
 

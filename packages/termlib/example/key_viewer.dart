@@ -107,7 +107,7 @@ class MouseEventData {
 
 // Main viewer class
 class KeyViewer {
-  final TermLib t;
+  final InteractiveTerm t;
   final KeyViewerConfig config;
   final Theme baseColors;
   final List<String> displayHistory = [];
@@ -177,7 +177,7 @@ class KeyViewer {
   Future<void> _mainLoop() async {
     // Raw-key path: subscribe directly to stdin bytes and wrap each chunk as
     // a RawKeyEvent. Bypasses the VT parser for a byte-level view of input.
-    final rawKeys = t.stdinStream.map(RawKeyEvent.new);
+    final rawKeys = t.backend.stdin.map(RawKeyEvent.new);
 
     await for (final event in rawKeys) {
       final keepRunning = _handleRawKeyEvent(event);

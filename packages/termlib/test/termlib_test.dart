@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 import './shared.dart';
 
 void main() {
-  group('TermLib tests >', () {
+  group('Term tests >', () {
     test('hasOutputTerminal should return true if stdout is attached to a TTY', () async {
       await mockedTest((term, _, _) {
         expect(term.hasOutputTerminal, isTrue);
@@ -539,15 +539,14 @@ void main() {
       skip: true,
     );
 
-    test('read() must block until event arrives', () async {
+    test('nextEvent() must block until event arrives', () async {
       final controller = StreamController<List<int>>.broadcast();
       await mockedTest(
         (term, out, tos) async {
           var eventReceived = false;
-          final readFuture = term.read<KeyEvent>().then((event) {
+          final readFuture = term.nextEvent<KeyEvent>().then((event) {
             eventReceived = true;
-            expect(event, isA<KeyEvent>());
-            expect((event as KeyEvent).code.char, 'a');
+            expect(event.code.char, 'a');
           });
 
           await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -565,34 +564,15 @@ void main() {
       );
     });
 
-    test('read() must throw StateError when !hasTerminal', () async {
-      await mockedTest(
-        (term, _, _) {
-          expect(
-            () => term.read<KeyEvent>(),
-            throwsA(
-              isA<StateError>().having(
-                (e) => e.message,
-                'message',
-                contains('read() requires interactive terminal'),
-              ),
-            ),
-          );
-        },
-        hasTerminal: false,
-      );
-    });
-
-    test('read() with type filter must wait for matching event type', () async {
+    test('nextEvent() with type filter must wait for matching event type', () async {
       await mockedTest(
         (term, out, tos) async {
-          final readFuture = term.read<KeyEvent>();
+          final readFuture = term.nextEvent<KeyEvent>();
 
           await Future<void>.delayed(const Duration(milliseconds: 50));
 
           final event = await readFuture;
-          expect(event, isA<KeyEvent>());
-          expect((event as KeyEvent).code.char, 'x');
+          expect(event.code.char, 'x');
 
           await term.dispose();
         },
@@ -600,13 +580,13 @@ void main() {
       );
     });
 
-    test('poll() must return NoneEvent when queue is empty', () async {
+    test('tryEvent() returns null when queue is empty', () async {
       await mockedTest(
         (term, out, tos) async {
           await Future<void>.delayed(const Duration(milliseconds: 50));
 
-          final event = term.poll<KeyEvent>();
-          expect(event, isA<NoneEvent>());
+          final event = term.tryEvent<KeyEvent>();
+          expect(event, isNull);
 
           await term.dispose();
         },
@@ -614,29 +594,11 @@ void main() {
       );
     });
 
-    test('poll() must throw StateError when !hasTerminal', () async {
-      await mockedTest(
-        (term, _, _) {
-          expect(
-            () => term.poll<KeyEvent>(),
-            throwsA(
-              isA<StateError>().having(
-                (e) => e.message,
-                'message',
-                contains('poll() requires interactive terminal'),
-              ),
-            ),
-          );
-        },
-        hasTerminal: false,
-      );
-    });
-
     test('dispose() must cancel subscription and clear queue', () async {
       await mockedTest(
         (term, _, _) async {
           await term.dispose();
-          expect(() => term.poll<KeyEvent>(), throwsA(isA<TypeError>()));
+          expect(() => term.tryEvent<KeyEvent>(), throwsA(isA<TypeError>()));
         },
         stdin: streamString('abc'),
       );
@@ -649,16 +611,14 @@ void main() {
 
       await mockedTest(
         (term, _, _) async {
-          final event1 = term.poll<KeyEvent>();
-          expect(event1, isA<KeyEvent>());
-          expect((event1 as KeyEvent).code.char, 'a');
+          final event1 = term.tryEvent<KeyEvent>();
+          expect(event1?.code.char, 'a');
 
-          final event2 = term.poll<KeyEvent>();
-          expect(event2, isA<KeyEvent>());
-          expect((event2 as KeyEvent).code.char, 'b');
+          final event2 = term.tryEvent<KeyEvent>();
+          expect(event2?.code.char, 'b');
 
-          final event3 = term.poll<KeyEvent>();
-          expect(event3, isA<NoneEvent>());
+          final event3 = term.tryEvent<KeyEvent>();
+          expect(event3, isNull);
 
           await term.dispose();
         },
@@ -677,13 +637,11 @@ void main() {
 
           await Future<void>.delayed(const Duration(milliseconds: 50));
 
-          final event1 = term.poll<KeyEvent>();
-          expect(event1, isA<KeyEvent>());
-          expect((event1 as KeyEvent).code.char, 'x');
+          final event1 = term.tryEvent<KeyEvent>();
+          expect(event1?.code.char, 'x');
 
-          final event2 = term.poll<KeyEvent>();
-          expect(event2, isA<KeyEvent>());
-          expect((event2 as KeyEvent).code.char, 'y');
+          final event2 = term.tryEvent<KeyEvent>();
+          expect(event2?.code.char, 'y');
 
           await term.dispose();
           await controller.close();
@@ -692,23 +650,22 @@ void main() {
       );
     });
 
-    test('hasTerminal override for testing', () async {
-      await mockedTest(
-        (term, _, _) {
-          expect(term.hasTerminal, isFalse);
-        },
-        hasTerminal: false,
-      );
+    test('Term.open returns PipedTerm when !hasTerminal, InteractiveTerm when tty', () async {
+      await mockedPipedTest((term, _, _) {
+        expect(term, isA<PipedTerm>());
+        expect(term.hasTerminal, isFalse);
+      });
 
       await mockedTest(
         (term, _, _) async {
+          expect(term, isA<InteractiveTerm>());
           expect(term.hasTerminal, isTrue);
           await term.dispose();
         },
       );
     });
 
-    test('concurrent poll() calls must consume events independently', () async {
+    test('concurrent tryEvent() calls must consume events independently', () async {
       final queue = EventQueue();
       injectEvent(queue, const KeyEvent(KeyCode.char('a')));
       injectEvent(queue, const KeyEvent(KeyCode.char('b')));
@@ -718,29 +675,16 @@ void main() {
 
       await mockedTest(
         (term, _, _) async {
-          final key1 = term.poll<KeyEvent>();
-          expect(key1, isA<KeyEvent>());
-          expect((key1 as KeyEvent).code.char, 'a');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'a');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'b');
 
-          final key2 = term.poll<KeyEvent>();
-          expect(key2, isA<KeyEvent>());
-          expect((key2 as KeyEvent).code.char, 'b');
+          final mouse = term.tryEvent<MouseEvent>();
+          expect(mouse?.x, 10);
+          expect(mouse?.y, 20);
 
-          final mouse = term.poll<MouseEvent>();
-          expect(mouse, isA<MouseEvent>());
-          expect((mouse as MouseEvent).x, 10);
-          expect(mouse.y, 20);
-
-          final key3 = term.poll<KeyEvent>();
-          expect(key3, isA<KeyEvent>());
-          expect((key3 as KeyEvent).code.char, 'c');
-
-          final key4 = term.poll<KeyEvent>();
-          expect(key4, isA<KeyEvent>());
-          expect((key4 as KeyEvent).code.char, 'd');
-
-          final empty = term.poll<KeyEvent>();
-          expect(empty, isA<NoneEvent>());
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'c');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'd');
+          expect(term.tryEvent<KeyEvent>(), isNull);
 
           await term.dispose();
         },
@@ -748,7 +692,7 @@ void main() {
       );
     });
 
-    test('concurrent poll() with type filtering must skip non-matching events', () async {
+    test('concurrent tryEvent() with type filtering must skip non-matching events', () async {
       final queue = EventQueue();
       injectEvent(queue, const MouseEvent(1, 1, MouseButton(MouseButtonKind.left, MouseButtonAction.down)));
       injectEvent(queue, const MouseEvent(2, 2, MouseButton(MouseButtonKind.right, MouseButtonAction.up)));
@@ -758,31 +702,14 @@ void main() {
 
       await mockedTest(
         (term, _, _) async {
-          final key1 = term.poll<KeyEvent>();
-          expect(key1, isA<KeyEvent>());
-          expect((key1 as KeyEvent).code.char, 'x');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'x');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'y');
+          expect(term.tryEvent<KeyEvent>(), isNull);
 
-          final key2 = term.poll<KeyEvent>();
-          expect(key2, isA<KeyEvent>());
-          expect((key2 as KeyEvent).code.char, 'y');
-
-          final key3 = term.poll<KeyEvent>();
-          expect(key3, isA<NoneEvent>());
-
-          final mouse1 = term.poll<MouseEvent>();
-          expect(mouse1, isA<MouseEvent>());
-          expect((mouse1 as MouseEvent).x, 1);
-
-          final mouse2 = term.poll<MouseEvent>();
-          expect(mouse2, isA<MouseEvent>());
-          expect((mouse2 as MouseEvent).x, 2);
-
-          final mouse3 = term.poll<MouseEvent>();
-          expect(mouse3, isA<MouseEvent>());
-          expect((mouse3 as MouseEvent).x, 3);
-
-          final empty = term.poll<Event>();
-          expect(empty, isA<NoneEvent>());
+          expect(term.tryEvent<MouseEvent>()?.x, 1);
+          expect(term.tryEvent<MouseEvent>()?.x, 2);
+          expect(term.tryEvent<MouseEvent>()?.x, 3);
+          expect(term.tryEvent<Event>(), isNull);
 
           await term.dispose();
         },
@@ -790,7 +717,7 @@ void main() {
       );
     });
 
-    test('concurrent poll() and read() can be mixed', () async {
+    test('concurrent tryEvent() and nextEvent() can be mixed', () async {
       final controller = createEventController();
 
       await mockedTest(
@@ -801,23 +728,18 @@ void main() {
 
           await Future<void>.delayed(const Duration(milliseconds: 50));
 
-          final poll1 = term.poll<KeyEvent>();
-          expect(poll1, isA<KeyEvent>());
-          expect((poll1 as KeyEvent).code.char, 'a');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'a');
 
-          final read1 = await term.read<KeyEvent>();
-          expect(read1, isA<KeyEvent>());
-          expect((read1 as KeyEvent).code.char, 'b');
+          final read1 = await term.nextEvent<KeyEvent>();
+          expect(read1.code.char, 'b');
 
-          final poll2 = term.poll<KeyEvent>();
-          expect(poll2, isA<NoneEvent>());
+          expect(term.tryEvent<KeyEvent>(), isNull);
 
           controller.add(const KeyEvent(KeyCode.char('c')));
           await Future<void>.delayed(const Duration(milliseconds: 50));
 
-          final read2 = await term.read<KeyEvent>();
-          expect(read2, isA<KeyEvent>());
-          expect((read2 as KeyEvent).code.char, 'c');
+          final read2 = await term.nextEvent<KeyEvent>();
+          expect(read2.code.char, 'c');
 
           await term.dispose();
           await controller.close();
@@ -883,25 +805,16 @@ void main() {
       );
     });
 
-    test('events stream throws StateError when !hasTerminal', () async {
-      await mockedTest(
-        (term, _, _) {
-          expect(
-            () => term.events,
-            throwsA(
-              isA<StateError>().having(
-                (e) => e.message,
-                'message',
-                contains('events requires interactive terminal'),
-              ),
-            ),
-          );
-        },
-        hasTerminal: false,
-      );
+    test('PipedTerm has no events member (compile-time check)', () async {
+      // Sealed split replaces the runtime StateError with a compile-time guard.
+      // The only way to observe the split at runtime is via `is`/pattern-match.
+      await mockedPipedTest((term, _, _) {
+        expect(term, isA<PipedTerm>());
+        // `term.events` would be a static error — not expressible at runtime.
+      });
     });
 
-    test('events stream coexists with poll/read', () async {
+    test('events stream coexists with tryEvent/nextEvent', () async {
       final controller = createEventController();
 
       await mockedTest(
@@ -918,14 +831,9 @@ void main() {
 
           expect(streamEvents, hasLength(3));
 
-          final poll1 = term.poll<KeyEvent>();
-          expect((poll1 as KeyEvent).code.char, 'a');
-
-          final poll2 = term.poll<KeyEvent>();
-          expect((poll2 as KeyEvent).code.char, 'b');
-
-          final poll3 = term.poll<KeyEvent>();
-          expect((poll3 as KeyEvent).code.char, 'c');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'a');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'b');
+          expect(term.tryEvent<KeyEvent>()?.code.char, 'c');
 
           await subscription.cancel();
           await term.dispose();

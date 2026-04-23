@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:termlib/termlib.dart';
 
 Future<void> main() async {
-  final t = TermLib();
+  final t = Term.open() as InteractiveTerm;
   final isDark = await t.isBackgroundDark();
   final color = (isDark ?? false) ? Color.yellow : Color.blue;
 

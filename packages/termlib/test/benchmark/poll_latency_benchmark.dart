@@ -73,9 +73,9 @@ int _getTarget(String scenario) {
   }
 }
 
-({TermLib term, EventQueue queue}) _buildTerm() {
+({InteractiveTerm term, EventQueue queue}) _buildTerm() {
   final queue = EventQueue();
-  final term = TermLib(backend: TermBackend.fake(eventQueue: queue));
+  final term = Term.open(backend: TermBackend.fake(eventQueue: queue)) as InteractiveTerm;
   return (term: term, queue: queue);
 }
 
@@ -89,7 +89,7 @@ Future<BenchmarkStats> _benchmarkHotPath() async {
   const warmupIterations = 100;
   for (var i = 0; i < warmupIterations; i++) {
     queue.enqueue(KeyEvent.fromString('a'));
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
   }
 
   final samples = <int>[];
@@ -100,7 +100,7 @@ Future<BenchmarkStats> _benchmarkHotPath() async {
     queue.enqueue(KeyEvent.fromString('a'));
 
     stopwatch.start();
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
     stopwatch.stop();
 
     samples.add(stopwatch.elapsedMicroseconds);
@@ -119,7 +119,7 @@ Future<BenchmarkStats> _benchmarkEmptyQueue() async {
 
   const warmupIterations = 100;
   for (var i = 0; i < warmupIterations; i++) {
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
   }
 
   final samples = <int>[];
@@ -128,7 +128,7 @@ Future<BenchmarkStats> _benchmarkEmptyQueue() async {
 
   for (var i = 0; i < measurementIterations; i++) {
     stopwatch.start();
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
     stopwatch.stop();
 
     samples.add(stopwatch.elapsedMicroseconds);
@@ -156,7 +156,7 @@ Future<BenchmarkStats> _benchmarkTypeFiltering() async {
         const MouseEvent(2, 2, MouseButton(MouseButtonKind.right, MouseButtonAction.up)),
       )
       ..enqueue(KeyEvent.fromString('x'));
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
   }
 
   final samples = <int>[];
@@ -174,7 +174,7 @@ Future<BenchmarkStats> _benchmarkTypeFiltering() async {
       ..enqueue(KeyEvent.fromString('x'));
 
     stopwatch.start();
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
     stopwatch.stop();
 
     samples.add(stopwatch.elapsedMicroseconds);
@@ -200,7 +200,7 @@ Future<BenchmarkStats> _benchmarkDeepTypeFiltering() async {
       );
     }
     queue.enqueue(KeyEvent.fromString('x'));
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
   }
 
   final samples = <int>[];
@@ -216,7 +216,7 @@ Future<BenchmarkStats> _benchmarkDeepTypeFiltering() async {
     queue.enqueue(KeyEvent.fromString('x'));
 
     stopwatch.start();
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
     stopwatch.stop();
 
     samples.add(stopwatch.elapsedMicroseconds);
@@ -250,8 +250,8 @@ Future<BenchmarkStats> _benchmarkMidQueueSearch() async {
     queue.enqueue(const FocusEvent());
 
     term
-      ..poll<KeyEvent>()
-      ..poll<FocusEvent>();
+      ..tryEvent<KeyEvent>()
+      ..tryEvent<FocusEvent>();
   }
 
   final samples = <int>[];
@@ -273,13 +273,13 @@ Future<BenchmarkStats> _benchmarkMidQueueSearch() async {
     queue.enqueue(const FocusEvent());
 
     stopwatch.start();
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
     stopwatch.stop();
     samples.add(stopwatch.elapsedMicroseconds);
     stopwatch
       ..reset()
       ..start();
-    term.poll<FocusEvent>();
+    term.tryEvent<FocusEvent>();
     stopwatch.stop();
     samples.add(stopwatch.elapsedMicroseconds);
     stopwatch.reset();
@@ -304,7 +304,7 @@ Future<BenchmarkStats> _benchmarkWorstCaseSearch() async {
       );
     }
     queue.enqueue(KeyEvent.fromString('k'));
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
   }
 
   final samples = <int>[];
@@ -320,7 +320,7 @@ Future<BenchmarkStats> _benchmarkWorstCaseSearch() async {
     queue.enqueue(KeyEvent.fromString('k'));
 
     stopwatch.start();
-    term.poll<KeyEvent>();
+    term.tryEvent<KeyEvent>();
     stopwatch.stop();
 
     samples.add(stopwatch.elapsedMicroseconds);

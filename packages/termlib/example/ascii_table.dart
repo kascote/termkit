@@ -34,7 +34,7 @@ typedef Theme = ({
 typedef Range = ({int start, int end});
 
 class AsciiTable {
-  final TermLib _term;
+  final InteractiveTerm _term;
 
   Point pos = (x: 0, y: 0);
   final blockSize = 5;
@@ -44,7 +44,7 @@ class AsciiTable {
   Range range = (start: 0, end: 128);
   late Theme colors;
 
-  AsciiTable(TermLib term) : _term = term {
+  AsciiTable(InteractiveTerm term) : _term = term {
     final s = _term.style;
 
     colors = (
@@ -79,8 +79,8 @@ class AsciiTable {
   Future<void> loop() async {
     draw();
     while (true) {
-      final event = await _term.pollTimeout<KeyEvent>();
-      if (event is KeyEvent) {
+      final event = await _term.awaitEvent<KeyEvent>(timeout: const Duration(milliseconds: 500));
+      if (event != null) {
         if (event.code.name == KeyCodeName.escape) break;
 
         if (event.code.name == KeyCodeName.left || event.code.char == 'h') {

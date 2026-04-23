@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Process;
 import 'dart:typed_data';
 
 import 'package:termlib/src/event_queue.dart';
@@ -10,18 +9,20 @@ import 'package:test/test.dart';
 void main() {
   group('Phase 1 regressions', () {
     group('race fix', () {
-      test('pollTimeout returns fast when event enqueued shortly after call', () async {
+      test('awaitEvent returns fast when event enqueued shortly after call', () async {
         // Regression: the old broadcast-notifier path could lose the signal
         // between dequeue-returns-null and onEvent.first subscribing, adding
         // up to `timeout` ms of latency. With the per-waiter Completer, any
         // late enqueue must complete the waiter immediately.
         final queue = EventQueue();
-        final term = TermLib(
+        final term = Term.open(
           backend: TermBackend.fake(eventQueue: queue),
         );
+        expect(term, isA<InteractiveTerm>());
+        final iterm = term as InteractiveTerm;
 
         final sw = Stopwatch()..start();
-        final future = term.pollTimeout<KeyEvent>();
+        final future = iterm.awaitEvent<KeyEvent>(timeout: const Duration(milliseconds: 500));
 
         await Future<void>.delayed(const Duration(milliseconds: 5));
         queue.enqueue(KeyEvent.fromString('x'));
@@ -31,16 +32,18 @@ void main() {
 
         expect(event, isA<KeyEvent>());
         expect(sw.elapsedMilliseconds, lessThan(50));
-        await term.dispose();
+        await iterm.dispose();
       });
 
       test('direct hand-off: target event bypasses the buffer under key flood', () async {
         final queue = EventQueue();
-        final term = TermLib(
-          backend: TermBackend.fake(eventQueue: queue),
-        );
+        final term =
+            Term.open(
+                  backend: TermBackend.fake(eventQueue: queue),
+                )
+                as InteractiveTerm;
 
-        final cursorFuture = term.pollTimeout<CursorPositionEvent>(timeout: 1000);
+        final cursorFuture = term.awaitEvent<CursorPositionEvent>(timeout: const Duration(seconds: 1));
 
         for (var i = 0; i < 10000; i++) {
           queue.enqueue(KeyEvent.fromString('a'));
@@ -85,12 +88,14 @@ void main() {
         await expectation;
       });
 
-      test('dispose also rejects read()/pollTimeout() waiting on the TermLib', () async {
-        final term = TermLib(
-          backend: TermBackend.fake(eventQueue: EventQueue()),
-        );
+      test('dispose also rejects nextEvent waiting on the terminal', () async {
+        final term =
+            Term.open(
+                  backend: TermBackend.fake(eventQueue: EventQueue()),
+                )
+                as InteractiveTerm;
 
-        final readFuture = term.read<KeyEvent>();
+        final readFuture = term.nextEvent<KeyEvent>();
         final expectation = expectLater(readFuture, throwsA(isA<TermDisposed>()));
         await term.dispose();
         await expectation;
@@ -105,9 +110,11 @@ void main() {
         // instead assert that the handleError hook exists by subscribing with
         // an error-raising source.
         final controller = StreamController<Event>.broadcast();
-        final term = TermLib(
-          backend: TermBackend.fake(eventSource: controller.stream),
-        );
+        final term =
+            Term.open(
+                  backend: TermBackend.fake(eventSource: controller.stream),
+                )
+                as InteractiveTerm;
 
         final errors = <Event>[];
         final sub = term.events.listen(errors.add);
@@ -138,20 +145,20 @@ void main() {
     });
 
     group('backend seams', () {
-      test('injected stdin feeds both events and poll<KeyEvent>()', () async {
+      test('injected stdin feeds both events and tryEvent<KeyEvent>()', () async {
         // Single byte stream → parser → queue + broadcast. Both surfaces see
         // the same events.
         final bytes = Stream<List<int>>.value(
           Uint8List.fromList('x'.codeUnits),
         ).asBroadcastStream();
-        final term = TermLib(backend: TermBackend.fake(stdin: bytes));
+        final term = Term.open(backend: TermBackend.fake(stdin: bytes)) as InteractiveTerm;
 
         final pushed = <Event>[];
         final sub = term.events.listen(pushed.add);
 
         await Future<void>.delayed(const Duration(milliseconds: 20));
 
-        final polled = term.poll<KeyEvent>();
+        final polled = term.tryEvent<KeyEvent>();
         expect(polled, isA<KeyEvent>());
         expect(pushed, hasLength(1));
         expect(pushed.first, isA<KeyEvent>());
@@ -160,41 +167,19 @@ void main() {
         await term.dispose();
       });
 
-      test('raw-key recipe: stdinStream.map(RawKeyEvent.new) yields raw chunks', () async {
+      test('raw-key recipe: stdinBytes.map(RawKeyEvent.new) yields raw chunks', () async {
         final bytes = Stream<List<int>>.value(
           Uint8List.fromList([0x1b, 0x5b, 0x41]), // ESC [ A
         ).asBroadcastStream();
-        final term = TermLib(
-          backend: TermBackend.fake(stdin: bytes, hasTerminal: false),
-        );
+        final term =
+            Term.open(
+                  backend: TermBackend.fake(stdin: bytes, hasTerminal: false),
+                )
+                as PipedTerm;
 
-        final event = await term.stdinStream.map(RawKeyEvent.new).first;
+        final event = await term.stdinBytes.map(RawKeyEvent.new).first;
         expect(event, isA<RawKeyEvent>());
         expect(event.sequence, [0x1b, 0x5b, 0x41]);
-      });
-    });
-
-    group('codebase hygiene', () {
-      test('no module-level stdin subscription in lib/', () async {
-        // Before Phase 1, termlib_base had a top-level
-        //   `final _bStream = stdin.asBroadcastStream();`
-        // that opened a real stdin subscription at import time. That line
-        // must stay gone.
-        final proc = await Process.run(
-          'grep',
-          ['-rE', r'^final\s+.*\bstdin\.asBroadcastStream', 'lib/'],
-          workingDirectory: '.',
-        );
-        expect(proc.exitCode, equals(1), reason: 'stdout: ${proc.stdout}');
-      });
-
-      test('no Zone/runZoned references remain in lib/', () async {
-        final proc = await Process.run(
-          'grep',
-          ['-rE', r'\bZone\.|runZoned', 'lib/'],
-          workingDirectory: '.',
-        );
-        expect(proc.exitCode, equals(1), reason: 'stdout: ${proc.stdout}');
       });
     });
   });

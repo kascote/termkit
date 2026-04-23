@@ -5,7 +5,7 @@ Future<int> main() async {
   return exitCode;
 }
 
-Future<int> display(TermLib t) async {
+Future<int> display(InteractiveTerm t) async {
   final resetCR = '${Style('')..resetStyle()}\n';
 
   final colors = [

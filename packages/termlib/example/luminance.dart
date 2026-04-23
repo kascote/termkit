@@ -7,7 +7,7 @@ Future<int> main() async {
   return exitCode;
 }
 
-Future<int> display(TermLib t) async {
+Future<int> display(InteractiveTerm t) async {
   final colors = [
     [
       // https://vscodethemes.com/e/ryanolsonx.solarized
@@ -81,7 +81,7 @@ Future<int> display(TermLib t) async {
   return 0;
 }
 
-void showColor(TermLib t, String name, String color) {
+void showColor(InteractiveTerm t, String name, String color) {
   final clr = Color.fromString(color);
   final luminance = colorLuminance(clr);
   t

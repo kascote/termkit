@@ -26,11 +26,11 @@ Future<int> main() async {
   return exitCode;
 }
 
-Future<void> gameLoop(TermLib t, SnakeGame game) async {
+Future<void> gameLoop(InteractiveTerm t, SnakeGame game) async {
   game.drawBoard();
 
   while (true) {
-    final event = await t.pollTimeout<Event>(timeout: 100);
+    final event = await t.awaitEvent<Event>(timeout: const Duration(milliseconds: 100));
     var heading = game.heading;
 
     if (event is KeyEvent) {
@@ -72,7 +72,7 @@ class SnakeGame {
   final _rnd = Random();
   final _headColor = Color.fromString('springGreen');
   final _tailColor = Color.fromString('darkGreen');
-  late final TermLib _term;
+  late final InteractiveTerm _term;
   int winCol = 0;
   int winRow = 0;
   int curCol = 0;
@@ -84,7 +84,7 @@ class SnakeGame {
   int score = 0;
 
   SnakeGame(
-    TermLib term, {
+    InteractiveTerm term, {
     this.cols = 40,
     this.rows = 20,
     this.winCol = 3,
@@ -251,8 +251,8 @@ class SnakeGame {
       ..write(white(' to exit'));
 
     while (true) {
-      final event = await _term.pollTimeout<KeyEvent>();
-      if (event is! KeyEvent) continue;
+      final event = await _term.awaitEvent<KeyEvent>(timeout: const Duration(milliseconds: 500));
+      if (event == null) continue;
 
       if (event.code.name == KeyCodeName.escape) {
         _term

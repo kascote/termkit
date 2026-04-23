@@ -5,7 +5,7 @@ Future<int> main() async {
   return exitCode;
 }
 
-Future<int> display(TermLib term) async {
+Future<int> display(InteractiveTerm term) async {
   final c16 = Color.fromString('#00ffff').convert(ColorKind.ansi);
   final c256 = Color.fromString('#00ffff').convert(ColorKind.indexed);
   final ctc = Color.fromString('#00ffff');
