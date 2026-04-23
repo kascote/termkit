@@ -271,22 +271,22 @@ void main() {
       expect(queue.length, 0);
     });
 
-    test('should handle default maxSize of 1000', () {
+    test('should handle default maxSize of 5000', () {
       final queue = EventQueue();
 
       final events = <KeyEvent>[];
-      for (var i = 0; i < 1000; i++) {
+      for (var i = 0; i < 5000; i++) {
         final event = KeyEvent.fromString('a');
         events.add(event);
         queue.enqueue(event);
       }
 
-      expect(queue.length, 1000);
+      expect(queue.length, 5000);
 
       final overflowEvent = KeyEvent.fromString('b');
       queue.enqueue(overflowEvent);
 
-      expect(queue.length, 1000);
+      expect(queue.length, 5000);
 
       final first = queue.dequeue<KeyEvent>();
       expect(first, events[1]);

@@ -24,6 +24,8 @@ class TermBackend {
     required this.hasTerminal,
     this.eventQueue,
     this.eventSource,
+    this.maxQueueSize = 5000,
+    this.coalesceMotion = true,
   });
 
   /// Raw byte stream from stdin. Must be a broadcast stream.
@@ -49,14 +51,30 @@ class TermBackend {
   /// instead of parsing [stdin] bytes. For test injection.
   final Stream<Event>? eventSource;
 
+  /// Maximum [EventQueue] capacity. Default 5000. Drop-oldest on overflow,
+  /// reported via `QueueOverflowEvent` on the broadcast.
+  final int maxQueueSize;
+
+  /// When true, consecutive `MouseEvent` motion samples (same button-state)
+  /// and consecutive `WindowResizeEvent`s collapse to the latest at enqueue.
+  /// Defaults to true.
+  final bool coalesceMotion;
+
   /// Real backend: wraps `dart:io` stdin/stdout and `Platform.environment`.
-  factory TermBackend.io({TermSink? stdout, TermOs? termOs}) {
+  factory TermBackend.io({
+    TermSink? stdout,
+    TermOs? termOs,
+    int maxQueueSize = 5000,
+    bool coalesceMotion = true,
+  }) {
     return TermBackend._(
       stdin: dart_io.stdin.asBroadcastStream(),
       stdout: stdout ?? TermSink.io(),
       env: dart_io.Platform.environment,
       termOs: termOs ?? TermOs(),
       hasTerminal: dart_io.stdin.hasTerminal,
+      maxQueueSize: maxQueueSize,
+      coalesceMotion: coalesceMotion,
     );
   }
 
@@ -74,6 +92,8 @@ class TermBackend {
     bool hasTerminal = true,
     EventQueue? eventQueue,
     Stream<Event>? eventSource,
+    int maxQueueSize = 5000,
+    bool coalesceMotion = true,
   }) {
     // Normalize to Stream<List<int>> explicitly — `utf8.encode` returns
     // Uint8List, and Stream<Uint8List> is not a subtype of Stream<List<int>>
@@ -90,6 +110,8 @@ class TermBackend {
       hasTerminal: hasTerminal,
       eventQueue: eventQueue,
       eventSource: eventSource,
+      maxQueueSize: maxQueueSize,
+      coalesceMotion: coalesceMotion,
     );
   }
 }

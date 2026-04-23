@@ -49,7 +49,7 @@ void main() {
           queue.enqueue(KeyEvent.fromString('a'));
         }
 
-        expect(queue.length, lessThanOrEqualTo(1000));
+        expect(queue.length, lessThanOrEqualTo(5000));
 
         final lengthBefore = queue.length;
         queue.enqueue(const CursorPositionEvent(1, 2));

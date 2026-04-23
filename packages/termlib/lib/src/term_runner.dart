@@ -110,7 +110,7 @@ class TermRunner {
   InteractiveTerm build() {
     final term = Term.open(backend: backend, profile: profile);
     if (term is! InteractiveTerm) {
-      throw StateError('TermRunner requires an interactive terminal (tty stdin).');
+      throw const TerminalNotInteractive('TermRunner requires an interactive terminal (tty stdin).');
     }
     if (alternateScreen) term.enableAlternateScreen();
     if (rawMode) term.enableRawMode();

@@ -15,6 +15,7 @@ import './shared/color_util.dart';
 import './shared/term_backend.dart';
 import './style.dart';
 
+export './event_queue.dart' show QueueOverflowEvent, TermDisposed, TerminalNotInteractive;
 export './shared/term_backend.dart' show EnvironmentData, TermBackend;
 export './shared/term_sink.dart' show BufferTermSink, TermSink;
 
@@ -206,20 +207,23 @@ sealed class Term {
 /// [events] stream (push API). Also holds raw-mode state.
 final class InteractiveTerm extends Term {
   InteractiveTerm._(TermBackend b, ProfileEnum? profile) : super._(b, profile) {
+    _eventBroadcastController = StreamController<Event>.broadcast();
     if (b.eventQueue != null) {
       _eventQueue = b.eventQueue;
-      _eventBroadcastController = StreamController<Event>.broadcast();
       if (b.eventSource != null) {
         _eventSubscription = b.eventSource!.listen(_onEventParsed);
       }
-    } else if (b.eventSource != null) {
-      _eventQueue = EventQueue();
-      _eventBroadcastController = StreamController<Event>.broadcast();
-      _eventSubscription = b.eventSource!.listen(_onEventParsed);
     } else {
-      _eventQueue = EventQueue();
-      _eventBroadcastController = StreamController<Event>.broadcast();
-      _eventSubscription = b.stdin.transform(eventTransformer()).listen(_onEventParsed, onError: _onParserError);
+      _eventQueue = EventQueue(
+        maxSize: b.maxQueueSize,
+        coalesceMotion: b.coalesceMotion,
+        onOverflow: _emitOverflow,
+      );
+      if (b.eventSource != null) {
+        _eventSubscription = b.eventSource!.listen(_onEventParsed);
+      } else {
+        _eventSubscription = b.stdin.transform(eventTransformer()).listen(_onEventParsed, onError: _onParserError);
+      }
     }
   }
 
@@ -311,7 +315,13 @@ final class InteractiveTerm extends Term {
   }
 
   /// Broadcast stream of parsed events. Multiple subscribers supported.
+  ///
+  /// Also carries [QueueOverflowEvent] when the buffered queue evicts events
+  /// under drop-oldest pressure.
   Stream<Event> get events => _eventBroadcastController!.stream;
+
+  /// Current buffered length of the internal event queue. Read-only diagnostic.
+  int get queueLength => _eventQueue?.length ?? 0;
 
   /// Run [fn] with raw mode enabled, restoring prior state on return.
   T withRawMode<T>(T Function() fn) {
@@ -359,6 +369,10 @@ final class InteractiveTerm extends Term {
 
   void _onParserError(Object error, StackTrace stack) {
     _onEventParsed(EngineErrorEvent(const [], message: error.toString()));
+  }
+
+  void _emitOverflow(Type type, int dropped) {
+    _eventBroadcastController?.add(QueueOverflowEvent(type: type, dropped: dropped));
   }
 
   bool _setRawMode(bool value) {
