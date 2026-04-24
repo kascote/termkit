@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import './parameter_accumulator.dart';
 import './parameters.dart';
 import './sequence_data.dart';
@@ -117,6 +119,18 @@ class Engine {
 
   /// Get collected parameters so far
   List<String> get collectedParameters => _params.getParameters();
+
+  /// Byte count of the current in-progress sequence (for fuzz invariants).
+  @visibleForTesting
+  int get sequenceByteCount => _sequenceBytes.length;
+
+  /// Number of accumulated parameters in the current sequence (for fuzz invariants).
+  @visibleForTesting
+  int get paramCount => _params.getCount();
+
+  /// Whether the engine is currently inside a bracketed-paste text block (for fuzz invariants).
+  @visibleForTesting
+  bool get inTextBlock => _inTextBlock;
 
   /// Get full engine state dump for debugging
   String debugInfo() {
