@@ -2,7 +2,6 @@ import 'package:termparser/src/extensions/string_extension.dart';
 
 import '../engine/parameters.dart';
 import '../events/event_base.dart';
-import '../events/internal_events.dart';
 import '../events/key_event.dart';
 import '../events/key_support.dart';
 import '../events/mouse_event.dart';
@@ -58,11 +57,11 @@ const _mouseWheelLeft = 0x42; // 0100_0010;
 const _mouseWheelRight = 0x43; // 0100_0011;
 
 /// Parse SGR mouse
-Event sgrMouseParser(Parameters params, String charFinal) {
+Event? sgrMouseParser(Parameters params, String charFinal) {
   // SGR mouse format: ESC [ < Pb ; Px ; Py M/m
   // params.values[0] = '<', params.values[1] = button, params.values[2] = x, params.values[3] = y
   // Can have trailing semicolon: ESC [ < Pb ; Px ; Py ; M (5 params, last empty)
-  if (params.values.length < 4 || params.values.length > 5) return const NoneEvent();
+  if (params.values.length < 4 || params.values.length > 5) return null;
 
   var action = switch (charFinal) {
     'M' => MouseButtonAction.down,

@@ -2,16 +2,15 @@ import 'dart:convert';
 
 import '../engine/parameters.dart';
 import '../events/event_base.dart';
-import '../events/internal_events.dart';
 import '../events/response_events.dart';
 
 /// Parse a Device Control String sequence from raw sequence bytes.
 ///
 /// Extracts content between ESC P + intermediates and ESC \ terminator.
-Event parseDcsSequence(Parameters params, String char, List<int> sequenceBytes) {
+Event? parseDcsSequence(Parameters params, String char, List<int> sequenceBytes) {
   return switch (params.values) {
     ['>', '|', ...] => _parseDCSBlock(sequenceBytes, params),
-    _ => const NoneEvent(),
+    _ => null,
   };
 }
 
