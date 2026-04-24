@@ -76,7 +76,8 @@ sealed class Term {
   }
 
   /// Underlying transport. Exposed for tests that need to seed the event queue
-  /// or inspect captured stdout.
+  /// or inspect captured stdout, and for the documented raw-bytes recipe
+  /// (`term.backend.stdin.map(RawKeyEvent.new)`).
   TermBackend get backend => _b;
 
   /// True if stdout is connected to an interactive terminal.

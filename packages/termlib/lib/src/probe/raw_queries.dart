@@ -3,6 +3,7 @@
 //
 // These methods don't manage raw mode - caller handles it.
 
+import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser_events.dart';
 
@@ -10,6 +11,7 @@ import '../termlib_base.dart';
 
 /// Internal query implementations.
 /// Not part of public API - use term.dart extension methods instead.
+@internal
 extension RawQueries on InteractiveTerm {
   /// Query primary device attributes (DA1).
   Future<PrimaryDeviceAttributesEvent?> rawQueryDeviceAttrs(int timeout) async {

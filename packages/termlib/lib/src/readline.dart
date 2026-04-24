@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
@@ -27,6 +28,7 @@ final _keyBinding = KeyBinding<_Action>()
   ..map(['end', 'ctrl+e'], _Action.end);
 
 /// Readline class
+@internal
 class Readline {
   /// Readline buffer
   List<String> buffer = [];

@@ -6,6 +6,7 @@ import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
 import 'benchmark_stats.dart';
+import 'benchmark_writer.dart';
 
 void main() async {
   stdout
@@ -331,23 +332,5 @@ Future<BenchmarkStats> _benchmarkWorstCaseSearch() async {
   return BenchmarkStats.calculate(samples);
 }
 
-Future<void> _saveResults(Map<String, BenchmarkStats> results) async {
-  final timestamp = DateTime.now().toIso8601String();
-  final file = File('test/benchmark/results.csv');
-
-  final exists = file.existsSync();
-  final sink = file.openWrite(mode: FileMode.append);
-
-  if (!exists) {
-    sink.writeln('timestamp,scenario,${BenchmarkStats.csvHeader()}');
-  }
-
-  for (final entry in results.entries) {
-    sink.writeln('$timestamp,${entry.key},${entry.value.toCsv()}');
-  }
-
-  await sink.flush();
-  await sink.close();
-
-  stdout.writeln('Results appended to: ${file.path}');
-}
+Future<void> _saveResults(Map<String, BenchmarkStats> results) =>
+    BenchmarkWriter('test/benchmark/poll_latency.csv').append(results);

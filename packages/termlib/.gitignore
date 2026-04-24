@@ -5,4 +5,4 @@ doc/
 pubspec.lock
 coverage/
 
-test/benchmark/results.csv
+test/benchmark/*.csv

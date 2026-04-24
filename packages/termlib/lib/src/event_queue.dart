@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:meta/meta.dart';
 import 'package:termparser/termparser_events.dart';
 
 const _defaultQueueSize = 5000;
@@ -66,6 +67,7 @@ final class QueueOverflowEvent extends Event {
 ///     `WindowResizeEvent`s, replace the previous tail rather than appending.
 ///
 /// Note: Public for internal use only. Not exported in public API.
+@internal
 class EventQueue {
   final Queue<Event> _queue = Queue<Event>();
   final List<_Waiter<Event>> _waiters = [];
