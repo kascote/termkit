@@ -40,10 +40,17 @@ Event? _parseClipboardSequence(Parameters params) {
   final encoded = params.values.elementAtOrNull(2);
   if (encoded == null) return null;
 
-  final result = switch (encoded) {
-    '' || '0' => '',
-    _ => utf8.decode(base64Decode(encoded), allowMalformed: true),
-  };
+  final String result;
+  switch (encoded) {
+    case '' || '0':
+      result = '';
+    default:
+      try {
+        result = utf8.decode(base64Decode(encoded), allowMalformed: true);
+      } on FormatException {
+        return null;
+      }
+  }
   final source = switch (params.values[1]) {
     'c' => ClipboardSource.clipboard,
     'p' => ClipboardSource.primary,

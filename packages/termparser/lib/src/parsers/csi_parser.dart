@@ -145,7 +145,7 @@ List<DeviceAttributeParams> _parseDeviceParams(List<String> params) {
   return params.fold(<DeviceAttributeParams>[], (acc, p) {
     if (p.isEmpty) return acc;
     final code = DeviceAttributeParams.values.firstWhere(
-      (e) => e.value == int.parse(p),
+      (e) => e.value == (int.tryParse(p) ?? -1),
       orElse: () => DeviceAttributeParams.unknown,
     );
     if (code != DeviceAttributeParams.unknown) return acc..add(code);
@@ -160,7 +160,8 @@ Event? _parseSpecialKeyCode(Parameters params, String char) {
   final modifier = modifierMask == null ? KeyModifiers.none : modifierParser(modifierMask);
   final eventType = eventKindParser(eventKind);
   // final state = modifiersToStateParser(modifierMask);
-  final keyCode = int.parse(params.values.first);
+  final keyCode = int.tryParse(params.values.first);
+  if (keyCode == null) return null;
 
   final key = switch (keyCode) {
     1 || 7 => KeyCodeName.home,

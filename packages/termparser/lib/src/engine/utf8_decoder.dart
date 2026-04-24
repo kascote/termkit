@@ -27,6 +27,9 @@ class Utf8Decoder {
   /// Malformed bytes (e.g. overlong encodings like `C0 AF`, surrogate halves,
   /// invalid continuation sequences) are replaced with U+FFFD rather than
   /// throwing, matching the other `utf8.decode` sites in termparser.
+  ///
+  /// Can return `""` — Dart's `utf8.decode` strips a leading BOM
+  /// (`EF BB BF`). Callers must skip emission in that case.
   String getCodePoint() {
     return utf8.decode(_utf8Points.sublist(0, _utf8PointsCount), allowMalformed: true);
   }

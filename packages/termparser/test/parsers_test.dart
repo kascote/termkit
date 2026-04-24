@@ -127,6 +127,27 @@ void main() {
         expect(event.text, 'a');
       }
     });
+
+    // F4 — malformed base64 must not throw. base64Decode used to raise
+    // FormatException on any non-alphabet char; the parser now returns null
+    // on FormatException, leaving the OSC as a dropped sequence.
+    test('clipboard with malformed base64 does not throw', () {
+      // `<` and `!` are not in the base64 alphabet.
+      expect(
+        () => Parser()..advance(keySequence(r'π]52;c;1z<X{nEsy!π\\')),
+        returnsNormally,
+      );
+    });
+
+    // F5 — paste interrupted by ESC \ then resumed with CSI 201~ must not throw.
+    // Previously _inTextBlock leaked past the DCS-termination path, so CSI 201~
+    // re-entered the paste-close branch with a cleared _sequenceBytes.
+    test(r'paste aborted by embedded ESC \ then CSI 201~ does not throw', () {
+      expect(
+        () => Parser()..advance(keySequence(r'π[200~Xπ\π[201~')),
+        returnsNormally,
+      );
+    });
   });
 
   group('csi_parser >', () {
@@ -343,6 +364,34 @@ void main() {
       expect(event.has(KeyboardEnhancementFlagsEvent.reportEventTypes), isTrue);
       expect(event.has(KeyboardEnhancementFlagsEvent.reportAlternateKeys), isTrue);
       expect(event.has(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes), isTrue);
+    });
+  });
+
+  // F3 — non-numeric CSI params must not throw. csiEntry stashes any unhandled
+  // byte (incl. high-bit) into params[0]; csiParameter accepts ':' alongside
+  // digits, so split[0] of a sub-param can be empty. All three int.parse sites
+  // under lib/src/parsers/ are now int.tryParse and bail to null on failure.
+  group('non-numeric CSI params do not throw >', () {
+    test('CSI 0xFF ~ — high byte as first special-key param', () {
+      final parser = Parser()..advance([0x1B, 0x5B, 0xFF, 0x7E]);
+      while (parser.hasEvents) {
+        parser.nextEvent();
+      }
+    });
+
+    test('CSI 1 ; : ~ — empty modifier in modifier:eventKind sub-param', () {
+      final parser = Parser()..advance([0x1B, 0x5B, 0x31, 0x3B, 0x3A, 0x7E]);
+      while (parser.hasEvents) {
+        parser.nextEvent();
+      }
+    });
+
+    test('CSI ? 62 ; 5:0 c — sub-param in primary device attributes', () {
+      final parser = Parser()
+        ..advance([0x1B, 0x5B, 0x3F, 0x36, 0x32, 0x3B, 0x35, 0x3A, 0x30, 0x63]);
+      // Should still emit a PrimaryDeviceAttributesEvent (vt220, no caps).
+      final ev = parser.nextEvent();
+      expect(ev, isA<PrimaryDeviceAttributesEvent>());
     });
   });
 }

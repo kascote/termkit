@@ -120,8 +120,8 @@ KeyboardEnhancementFlagsEvent keyboardEnhancedCodeParser(String mode) {
 /// Split the modifier applied and the kind of event
 (int?, int?) modifierAndKindParse(String modifierAndKey) {
   final split = modifierAndKey.split(':');
-  final modifier = int.parse(split[0]);
-  final eventType = (split.length > 1) ? int.parse(split[1]) : null;
+  final modifier = int.tryParse(split[0]);
+  final eventType = (split.length > 1) ? int.tryParse(split[1]) : null;
 
   // if there is no even type, by default is keyPress
   return (modifier, eventType ?? 1);

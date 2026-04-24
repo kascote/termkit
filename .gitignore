@@ -6,3 +6,6 @@ cspell.json
 pubspec.lock
 
 build/
+
+# fuzz artifacts (persisted locally, not committed)
+packages/termparser/test/fuzz/crashes/
