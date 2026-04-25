@@ -6,19 +6,13 @@
 /// through `runOnce` under both a per-byte schedule (worst-case for chunk
 /// boundaries inside a multibyte sequence) and a random chunk schedule.
 ///
-/// Invariants (Phase 7) applied — `runOnce` enforces:
-///   * no throw from advance / nextEvent / drainEvents
-///   * eventCount <= input.length
-///   * sequenceByteCount cap
-///   * no NoneEvent leaks
-///
-/// Plus, this harness:
-///   * every seed runs as-is on every iteration before mutation (regression
-///     guard against the explicit pattern set)
-///   * per-byte schedule + random schedule both must produce identical events
-///     (determinism is the strongest oracle here — there is no well-formed
-///     program shape for malformed UTF-8)
-///   * replays every `.bin` under `crashes/` first
+/// Invariants applied (Phase 7 — see `_support/invariants.dart`):
+///   * `runOnce`: no throw, eventCount <= input.length, sequenceByteCount cap,
+///     no NoneEvent leaks
+///   * harness-level: determinism + replay of `crashes/`
+///   * well-formed → ground for the three well-formed seeds (`é`, `中`, `😀`)
+///     under the explicit-seeds subtest (most malformed seeds have no oracle
+///     beyond crash-only — that is the point of this harness)
 ///
 /// Run knobs (shell env vars):
 ///   FUZZ_ITER   int     iter count (default 10000)
@@ -34,6 +28,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 
 import '../_support/harness.dart';
+import '../_support/invariants.dart';
 import '../_support/schedule.dart';
 
 final String _fuzzMode = Platform.environment['FUZZ_MODE'] ?? '';
@@ -49,35 +44,31 @@ void main() {
   final crashesDir = defaultCrashesDir();
 
   group('utf8 fuzz', () {
-    test('replay crashes/ (regression guard)', () {
-      if (!crashesDir.existsSync()) return;
-      final bins = crashesDir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.bin'))
-          .toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
-      for (final f in bins) {
-        final bytes = Uint8List.fromList(f.readAsBytesSync());
-        final outcome = runOnce(bytes, FuzzSchedule.single(bytes.length));
-        if (outcome is FuzzCrash) {
-          fail('replay ${f.uri.pathSegments.last}: '
-              'inv=${outcome.invariant} err=${outcome.error}');
-        }
-      }
-    });
+    test('replay crashes/ (regression guard)', () => replayCrashes(crashesDir));
 
     test('explicit seeds (no mutation)', () {
       for (var i = 0; i < _utf8Seeds.length; i++) {
         final seed = _utf8Seeds[i];
         final bytes = Uint8List.fromList(seed.bytes);
         for (final schedule in _seedSchedules(bytes)) {
-          final outcome = runOnce(bytes, schedule);
-          if (outcome is FuzzCrash) {
-            fail('seed[$i] (${seed.label}) crashed under '
-                'chunks=${schedule.chunkSizes} hasMore=${schedule.hasMore}: '
-                'inv=${outcome.invariant} err=${outcome.error}');
-          }
+          assertNoCrash(
+            runOnce(bytes, schedule),
+            bytes,
+            schedule,
+            crashesDir: crashesDir,
+            iter: i,
+            seed: _fuzzSeed,
+            tag: 'seed[$i] (${seed.label})',
+          );
+        }
+        if (seed.wellFormed && bytes.isNotEmpty) {
+          assertWellFormedGround(
+            bytes,
+            crashesDir: crashesDir,
+            iter: i,
+            seed: _fuzzSeed,
+            label: 'seed[$i] (${seed.label})',
+          );
         }
       }
     });
@@ -106,26 +97,21 @@ void main() {
           final random = randomSchedule(rng, bytes);
 
           for (final schedule in [perByte, random]) {
-            final outcome = runOnce(bytes, schedule);
-            if (outcome is FuzzCrash) {
-              final key = dumpCrash(crashesDir, bytes, schedule, outcome);
-              fail('crash @ iter $iters seed=$_fuzzSeed key=$key '
-                  'inv=${outcome.invariant} err=${outcome.error}');
-            }
-          }
-
-          // Determinism: same bytes + same schedule → equal event lists.
-          final fp1 = fingerprint(bytes, random);
-          final fp2 = fingerprint(bytes, random);
-          if (fp1 != fp2) {
-            final crash = FuzzCrash(
-              StateError('nondeterministic: first=$fp1 second=$fp2'),
-              StackTrace.current,
-              'determinism',
+            assertNoCrash(
+              runOnce(bytes, schedule),
+              bytes,
+              schedule,
+              crashesDir: crashesDir,
+              iter: iters,
+              seed: _fuzzSeed,
             );
-            final key = dumpCrash(crashesDir, bytes, random, crash);
-            fail('nondeterministic @ iter $iters key=$key');
           }
+          assertDeterminism(
+            bytes,
+            random,
+            crashesDir: crashesDir,
+            iter: iters,
+          );
         }
         printOnFailure('utf8 fuzz: $iters iters, seed=$_fuzzSeed');
       },
@@ -139,7 +125,13 @@ void main() {
 class _Seed {
   final String label;
   final List<int> bytes;
-  const _Seed(this.label, this.bytes);
+
+  /// True for seeds the engine should accept cleanly: no `ErrorEvent`s and
+  /// returning to ground after a single-chunk feed. Most malformed seeds
+  /// also land in ground silently, but we don't tag them so the well-formed
+  /// oracle stays meaningful.
+  final bool wellFormed;
+  const _Seed(this.label, this.bytes, {this.wellFormed = false});
 }
 
 /// Hand-curated UTF-8 problem patterns. Categories:
@@ -205,9 +197,9 @@ const List<_Seed> _utf8Seeds = [
   _Seed('BOM + ASCII', [0xef, 0xbb, 0xbf, 0x41]),
 
   // ---- well-formed multibyte (non-malformed control) ------------------
-  _Seed('é (C3 A9)', [0xc3, 0xa9]),
-  _Seed('中 (E4 B8 AD)', [0xe4, 0xb8, 0xad]),
-  _Seed('😀 (F0 9F 98 80)', [0xf0, 0x9f, 0x98, 0x80]),
+  _Seed('é (C3 A9)', [0xc3, 0xa9], wellFormed: true),
+  _Seed('中 (E4 B8 AD)', [0xe4, 0xb8, 0xad], wellFormed: true),
+  _Seed('😀 (F0 9F 98 80)', [0xf0, 0x9f, 0x98, 0x80], wellFormed: true),
 ];
 
 /// For seed regression: try single-chunk, per-byte, and 2-byte chunks.

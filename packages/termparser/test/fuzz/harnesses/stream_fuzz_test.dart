@@ -1,14 +1,10 @@
 /// Stream fuzz harness (Phase 4): random bytes, random chunking, random hasMore.
 ///
-/// Invariants (Phase 7) applied — `runOnce` enforces:
-///   * no throw from advance / nextEvent / drainEvents
-///   * eventCount <= input.length
-///   * sequenceByteCount cap
-///   * no NoneEvent leaks
-///
-/// Plus, this harness:
-///   * determinism — same bytes + same schedule → equal event lists
-///   * replays every `.bin` under `crashes/` first (regression guard)
+/// Invariants applied (Phase 7 — see `_support/invariants.dart`):
+///   * `runOnce`: no throw, eventCount <= input.length, sequenceByteCount cap,
+///     no NoneEvent leaks
+///   * harness-level: determinism + replay of `crashes/`
+///   * (well-formed → ground does not apply: random bytes have no oracle)
 ///
 /// Run knobs (shell env vars — `dart test` does not forward `-D` defines):
 ///   FUZZ_ITER   int     iter count (default 10000; ignored in time mode)
@@ -23,6 +19,7 @@ import 'dart:typed_data';
 import 'package:glados/glados.dart';
 
 import '../_support/harness.dart';
+import '../_support/invariants.dart';
 import '../_support/schedule.dart';
 
 final String _fuzzMode = Platform.environment['FUZZ_MODE'] ?? '';
@@ -49,23 +46,7 @@ void main() {
   final crashesDir = defaultCrashesDir();
 
   group('stream fuzz', () {
-    test('replay crashes/ (regression guard)', () {
-      if (!crashesDir.existsSync()) return;
-      final bins = crashesDir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.bin'))
-          .toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
-      for (final f in bins) {
-        final bytes = Uint8List.fromList(f.readAsBytesSync());
-        final outcome = runOnce(bytes, FuzzSchedule.single(bytes.length));
-        if (outcome is FuzzCrash) {
-          fail('replay ${f.uri.pathSegments.last}: '
-              'inv=${outcome.invariant} err=${outcome.error}');
-        }
-      }
-    });
+    test('replay crashes/ (regression guard)', () => replayCrashes(crashesDir));
 
     if (_fuzzMode == 'replay') return;
 
@@ -87,25 +68,20 @@ void main() {
           final bytes = biasedBytesGen(rng, _maxBytes).value;
           final schedule = randomSchedule(rng, bytes);
 
-          final outcome = runOnce(bytes, schedule);
-          if (outcome is FuzzCrash) {
-            final key = dumpCrash(crashesDir, bytes, schedule, outcome);
-            fail('crash @ iter $iters seed=$_fuzzSeed key=$key '
-                'inv=${outcome.invariant} err=${outcome.error}');
-          }
-
-          // Determinism: two fresh parsers, identical bytes + schedule → same events.
-          final fp1 = fingerprint(bytes, schedule);
-          final fp2 = fingerprint(bytes, schedule);
-          if (fp1 != fp2) {
-            final crash = FuzzCrash(
-              StateError('nondeterministic: first=$fp1 second=$fp2'),
-              StackTrace.current,
-              'determinism',
-            );
-            final key = dumpCrash(crashesDir, bytes, schedule, crash);
-            fail('nondeterministic @ iter $iters key=$key');
-          }
+          assertNoCrash(
+            runOnce(bytes, schedule),
+            bytes,
+            schedule,
+            crashesDir: crashesDir,
+            iter: iters,
+            seed: _fuzzSeed,
+          );
+          assertDeterminism(
+            bytes,
+            schedule,
+            crashesDir: crashesDir,
+            iter: iters,
+          );
         }
         printOnFailure('stream fuzz: $iters iters, seed=$_fuzzSeed');
       },

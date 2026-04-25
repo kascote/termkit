@@ -6,20 +6,13 @@
 /// parser is expected to end in ground state after flush with zero
 /// `ErrorEvent`s. Malformed variants are still fuzzed for crash-only oracle.
 ///
-/// Invariants (Phase 7) applied — `runOnce` enforces:
-///   * no throw from advance / nextEvent / drainEvents
-///   * eventCount <= input.length
-///   * sequenceByteCount cap (PLAN expects fuzzer to surface unterminated
-///     OSC/DCS → engine cap added as follow-up)
-///   * no NoneEvent leaks
-///
-/// Plus, this harness:
-///   * well-formed program, fed as a single chunk (hasMore=false), →
-///     state == ground AND errorEventCount == 0. The single-chunk scope
-///     sidesteps chunk-boundary ambiguity (ESC+hasMore=false mid-sequence
-///     is a legitimate engine choice and not the oracle we want here).
-///   * under the *random* schedule: crash-only + determinism only.
-///   * replays every `.bin` under `crashes/` first (regression guard)
+/// Invariants applied (Phase 7 — see `_support/invariants.dart`):
+///   * `runOnce`: no throw, eventCount <= input.length, sequenceByteCount cap,
+///     no NoneEvent leaks
+///   * harness-level: determinism + replay of `crashes/`
+///   * well-formed → ground (single-chunk schedule only — random schedule
+///     legitimately splits on ESC+hasMore=false, which is not the oracle we
+///     want here)
 ///
 /// Run knobs (shell env vars):
 ///   FUZZ_ITER   int     iter count (default 10000)
@@ -32,10 +25,10 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:termparser/src/engine/engine.dart' show State;
 import 'package:test/test.dart';
 
 import '../_support/harness.dart';
+import '../_support/invariants.dart';
 import '../_support/schedule.dart';
 
 final String _fuzzMode = Platform.environment['FUZZ_MODE'] ?? '';
@@ -52,23 +45,7 @@ void main() {
   final crashesDir = defaultCrashesDir();
 
   group('structured fuzz', () {
-    test('replay crashes/ (regression guard)', () {
-      if (!crashesDir.existsSync()) return;
-      final bins = crashesDir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.bin'))
-          .toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
-      for (final f in bins) {
-        final bytes = Uint8List.fromList(f.readAsBytesSync());
-        final outcome = runOnce(bytes, FuzzSchedule.single(bytes.length));
-        if (outcome is FuzzCrash) {
-          fail('replay ${f.uri.pathSegments.last}: '
-              'inv=${outcome.invariant} err=${outcome.error}');
-        }
-      }
-    });
+    test('replay crashes/ (regression guard)', () => replayCrashes(crashesDir));
 
     if (_fuzzMode == 'replay') return;
 
@@ -92,57 +69,32 @@ void main() {
           final schedule = randomSchedule(rng, bytes);
 
           // Random schedule: crash-only oracle.
-          final outcome = runOnce(bytes, schedule);
-          if (outcome is FuzzCrash) {
-            final key = dumpCrash(crashesDir, bytes, schedule, outcome);
-            fail('crash @ iter $iters seed=$_fuzzSeed key=$key '
-                'inv=${outcome.invariant} err=${outcome.error}');
-          }
+          assertNoCrash(
+            runOnce(bytes, schedule),
+            bytes,
+            schedule,
+            crashesDir: crashesDir,
+            iter: iters,
+            seed: _fuzzSeed,
+          );
 
           // Single-chunk schedule: well-formed → ground + no ErrorEvent.
           if (prog.allWellFormed) {
-            final single = FuzzSchedule.single(bytes.length);
-            final singleOutcome = runOnce(bytes, single);
-            if (singleOutcome is FuzzCrash) {
-              final key = dumpCrash(crashesDir, bytes, single, singleOutcome);
-              fail('single-chunk crash @ iter $iters key=$key '
-                  'inv=${singleOutcome.invariant} err=${singleOutcome.error}');
-            }
-            final ok = singleOutcome as FuzzOk;
-            if (ok.finalState != State.ground) {
-              final crash = FuzzCrash(
-                StateError(
-                    'well-formed program did not return to ground: ${ok.finalState}'),
-                StackTrace.current,
-                'wellformed_ground',
-              );
-              final key = dumpCrash(crashesDir, bytes, single, crash);
-              fail('non-ground @ iter $iters key=$key state=${ok.finalState}');
-            }
-            if (ok.errorEventCount > 0) {
-              final crash = FuzzCrash(
-                StateError(
-                    'well-formed program produced ${ok.errorEventCount} ErrorEvent(s)'),
-                StackTrace.current,
-                'wellformed_errors',
-              );
-              final key = dumpCrash(crashesDir, bytes, single, crash);
-              fail('errors on well-formed @ iter $iters key=$key');
-            }
+            assertWellFormedGround(
+              bytes,
+              crashesDir: crashesDir,
+              iter: iters,
+              seed: _fuzzSeed,
+              label: 'well-formed program',
+            );
           }
 
-          // Determinism: two fresh parsers, identical input → identical events.
-          final fp1 = fingerprint(bytes, schedule);
-          final fp2 = fingerprint(bytes, schedule);
-          if (fp1 != fp2) {
-            final crash = FuzzCrash(
-              StateError('nondeterministic: first=$fp1 second=$fp2'),
-              StackTrace.current,
-              'determinism',
-            );
-            final key = dumpCrash(crashesDir, bytes, schedule, crash);
-            fail('nondeterministic @ iter $iters key=$key');
-          }
+          assertDeterminism(
+            bytes,
+            schedule,
+            crashesDir: crashesDir,
+            iter: iters,
+          );
         }
         printOnFailure('structured fuzz: $iters iters, seed=$_fuzzSeed');
       },
