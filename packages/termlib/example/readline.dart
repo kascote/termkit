@@ -1,7 +1,7 @@
 import 'package:termlib/termlib.dart';
 
 Future<void> main() async {
-  final t = TermLib()..write('Type something: ');
+  final t = (Term.open() as InteractiveTerm)..write('Type something: ');
   final input = await t.readLine();
 
   if (input == null) {

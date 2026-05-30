@@ -1,28 +1,34 @@
+import 'package:meta/meta.dart';
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
-final _keyMapping = {
-  const KeyEvent(KeyCode.named(KeyCodeName.escape)): 'escape',
-  const KeyEvent(KeyCode.char('m'), modifiers: KeyModifiers.ctrl): 'enter',
-  const KeyEvent(KeyCode.named(KeyCodeName.enter)): 'enter',
-  const KeyEvent(KeyCode.named(KeyCodeName.backSpace, baseLayoutKey: 8)): 'backSpace',
-  const KeyEvent(KeyCode.named(KeyCodeName.backSpace)): 'backSpace',
-  const KeyEvent(KeyCode.char('h'), modifiers: KeyModifiers.ctrl): 'backSpace',
-  const KeyEvent(KeyCode.char('u'), modifiers: KeyModifiers.ctrl): 'clearBOL',
-  const KeyEvent(KeyCode.named(KeyCodeName.delete)): 'delete',
-  const KeyEvent(KeyCode.char('d'), modifiers: KeyModifiers.ctrl): 'delete',
-  const KeyEvent(KeyCode.char('k'), modifiers: KeyModifiers.ctrl): 'clearEOL',
-  const KeyEvent(KeyCode.named(KeyCodeName.left)): 'moveLeft',
-  const KeyEvent(KeyCode.char('b'), modifiers: KeyModifiers.ctrl): 'moveLeft',
-  const KeyEvent(KeyCode.named(KeyCodeName.right)): 'moveRight',
-  const KeyEvent(KeyCode.char('f'), modifiers: KeyModifiers.ctrl): 'moveRight',
-  const KeyEvent(KeyCode.named(KeyCodeName.home)): 'home',
-  const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers.ctrl): 'home',
-  const KeyEvent(KeyCode.named(KeyCodeName.end)): 'end',
-  const KeyEvent(KeyCode.char('e'), modifiers: KeyModifiers.ctrl): 'end',
-};
+enum _Action {
+  enter,
+  escape,
+  backSpace,
+  clearBOL,
+  clearEOL,
+  delete,
+  moveLeft,
+  moveRight,
+  home,
+  end,
+}
+
+final _keyBinding = KeyBinding<_Action>()
+  ..map(['enter', 'ctrl+m'], _Action.enter)
+  ..map(['escape'], _Action.escape)
+  ..map(['backSpace', 'ctrl+h'], _Action.backSpace)
+  ..map(['ctrl+u'], _Action.clearBOL)
+  ..map(['ctrl+k'], _Action.clearEOL)
+  ..map(['delete', 'ctrl+d'], _Action.delete)
+  ..map(['left', 'ctrl+b'], _Action.moveLeft)
+  ..map(['right', 'ctrl+f'], _Action.moveRight)
+  ..map(['home', 'ctrl+a'], _Action.home)
+  ..map(['end', 'ctrl+e'], _Action.end);
 
 /// Readline class
+@internal
 class Readline {
   /// Readline buffer
   List<String> buffer = [];
@@ -30,8 +36,8 @@ class Readline {
   /// Position in the buffer index
   int bufferIndex = 0;
 
-  /// TermLib instance
-  final TermLib term;
+  /// Terminal handle.
+  final InteractiveTerm term;
 
   /// Initial cursor position
   final Pos cursor;
@@ -39,7 +45,7 @@ class Readline {
   Readline._(this.term, this.cursor, this.buffer);
 
   /// Readline constructor
-  static Future<Readline> create(TermLib t, [String initBuffer = '']) async {
+  static Future<Readline> create(InteractiveTerm t, [String initBuffer = '']) async {
     final pos = await t.cursorPosition;
     final buf = initBuffer.split('');
 
@@ -58,20 +64,20 @@ class Readline {
     if (buffer.isNotEmpty) term.writeAt(cursor.row, cursor.col, buffer.join());
 
     while (readingChars) {
-      final key = await term.pollTimeout<KeyEvent>(timeout: 60000);
-      if (key is! KeyEvent) continue;
+      final key = await term.awaitEvent<KeyEvent>(timeout: const Duration(seconds: 60));
+      if (key == null) continue;
       if (key.eventType != KeyEventType.keyPress) continue;
 
-      final keyCode = _keyMapping[key] ?? 'none';
+      final action = _keyBinding.resolve(key);
 
-      switch (keyCode) {
-        case 'enter':
+      switch (action) {
+        case _Action.enter:
           readingChars = false;
-        case 'escape':
+        case _Action.escape:
           buffer = [];
           readingChars = false;
           return null;
-        case 'backSpace':
+        case _Action.backSpace:
           if (bufferIndex > 0) {
             term.moveLeft();
             bufferIndex--;
@@ -80,20 +86,20 @@ class Readline {
               ..writeAt(cursor.row, cursor.col + bufferIndex, '${buffer.sublist(bufferIndex, buffer.length).join()} ')
               ..moveTo(cursor.row, cursor.col + bufferIndex);
           }
-        case 'clearBOL':
+        case _Action.clearBOL:
           final origLength = buffer.length;
           buffer = buffer.sublist(bufferIndex, buffer.length);
           bufferIndex = 0;
           term.writeAt(cursor.row, cursor.col, buffer.join());
           term.write(' ' * (origLength - buffer.length));
           term.moveTo(cursor.row, cursor.col);
-        case 'clearEOL':
+        case _Action.clearEOL:
           term
             ..savePosition()
             ..writeAt(cursor.row, cursor.col + bufferIndex, ' ' * (buffer.length - bufferIndex))
             ..restorePosition();
           buffer = buffer.sublist(0, bufferIndex);
-        case 'delete':
+        case _Action.delete:
           if (bufferIndex < buffer.length) {
             buffer.removeAt(bufferIndex);
             term
@@ -102,27 +108,27 @@ class Readline {
               ..write(' ')
               ..restorePosition();
           }
-        case 'moveLeft':
+        case _Action.moveLeft:
           if (bufferIndex > 0) {
             bufferIndex--;
             term.moveLeft();
           }
-        case 'moveRight':
+        case _Action.moveRight:
           if (bufferIndex < buffer.length) {
             bufferIndex++;
             term.moveRight();
           }
-        case 'home':
+        case _Action.home:
           if (bufferIndex > 0) {
             term.moveLeft(bufferIndex);
             bufferIndex = 0;
           }
-        case 'end':
+        case _Action.end:
           if (bufferIndex < buffer.length) {
             term.moveRight(buffer.length - bufferIndex);
             bufferIndex = buffer.length;
           }
-        default:
+        case null:
           term.writeAt(cursor.row, cursor.col + bufferIndex, key.code.char);
           if (bufferIndex < buffer.length) {
             buffer[bufferIndex] = key.code.char;

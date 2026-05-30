@@ -9,6 +9,7 @@ export 'src/extensions/cursor.dart';
 export 'src/extensions/erase.dart';
 export 'src/extensions/term.dart';
 export 'src/extensions/types.dart';
+export 'src/key_binding.dart';
 export 'src/probe/probe.dart';
 export 'src/probe/query_result.dart';
 export 'src/probe/term_info.dart';

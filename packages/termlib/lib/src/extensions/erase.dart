@@ -3,7 +3,7 @@ import 'package:termansi/termansi.dart' as ansi;
 import '../termlib_base.dart';
 
 /// Eraser handling functions
-extension EraseUtils on TermLib {
+extension EraseUtils on InteractiveTerm {
   /// Erase the screen from the current line down to the bottom of the screen.
   void eraseDown() => write(ansi.Erase.screenFromCursor);
 

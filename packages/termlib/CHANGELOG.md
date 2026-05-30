@@ -1,5 +1,13 @@
 ## unreleased
 
+- breaking change (Phase 2 — API shape):
+  - `TermLib` replaced by sealed `Term` with factory `Term.open({TermBackend? backend})` returning `InteractiveTerm` (tty stdin) or `PipedTerm` (piped stdin). Users dispatch via pattern matching.
+  - `poll<T>()` renamed to `tryEvent<T>()` and now returns `T?` (no more `NoneEvent` sentinel).
+  - `pollTimeout<T>({int timeout})` renamed to `awaitEvent<T>({Duration? timeout})`, returns `Future<T?>` (null on timeout).
+  - `read<T>()` renamed to `nextEvent<T>()`, returns `Future<T>` (blocks forever, non-null).
+  - `stdinStream` renamed to `stdinBytes` and moved to `PipedTerm` only.
+  - Runtime `hasTerminal` gates replaced by the sealed split: `events`, `tryEvent`, `nextEvent`, `awaitEvent`, raw mode, cursor/erase extensions, probe and readline now live on `InteractiveTerm` — piped misuse is a compile error.
+  - `TermRunner` builds an `InteractiveTerm`; callbacks receive it typed.
 - added: probe to check terminal capabilities and return TermInfo
 - added: OSC 9;4 - to set Progress bar
 - added: CSI ? 2031 h/l - Enable/Disable Color Scheme event changes

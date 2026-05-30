@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import './parameter_accumulator.dart';
 import './parameters.dart';
 import './sequence_data.dart';
@@ -118,6 +120,18 @@ class Engine {
   /// Get collected parameters so far
   List<String> get collectedParameters => _params.getParameters();
 
+  /// Byte count of the current in-progress sequence (for fuzz invariants).
+  @visibleForTesting
+  int get sequenceByteCount => _sequenceBytes.length;
+
+  /// Number of accumulated parameters in the current sequence (for fuzz invariants).
+  @visibleForTesting
+  int get paramCount => _params.getCount();
+
+  /// Whether the engine is currently inside a bracketed-paste text block (for fuzz invariants).
+  @visibleForTesting
+  bool get inTextBlock => _inTextBlock;
+
   /// Get full engine state dump for debugging
   String debugInfo() {
     final buffer = StringBuffer()
@@ -134,10 +148,16 @@ class Engine {
   Engine();
 
   void _setState(State newState) {
-    // Clear on ground for UTF-8 and sequence bytes tracking
+    // Clear on ground for UTF-8 and sequence bytes tracking.
+    // Also clear _inTextBlock: bracketed paste can only span ESC[200~..ESC[201~,
+    // so any path back to ground (e.g. textBlockFinal seeing ESC \ and dispatching
+    // as DCS) abandons the paste. Leaving _inTextBlock=true would make a later
+    // CSI 201~ re-enter the paste-close branch with a freshly cleared
+    // _sequenceBytes, causing sublist(5, len-6) to RangeError (fuzz F5).
     if (newState == State.ground) {
       _utf8.reset();
       _sequenceBytes.clear();
+      _inTextBlock = false;
     }
     // Clear params on entry to new sequence types (not on ground)
     // This preserves params after sequence completes for debugging
@@ -685,7 +705,8 @@ class Engine {
 
     if (_utf8.isComplete()) {
       final data = _utf8.getCodePoint();
-      _provideChar(data);
+      // BOM (EF BB BF) decodes to "" — drop it; no KeyEvent makes sense for it.
+      if (data.isNotEmpty) _provideChar(data);
       _setState(State.ground);
     }
   }

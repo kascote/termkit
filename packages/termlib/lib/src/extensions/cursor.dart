@@ -1,12 +1,15 @@
 import 'package:termansi/termansi.dart' as ansi;
+import 'package:termparser/termparser_events.dart';
 
+import '../probe/raw_queries.dart';
 import '../termlib_base.dart';
+import 'term.dart';
 
 /// Cursor handling functions
-extension CursorUtils on TermLib {
+extension CursorUtils on InteractiveTerm {
   /// Moves the cursor to the given position (row, column)
   ///
-  /// The top-left corner of the screen is (0, 0).
+  /// The top-left corner of the screen is (1, 1).
   void moveTo(int row, int col) => write(ansi.Cursor.moveTo(row, col));
 
   /// Moves the cursor down the given number of lines.
@@ -41,6 +44,11 @@ extension CursorUtils on TermLib {
   /// Restores the cursor position.
   void restorePosition() => write(ansi.Cursor.restorePosition);
 
+  /// Queries the current cursor position.
+  Future<CursorPositionEvent?> queryCursorPosition({int timeout = defaultQueryTimeout}) async {
+    return withRawModeAsync<CursorPositionEvent?>(() => rawQueryCursorPosition(timeout));
+  }
+
   /// Hides the cursor.
   void cursorHide() => write(ansi.Cursor.hide);
 
@@ -60,4 +68,7 @@ extension CursorUtils on TermLib {
 
   /// Moves the cursor to the top-left corner of the screen.
   void moveHome() => write(ansi.Cursor.home);
+
+  /// Write [s] at ([row], [col]).
+  void writeAt(int row, int col, Object s) => write('${ansi.Cursor.moveTo(row, col)}$s');
 }

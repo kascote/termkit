@@ -10,19 +10,19 @@ import 'package:termlib/termlib.dart';
 /// Returns exit code to use.
 typedef ErrorHandler =
     FutureOr<int> Function(
-      TermLib term,
+      InteractiveTerm term,
       Object error,
       StackTrace stack,
     );
 
 /// Exit callback type for testing. Replaces `flushThenExit`.
-typedef ExitCallback = Future<void> Function(TermLib term, int exitCode);
+typedef ExitCallback = Future<void> Function(InteractiveTerm term, int exitCode);
 
 /// App runner function type. Returns exit code.
-typedef AppRunner = FutureOr<int> Function(TermLib term);
+typedef AppRunner = FutureOr<int> Function(InteractiveTerm term);
 
 /// Cleanup callback type. Called before exit on all paths (normal, error, signal).
-typedef CleanupCallback = FutureOr<void> Function(TermLib term);
+typedef CleanupCallback = FutureOr<void> Function(InteractiveTerm term);
 
 const _baseError = 128;
 const int _sigInt = _baseError + 2;
@@ -81,6 +81,10 @@ class TermRunner {
   @visibleForTesting
   final ExitCallback? exitCallback;
 
+  /// Backend override for testing. If null, uses [TermBackend.io].
+  @visibleForTesting
+  final TermBackend? backend;
+
   StreamSubscription<ProcessSignal>? _sigintSub;
   StreamSubscription<ProcessSignal>? _sigtermSub;
   bool _disposed = false;
@@ -99,11 +103,15 @@ class TermRunner {
     this.onError,
     this.onCleanup,
     @visibleForTesting this.exitCallback,
+    @visibleForTesting this.backend,
   });
 
-  /// Build and configure terminal
-  TermLib build() {
-    final term = TermLib(profile: profile);
+  /// Build and configure terminal. Requires an interactive tty.
+  InteractiveTerm build() {
+    final term = Term.open(backend: backend, profile: profile);
+    if (term is! InteractiveTerm) {
+      throw const TerminalNotInteractive('TermRunner requires an interactive terminal (tty stdin).');
+    }
     if (alternateScreen) term.enableAlternateScreen();
     if (rawMode) term.enableRawMode();
     if (hideCursor) term.cursorHide();
@@ -114,7 +122,7 @@ class TermRunner {
   }
 
   /// Restore terminal output state (sync, just writes to stdout)
-  void _restoreTerminalState(TermLib term) {
+  void _restoreTerminalState(InteractiveTerm term) {
     if (keyboardEnhancement) term.disableKeyboardEnhancement();
     if (mouseEvents) term.disableMouseEvents();
     if (hideCursor) term.cursorShow();
@@ -123,12 +131,12 @@ class TermRunner {
   }
 
   /// Restore terminal state and dispose (async)
-  Future<void> _restoreTerminal(TermLib term) async {
+  Future<void> _restoreTerminal(InteractiveTerm term) async {
     _restoreTerminalState(term);
     await term.dispose();
   }
 
-  Future<void> _exit(TermLib term, int exitCode) async {
+  Future<void> _exit(InteractiveTerm term, int exitCode) async {
     if (exitCallback != null) {
       await exitCallback!(term, exitCode);
     } else {
@@ -137,7 +145,7 @@ class TermRunner {
   }
 
   /// Clean up terminal state and exit
-  Future<void> dispose(TermLib term, int exitCode) async {
+  Future<void> dispose(InteractiveTerm term, int exitCode) async {
     if (_disposed) return;
     _disposed = true;
 
@@ -153,7 +161,7 @@ class TermRunner {
     await _exit(term, exitCode);
   }
 
-  void _setupSignalHandlers(TermLib term) {
+  void _setupSignalHandlers(InteractiveTerm term) {
     void handleSignal(ProcessSignal signal) {
       if (_disposed) return;
       _disposed = true;
@@ -176,7 +184,7 @@ class TermRunner {
     }
   }
 
-  Future<void> _runCleanupAndExit(TermLib term, int code) async {
+  Future<void> _runCleanupAndExit(InteractiveTerm term, int code) async {
     try {
       if (onCleanup != null) {
         await onCleanup!(term);

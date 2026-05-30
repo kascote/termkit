@@ -16,25 +16,20 @@ import 'term_info.dart';
 /// - [skip]: Queries to skip (default: none)
 /// - [timeout]: Timeout in milliseconds for each query (default: 500)
 ///
-/// Throws [StateError] if terminal is non-interactive (!hasTerminal).
-///
 /// Example:
 /// ```dart
-/// final term = TermLib();
+/// final term = Term.open();
+/// if (term is! InteractiveTerm) return;
 /// final info = await probeTerminal(term);
 /// if (info.syncUpdate case Supported(:final value)) {
 ///   print('Sync updates: $value');
 /// }
 /// ```
 Future<TermInfo> probeTerminal(
-  TermLib term, {
+  InteractiveTerm term, {
   Set<ProbeQuery> skip = const {},
   int timeout = 500,
 }) async {
-  if (!term.hasTerminal) {
-    throw StateError('probeTerminal() requires interactive terminal');
-  }
-
   final builder = TermInfoBuilder();
 
   // Mark skipped queries with proper typed Unavailable

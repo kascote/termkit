@@ -8,8 +8,8 @@ Future<int> main() async {
   return exitCode;
 }
 
-Future<int> display(TermLib term) async {
-  final t = TermLib();
+Future<int> display(InteractiveTerm term) async {
+  final t = term;
   const black = Color.black;
   const white = Color.darkGray;
   final resetCR = '${Style('')..resetStyle()}\n';

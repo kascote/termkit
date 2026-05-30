@@ -13,7 +13,7 @@ Future<int> main() async {
   return TermRunner().run(display);
 }
 
-Future<int> display(TermLib t) async {
+Future<int> display(InteractiveTerm t) async {
   final theme = _buildTheme(t);
 
   final info = await t.probe();
@@ -43,7 +43,7 @@ Future<int> display(TermLib t) async {
   return 0;
 }
 
-Theme _buildTheme(TermLib t) {
+Theme _buildTheme(InteractiveTerm t) {
   final s = t.style;
   return (
     green: s()..fg(Color.indexed(40)),
@@ -56,14 +56,14 @@ Theme _buildTheme(TermLib t) {
 
 // --- Display helpers ---
 
-void _section(TermLib t, Theme theme, String title) {
+void _section(InteractiveTerm t, Theme theme, String title) {
   t
     ..writeln('')
     ..writeln(theme.white(title));
 }
 
 void _showResult<T>(
-  TermLib t,
+  InteractiveTerm t,
   Theme theme,
   String label,
   QueryResult<T> result, [
@@ -79,7 +79,7 @@ void _showResult<T>(
 
 // --- Device attributes ---
 
-void _showDeviceAttrs(TermLib t, Theme theme, QueryResult<DeviceAttributes> result) {
+void _showDeviceAttrs(InteractiveTerm t, Theme theme, QueryResult<DeviceAttributes> result) {
   switch (result) {
     case Supported(:final value):
       t.writeln('  ${theme.text('Type')}: ${theme.green(value.type.name)}');
@@ -100,7 +100,7 @@ void _showDeviceAttrs(TermLib t, Theme theme, QueryResult<DeviceAttributes> resu
 
 // --- Keyboard flags ---
 
-void _showKeyboardFlags(TermLib t, Theme theme, QueryResult<KeyboardFlags> result) {
+void _showKeyboardFlags(InteractiveTerm t, Theme theme, QueryResult<KeyboardFlags> result) {
   switch (result) {
     case Supported(:final value):
       t.writeln('  ${theme.text('Enhanced keyboard')}: ${theme.green('supported')}');
@@ -116,7 +116,7 @@ void _showKeyboardFlags(TermLib t, Theme theme, QueryResult<KeyboardFlags> resul
   }
 }
 
-void _flag(TermLib t, Theme theme, String name, bool value) {
+void _flag(InteractiveTerm t, Theme theme, String name, bool value) {
   final status = value ? theme.green('yes') : theme.magenta('no');
   t.writeln('    ${theme.text(name)}: $status');
 }

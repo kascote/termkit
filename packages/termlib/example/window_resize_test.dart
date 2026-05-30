@@ -2,7 +2,7 @@ import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
 Future<void> main() async {
-  final term = TermLib();
+  final term = Term.open() as InteractiveTerm;
 
   final status = await term.queryInBandResize();
   if (status != null) {
@@ -18,7 +18,7 @@ Future<void> main() async {
     ..writeln('Resize terminal to see events...\r\n');
 
   while (true) {
-    final event = await term.read<Event>();
+    final event = await term.nextEvent<Event>();
 
     if (event is WindowResizeEvent) {
       term.writeln('Resize: ${event.widthChars}x${event.heightChars} chars');

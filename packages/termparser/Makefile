@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help cover test lint testf lintf doc
+.PHONY: help cover test lint testf lintf doc fuzz fuzz-time fuzz-replay fuzz-corpus fuzz-shrink
 
 help: ## Show this help message
 		@echo 'Usage: make [target]'
@@ -33,3 +33,18 @@ formatf: ## Format specific Dart file (usage: make formatf FILE=lib/src/universa
 
 doc: ## Generate documentation
 		dart doc
+
+fuzz: ## Run fuzz harnesses (iter-bounded, default ITER=10000)
+		FUZZ_ITER=$(or $(ITER),10000) dart test -r failures-only test/fuzz/harnesses/
+
+fuzz-time: ## Run fuzz harnesses (time-bounded, default SECS=60)
+		FUZZ_SECS=$(or $(SECS),60) dart test -r failures-only test/fuzz/harnesses/
+
+fuzz-replay: ## Replay persisted crashes/ only (regression guard)
+		FUZZ_MODE=replay dart test -r failures-only test/fuzz/harnesses/
+
+fuzz-corpus: ## Run seed corpus only (known-good & targeted cases)
+		dart test -r failures-only test/fuzz/corpus_test.dart
+
+fuzz-shrink: ## Shrink a failing input (usage: make fuzz-shrink FILE=crashes/<sha1>.bin)
+		dart run test/fuzz/_support/shrink.dart --file=$(FILE)

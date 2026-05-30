@@ -22,9 +22,16 @@ class Utf8Decoder {
   /// Check if UTF-8 sequence is complete
   bool isComplete() => _utf8PointsCount == _utf8PointsExpectedCount;
 
-  /// Get decoded codepoint
+  /// Get decoded codepoint.
+  ///
+  /// Malformed bytes (e.g. overlong encodings like `C0 AF`, surrogate halves,
+  /// invalid continuation sequences) are replaced with U+FFFD rather than
+  /// throwing, matching the other `utf8.decode` sites in termparser.
+  ///
+  /// Can return `""` — Dart's `utf8.decode` strips a leading BOM
+  /// (`EF BB BF`). Callers must skip emission in that case.
   String getCodePoint() {
-    return utf8.decode(_utf8Points.sublist(0, _utf8PointsCount));
+    return utf8.decode(_utf8Points.sublist(0, _utf8PointsCount), allowMalformed: true);
   }
 
   /// Reset decoder

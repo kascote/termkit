@@ -20,6 +20,20 @@ void main() {
       expect(parser.hasEvents, true);
     });
 
+    // F6 — UTF-8 BOM (EF BB BF) would crash because Dart's utf8.decode
+    // silently strips the BOM, returning "". The engine now drops the empty
+    // decode rather than forwarding an empty char into parseChar/ctrlOrKey.
+    // No KeyEvent is emitted for a BOM — that's deliberate, BOM has no
+    // sensible keypress representation.
+    test('utf-8 BOM does not crash and emits no event', () {
+      expect(
+        () => Parser()..advance([0xef, 0xbb, 0xbf]),
+        returnsNormally,
+      );
+      final parser = Parser()..advance([0xef, 0xbb, 0xbf]);
+      expect(parser.hasEvents, false);
+    });
+
     test('eventCount', () {
       final parser = Parser();
       expect(parser.eventCount, 0);

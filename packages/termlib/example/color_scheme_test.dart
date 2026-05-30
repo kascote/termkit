@@ -2,7 +2,7 @@ import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
 Future<void> main() async {
-  final term = TermLib();
+  final term = Term.open() as InteractiveTerm;
 
   final initial = await term.queryColorScheme();
   if (initial != null) {
@@ -16,7 +16,7 @@ Future<void> main() async {
     ..writeln('Waiting for changes...\r\n');
 
   while (true) {
-    final event = await term.read<Event>();
+    final event = await term.nextEvent<Event>();
 
     if (event is ColorSchemeEvent) {
       term.writeln('Color scheme: ${event.mode.name.toUpperCase()}\r');

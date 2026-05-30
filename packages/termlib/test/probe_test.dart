@@ -1,50 +1,33 @@
 import 'dart:async';
 
-import 'package:termlib/src/shared/terminal_overrides.dart';
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
 import 'shared.dart';
-import 'termlib_mock.dart';
 
 void main() {
   group('probeTerminal() >', () {
     group('basic behavior >', () {
-      test('throws StateError when !hasTerminal', () async {
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-            expect(() => probeTerminal(term), throwsStateError);
-          },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: false,
-        );
+      test('Term.open returns PipedTerm when !hasTerminal', () async {
+        // Probe now takes InteractiveTerm — piped mode is ruled out at the
+        // type level rather than by a runtime StateError.
+        await mockedPipedTest((term, _, _) {
+          expect(term, isA<PipedTerm>());
+        });
       });
 
       test('returns Future<TermInfo>', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
-            // Start probe with very short timeout so it completes quickly
+        await mockedTest(
+          (term, _, _) async {
             final future = probeTerminal(term, timeout: 1);
-
             expect(future, isA<Future<TermInfo>>());
-
-            // Let it complete
             await future;
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -53,22 +36,15 @@ void main() {
       test('multiple calls return independent results', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, _) async {
             final info1 = await probeTerminal(term, timeout: 1);
             final info2 = await probeTerminal(term, timeout: 1);
 
-            // Each call returns a new TermInfo instance
             expect(identical(info1, info2), isFalse);
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -79,10 +55,8 @@ void main() {
       test('skipped queries marked as unavailable(skipped)', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, _) async {
             final info = await probeTerminal(
               term,
               skip: {ProbeQuery.syncUpdate, ProbeQuery.unicodeCore},
@@ -90,23 +64,13 @@ void main() {
             );
 
             expect(info.syncUpdate, isA<Unavailable<SyncUpdateStatus>>());
-            expect(
-              (info.syncUpdate as Unavailable).reason,
-              UnavailableReason.skipped,
-            );
+            expect((info.syncUpdate as Unavailable).reason, UnavailableReason.skipped);
             expect(info.unicodeCore, isA<Unavailable<UnicodeCoreStatus>>());
-            expect(
-              (info.unicodeCore as Unavailable).reason,
-              UnavailableReason.skipped,
-            );
+            expect((info.unicodeCore as Unavailable).reason, UnavailableReason.skipped);
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -115,11 +79,8 @@ void main() {
       test('non-skipped queries run and timeout', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
-            // Skip all but deviceAttrs
+        await mockedTest(
+          (term, _, _) async {
             final info = await probeTerminal(
               term,
               skip: {
@@ -134,20 +95,12 @@ void main() {
               timeout: 1,
             );
 
-            // deviceAttrs should timeout (not skipped)
             expect(info.deviceAttrs, isA<Unavailable<DeviceAttributes>>());
-            expect(
-              (info.deviceAttrs as Unavailable).reason,
-              UnavailableReason.timeout,
-            );
+            expect((info.deviceAttrs as Unavailable).reason, UnavailableReason.timeout);
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -158,26 +111,16 @@ void main() {
       test('queries timeout with Unavailable(timeout)', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, _) async {
             final info = await probeTerminal(term, timeout: 1);
 
-            // All queries should timeout since no responses injected
             expect(info.deviceAttrs, isA<Unavailable<DeviceAttributes>>());
-            expect(
-              (info.deviceAttrs as Unavailable).reason,
-              UnavailableReason.timeout,
-            );
+            expect((info.deviceAttrs as Unavailable).reason, UnavailableReason.timeout);
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -188,10 +131,8 @@ void main() {
       test('deviceAttrs populated on response', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, _) async {
             final probeFuture = probeTerminal(
               term,
               skip: {
@@ -205,7 +146,6 @@ void main() {
               },
             );
 
-            // Inject response after small delay
             await Future<void>.delayed(const Duration(milliseconds: 10));
             eventController.add(
               const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, []),
@@ -219,11 +159,7 @@ void main() {
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -232,10 +168,8 @@ void main() {
       test('foregroundColor populated on response', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, _) async {
             final probeFuture = probeTerminal(
               term,
               skip: {
@@ -250,7 +184,6 @@ void main() {
             );
 
             await Future<void>.delayed(const Duration(milliseconds: 10));
-            // ColorQueryEvent with RGB values (0-255 range)
             eventController.add(const ColorQueryEvent(0xFF, 0x80, 0x40));
 
             final info = await probeFuture;
@@ -261,11 +194,7 @@ void main() {
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -274,10 +203,8 @@ void main() {
       test('syncUpdate populated on response', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, _) async {
             final probeFuture = probeTerminal(
               term,
               skip: {
@@ -292,7 +219,6 @@ void main() {
             );
 
             await Future<void>.delayed(const Duration(milliseconds: 10));
-            // DECRPMStatus.enabled has value 1
             eventController.add(QuerySyncUpdateEvent(1));
 
             final info = await probeFuture;
@@ -303,11 +229,7 @@ void main() {
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -316,10 +238,8 @@ void main() {
       test('windowSizePixels populated on response', () async {
         final eventController = StreamController<Event>.broadcast();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, _) async {
             final probeFuture = probeTerminal(
               term,
               skip: {
@@ -345,11 +265,7 @@ void main() {
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: TermOsMock(),
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();
@@ -359,24 +275,17 @@ void main() {
     group('raw mode >', () {
       test('probe enables/disables raw mode', () async {
         final eventController = StreamController<Event>.broadcast();
-        final termOsMock = TermOsMock();
 
-        await TerminalOverrides.runZoned(
-          () async {
-            final term = TermLib();
-
+        await mockedTest(
+          (term, _, tos) async {
             await probeTerminal(term, timeout: 1);
 
-            expect(termOsMock.callStack, contains('enableRawMode'));
-            expect(termOsMock.callStack, contains('disableRawMode'));
+            expect(tos.callStack, contains('enableRawMode'));
+            expect(tos.callStack, contains('disableRawMode'));
 
             await term.dispose();
           },
-          stdout: MockStdout(),
-          stdin: MockStdin(streamString('')),
-          termOs: termOsMock,
-          hasTerminal: true,
-          eventStream: eventController,
+          eventSource: eventController.stream,
         );
 
         await eventController.close();

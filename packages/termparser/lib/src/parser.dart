@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:meta/meta.dart';
+
 import 'engine/engine.dart';
 import 'engine/event_queue.dart';
 import 'engine/sequence_data.dart';
@@ -41,6 +43,10 @@ final class Parser {
   /// Creates a new parser instance.
   Parser() : _engine = Engine(), _queue = EventQueue();
 
+  /// Access the underlying engine (for fuzz invariants / tests).
+  @visibleForTesting
+  Engine get engine => _engine;
+
   /// Advances parser state machine with additional input data.
   ///
   /// [buffer] - input data (stdin in raw mode, etc.)
@@ -55,6 +61,10 @@ final class Parser {
   }
 
   /// Translates SequenceData to Events and adds to queue.
+  ///
+  /// Parsers return `null` when the sequence has no corresponding event
+  /// (e.g. SGR `m`, DECSET `h`/`l` — valid sequences, no consumer-facing event).
+  /// Nulls are dropped so the public queue never sees a sentinel.
   void _handleSequence(SequenceData sequence) {
     final event = switch (sequence) {
       CharData(:final char, :final escO) => parseChar(char, escO: escO),
@@ -65,7 +75,7 @@ final class Parser {
       TextBlockSequenceData(:final contentBytes) => _handleTextBlock(contentBytes),
       ErrorSequenceData() => _handleError(sequence),
     };
-    _queue.add(event);
+    if (event != null) _queue.add(event);
   }
 
   /// Handles ErrorSequenceData and creates EngineErrorEvent.

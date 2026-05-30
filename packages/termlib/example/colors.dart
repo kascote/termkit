@@ -5,8 +5,8 @@ Future<int> main() async {
   return exitCode;
 }
 
-Future<int> display(TermLib term) async {
-  final term = TermLib()..writeln(Style('ANSI 16 Colors:\n')..bold());
+Future<int> display(InteractiveTerm term) async {
+  term.writeln(Style('ANSI 16 Colors:\n')..bold());
   final resetCR = '${Style('')..resetStyle()}\n';
 
   for (var i = 0; i < 16; i++) {

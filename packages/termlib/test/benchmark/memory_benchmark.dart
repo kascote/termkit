@@ -34,8 +34,8 @@ void main() async {
   await _benchmarkEmptyQueue(service, isolateId);
   await _benchmarkSmallQueue(service, isolateId);
   await _benchmarkMediumQueue(service, isolateId);
+  await _benchmarkLargeQueue(service, isolateId);
   await _benchmarkFullQueue(service, isolateId);
-  await _benchmarkMixedEventTypes(service, isolateId);
 
   await service.dispose();
   stdout
@@ -115,8 +115,8 @@ Future<void> _benchmarkMediumQueue(VmService service, String isolateId) async {
     ..writeln();
 }
 
-Future<void> _benchmarkFullQueue(VmService service, String isolateId) async {
-  stdout.writeln('Scenario: Full queue (1000 events)');
+Future<void> _benchmarkLargeQueue(VmService service, String isolateId) async {
+  stdout.writeln('Scenario: Large queue (1000 events)');
 
   await service.getAllocationProfile(isolateId, gc: true);
   await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -140,11 +140,8 @@ Future<void> _benchmarkFullQueue(VmService service, String isolateId) async {
     ..writeln();
 }
 
-Future<void> _benchmarkMixedEventTypes(
-  VmService service,
-  String isolateId,
-) async {
-  stdout.writeln('Scenario: Mixed event types (1000 events)');
+Future<void> _benchmarkFullQueue(VmService service, String isolateId) async {
+  stdout.writeln('Scenario: Full queue (5000 events, at cap)');
 
   await service.getAllocationProfile(isolateId, gc: true);
   await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -152,23 +149,8 @@ Future<void> _benchmarkMixedEventTypes(
   final before = await service.getMemoryUsage(isolateId);
 
   final queue = EventQueue();
-  for (var i = 0; i < 250; i++) {
+  for (var i = 0; i < 5000; i++) {
     queue.enqueue(KeyEvent.fromString('a'));
-  }
-  for (var i = 0; i < 250; i++) {
-    queue.enqueue(
-      const MouseEvent(
-        10,
-        20,
-        MouseButton(MouseButtonKind.left, MouseButtonAction.down),
-      ),
-    );
-  }
-  for (var i = 0; i < 250; i++) {
-    queue.enqueue(const FocusEvent());
-  }
-  for (var i = 0; i < 250; i++) {
-    queue.enqueue(const PasteEvent('pasted text'));
   }
 
   final after = await service.getMemoryUsage(isolateId);
@@ -180,7 +162,6 @@ Future<void> _benchmarkMixedEventTypes(
     ..writeln('  Delta:       ${_formatBytes(delta)}')
     ..writeln('  Queue size:  ${queue.length} events')
     ..writeln('  Per event:   ${_formatBytes(delta ~/ queue.length)}')
-    ..writeln('  Event types: KeyEvent (250), MouseEvent (250), FocusEvent (250), PasteEvent (250)')
     ..writeln();
 }
 

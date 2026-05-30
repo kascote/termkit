@@ -1,7 +1,6 @@
 import '../engine/parameters.dart';
 import '../events/event_base.dart';
 import '../events/focus_event.dart';
-import '../events/internal_events.dart';
 import '../events/key_event.dart';
 import '../events/key_support.dart';
 import '../events/response_events.dart';
@@ -10,7 +9,7 @@ import 'key_parser.dart';
 
 /// Parse a control sequence
 /// https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
-Event parseCSISequence(Parameters params, String char) {
+Event? parseCSISequence(Parameters params, String char) {
   return switch (char) {
     'A' => _parseKeyAndModifiers(KeyCodeName.up, params.values.length == 2 ? params.values[1] : ''),
     'B' => _parseKeyAndModifiers(KeyCodeName.down, params.values.length == 2 ? params.values[1] : ''),
@@ -33,7 +32,7 @@ Event parseCSISequence(Parameters params, String char) {
     'y' => _parseDECRPMStatus(params),
     't' => _parseWindowSize(params),
     'n' => _parseColorScheme(params),
-    _ => const NoneEvent(),
+    _ => null,
   };
 }
 
@@ -50,8 +49,8 @@ Event _parseKeyAndModifiers(KeyCodeName name, String parameters) {
 // the `CSI u` (a.k.a. "Fix Keyboard Input on Terminals - Please", https://www.leonerd.org.uk/hacks/fixterms/)
 // or Kitty Keyboard Protocol (https://sw.kovidgoyal.net/kitty/keyboard-protocol/) specifications.
 // This CSI sequence is a tuple of semicolon-separated numbers.
-Event _parseKeyboardEnhancedMode(Parameters params, String char) {
-  if (params.values.isEmpty) return const NoneEvent();
+Event? _parseKeyboardEnhancedMode(Parameters params, String char) {
+  if (params.values.isEmpty) return null;
 
   if (params.values[0] == '?') {
     return keyboardEnhancedCodeParser(params.values[1]);
@@ -81,7 +80,7 @@ Event _parseKeyboardEnhancedMode(Parameters params, String char) {
   final shiftedKey = int.tryParse(codePoints.elementAtOrNull(1) ?? '');
   final baseLayout = int.tryParse(codePoints.elementAtOrNull(2) ?? '');
   // the first element is the only required
-  if (codePoint == null) return const NoneEvent();
+  if (codePoint == null) return null;
 
   final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
   var modifiers = modifierMask == null ? KeyModifiers.none : modifierParser(modifierMask);
@@ -92,7 +91,7 @@ Event _parseKeyboardEnhancedMode(Parameters params, String char) {
 
   if (keyCode == const KeyCode.named(KeyCodeName.none)) {
     final c = StringExtension.tryFromCharCode(codePoint);
-    if (c == null) return const NoneEvent();
+    if (c == null) return null;
 
     keyCode = switch (codePoint) {
       0x1b => const KeyCode.named(KeyCodeName.escape),
@@ -121,9 +120,9 @@ Event _parseKeyboardEnhancedMode(Parameters params, String char) {
   );
 }
 
-Event _primaryDeviceAttributes(Parameters params, String char) {
-  if (params.values.isEmpty) return const NoneEvent();
-  if (params.values[0] != '?') return const NoneEvent();
+Event? _primaryDeviceAttributes(Parameters params, String char) {
+  if (params.values.isEmpty) return null;
+  if (params.values[0] != '?') return null;
 
   final values = params.values.sublist(1);
 
@@ -146,7 +145,7 @@ List<DeviceAttributeParams> _parseDeviceParams(List<String> params) {
   return params.fold(<DeviceAttributeParams>[], (acc, p) {
     if (p.isEmpty) return acc;
     final code = DeviceAttributeParams.values.firstWhere(
-      (e) => e.value == int.parse(p),
+      (e) => e.value == (int.tryParse(p) ?? -1),
       orElse: () => DeviceAttributeParams.unknown,
     );
     if (code != DeviceAttributeParams.unknown) return acc..add(code);
@@ -154,14 +153,15 @@ List<DeviceAttributeParams> _parseDeviceParams(List<String> params) {
   });
 }
 
-Event _parseSpecialKeyCode(Parameters params, String char) {
-  if (params.values.isEmpty) return const NoneEvent();
+Event? _parseSpecialKeyCode(Parameters params, String char) {
+  if (params.values.isEmpty) return null;
 
   final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
   final modifier = modifierMask == null ? KeyModifiers.none : modifierParser(modifierMask);
   final eventType = eventKindParser(eventKind);
   // final state = modifiersToStateParser(modifierMask);
-  final keyCode = int.parse(params.values.first);
+  final keyCode = int.tryParse(params.values.first);
+  if (keyCode == null) return null;
 
   final key = switch (keyCode) {
     1 || 7 => KeyCodeName.home,
@@ -193,7 +193,7 @@ Event _parseSpecialKeyCode(Parameters params, String char) {
     _ => null,
   };
 
-  if (key == null) return const NoneEvent();
+  if (key == null) return null;
 
   return KeyEvent(
     KeyCode.named(key),
@@ -203,17 +203,17 @@ Event _parseSpecialKeyCode(Parameters params, String char) {
   );
 }
 
-Event _parseCursorPosition(Parameters params) {
-  if (params.values.isEmpty) return const NoneEvent();
-  if (params.values.length != 2) return const NoneEvent();
+Event? _parseCursorPosition(Parameters params) {
+  if (params.values.isEmpty) return null;
+  if (params.values.length != 2) return null;
 
   final x = int.tryParse(params.values[0]);
   final y = int.tryParse(params.values[1]);
-  if (x == null || y == null) return const NoneEvent();
+  if (x == null || y == null) return null;
   return CursorPositionEvent(x, y);
 }
 
-Event _parseDECRPMStatus(Parameters params) {
+Event? _parseDECRPMStatus(Parameters params) {
   switch (params.values) {
     case ['?', '2026', ...]:
       return QuerySyncUpdateEvent(int.tryParse(params.values[2]) ?? 0);
@@ -222,11 +222,11 @@ Event _parseDECRPMStatus(Parameters params) {
     case ['?', '2048', ...]:
       return QueryWindowResizeEvent(int.tryParse(params.values[2]) ?? 0);
     default:
-      return const NoneEvent();
+      return null;
   }
 }
 
-Event _parseWindowSize(Parameters params) {
+Event? _parseWindowSize(Parameters params) {
   switch (params.values) {
     case ['4', ...]:
       final width = int.tryParse(params.values[1]) ?? -1;
@@ -241,17 +241,17 @@ Event _parseWindowSize(Parameters params) {
       final widthPix = int.tryParse(params.values.elementAtOrNull(4)?.split(':').first ?? '') ?? 0;
       return WindowResizeEvent(heightChars, widthChars, heightPix, widthPix);
     default:
-      return const NoneEvent();
+      return null;
   }
 }
 
-Event _parseColorScheme(Parameters params) {
+Event? _parseColorScheme(Parameters params) {
   switch (params.values) {
     // CSI ? 997 ; Ps n - color scheme response (with private marker)
     case ['?', '997', ...]:
       final mode = int.tryParse(params.values.elementAtOrNull(2) ?? '') ?? 0;
       return ColorSchemeEvent(mode);
     default:
-      return const NoneEvent();
+      return null;
   }
 }

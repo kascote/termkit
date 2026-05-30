@@ -3,6 +3,7 @@
 //
 // These methods don't manage raw mode - caller handles it.
 
+import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser_events.dart';
 
@@ -10,67 +11,65 @@ import '../termlib_base.dart';
 
 /// Internal query implementations.
 /// Not part of public API - use term.dart extension methods instead.
-extension RawQueries on TermLib {
+@internal
+extension RawQueries on InteractiveTerm {
   /// Query primary device attributes (DA1).
   Future<PrimaryDeviceAttributesEvent?> rawQueryDeviceAttrs(int timeout) async {
     write(ansi.Term.queryPrimaryDeviceAttributes);
-    final event = await pollTimeout<PrimaryDeviceAttributesEvent>(timeout: timeout);
-    return (event is PrimaryDeviceAttributesEvent) ? event : null;
+    return awaitEvent<PrimaryDeviceAttributesEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query terminal name and version.
   Future<NameAndVersionEvent?> rawQueryTerminalVersion(int timeout) async {
     write(ansi.Term.requestTermVersion);
-    final event = await pollTimeout<NameAndVersionEvent>(timeout: timeout);
-    return (event is NameAndVersionEvent) ? event : null;
+    return awaitEvent<NameAndVersionEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query OSC color (10=fg, 11=bg).
   Future<ColorQueryEvent?> rawQueryColor(int code, int timeout) async {
     write(ansi.Term.queryOSCColors(code));
-    final event = await pollTimeout<ColorQueryEvent>(timeout: timeout);
-    return (event is ColorQueryEvent) ? event : null;
+    return awaitEvent<ColorQueryEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query sync update status.
   Future<QuerySyncUpdateEvent?> rawQuerySyncUpdateStatus(int timeout) async {
     write(ansi.Term.querySyncUpdate);
-    final event = await pollTimeout<QuerySyncUpdateEvent>(timeout: timeout);
-    return (event is QuerySyncUpdateEvent) ? event : null;
+    return awaitEvent<QuerySyncUpdateEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query keyboard enhancement flags.
   Future<KeyboardEnhancementFlagsEvent?> rawQueryKeyboardFlags(int timeout) async {
     write(ansi.Term.requestKeyboardCapabilities);
-    final event = await pollTimeout<KeyboardEnhancementFlagsEvent>(timeout: timeout);
-    return (event is KeyboardEnhancementFlagsEvent) ? event : null;
+    return awaitEvent<KeyboardEnhancementFlagsEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query window size in pixels.
   Future<QueryTerminalWindowSizeEvent?> rawQueryWindowSizePixels(int timeout) async {
     write(ansi.Term.queryWindowSizePixels);
-    final event = await pollTimeout<QueryTerminalWindowSizeEvent>(timeout: timeout);
-    return (event is QueryTerminalWindowSizeEvent) ? event : null;
+    return awaitEvent<QueryTerminalWindowSizeEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query Unicode Core status.
   Future<UnicodeCoreEvent?> rawQueryUnicodeCoreStatus(int timeout) async {
     write(ansi.Term.queryUnicodeCore);
-    final event = await pollTimeout<UnicodeCoreEvent>(timeout: timeout);
-    return (event is UnicodeCoreEvent) ? event : null;
+    return awaitEvent<UnicodeCoreEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query color scheme (light/dark mode).
   Future<ColorSchemeEvent?> rawQueryColorScheme(int timeout) async {
     write(ansi.Term.queryColorScheme);
-    final event = await pollTimeout<ColorSchemeEvent>(timeout: timeout);
-    return (event is ColorSchemeEvent) ? event : null;
+    return awaitEvent<ColorSchemeEvent>(timeout: Duration(milliseconds: timeout));
   }
 
   /// Query in-band window resize status.
   Future<QueryWindowResizeEvent?> rawQueryInBandResize(int timeout) async {
     write(ansi.Term.queryInBandResize);
-    final event = await pollTimeout<QueryWindowResizeEvent>(timeout: timeout);
-    return (event is QueryWindowResizeEvent) ? event : null;
+    return awaitEvent<QueryWindowResizeEvent>(timeout: Duration(milliseconds: timeout));
+  }
+
+  /// Query cursor position.
+  Future<CursorPositionEvent?> rawQueryCursorPosition(int timeout) async {
+    write(ansi.Cursor.requestPosition);
+    return awaitEvent<CursorPositionEvent>(timeout: Duration(milliseconds: timeout));
   }
 }

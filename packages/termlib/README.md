@@ -147,6 +147,48 @@ if (!term.hasTerminal) {
 
 When raw mode is enabled, Ctrl+C does NOT generate SIGINT - it arrives as a `KeyEvent` and must be handled manually.
 
+### Paste Events
+
+When bracketed paste is enabled (`term.enableBracketedPaste()`), a paste is delivered as a **single** `PasteEvent` carrying the full payload — not as a stream of `KeyEvent`s. Listen for it alongside key events:
+
+```dart
+await for (final event in term.events) {
+  switch (event) {
+    case KeyEvent():   /* handle key */
+    case PasteEvent(): /* handle paste.text */
+    default:           /* ... */
+  }
+}
+```
+
+Rationale:
+
+- **Performance**: a large paste is one event, not thousands.
+- **Security**: pasted text is never matched against `KeyBinding` — a paste containing e.g. `ctrl+p` cannot trigger the `ctrl+p` action.
+- **Generality**: the payload is opaque, leaving room for richer content (mime-typed) in future terminals.
+
+`KeyBinding.resolve` only matches `KeyEvent`s of type `keyPress`. It will never fire for paste content, repeat, or release events.
+
+## Key Bindings
+
+Map key specs to actions with `KeyBinding<A>`:
+
+```dart
+enum AppAction { quit, save, moveLeft }
+
+final bindings = KeyBinding<AppAction>()
+  ..map(['ctrl+q', 'escape'], AppAction.quit)   // aliases
+  ..map(['ctrl+s'], AppAction.save)
+  ..map(['left', 'ctrl+b'], AppAction.moveLeft);
+
+final action = bindings.resolve(keyEvent);
+if (action != null) {
+  // dispatch
+}
+```
+
+Key specs use the `KeyEvent.fromString` grammar (`'ctrl+a'`, `'enter'`, `'shift+ctrl+enter'`). `keysFor(action)` and `toGroupedMap()` are useful for help screens and config export.
+
 ## Examples
 
 See the [example directory](example) for more:
