@@ -75,3 +75,20 @@ Similar pattern but in `lib/src/parsers/osc_parser.dart`. OSC sequences use `π]
 ```dart
 keySequence('πOR')  // Means ESC O R
 ```
+
+### Fuzzing
+
+The generative fuzz harnesses (`test/fuzz/harnesses/`) are **opt-in**: their heavy
+loops are skipped under a plain `dart test` / `make test` to keep the default suite
+fast. They run only when a knob env var is set — use the dedicated targets:
+
+```bash
+make fuzz                 # iter-bounded (FUZZ_ITER, default 10000)
+make fuzz ITER=300        # quick run
+make fuzz-time SECS=60    # time-bounded (FUZZ_SECS)
+make fuzz-replay          # replay persisted crashes/ only (regression guard)
+make fuzz-corpus          # seed corpus only
+```
+
+The fast guards (`replay crashes/`, explicit seeds, `corpus_test.dart`) still run on
+the default suite.

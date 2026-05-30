@@ -14,6 +14,9 @@
 ///     legitimately splits on ESC+hasMore=false, which is not the oracle we
 ///     want here)
 ///
+/// The generative loop is OPT-IN: skipped under a plain `dart test` / `make test`.
+/// It runs only when FUZZ_ITER or FUZZ_SECS is set, i.e. via `make fuzz` / `make fuzz-time`.
+///
 /// Run knobs (shell env vars):
 ///   FUZZ_ITER   int     iter count (default 10000)
 ///   FUZZ_SECS   int     time budget in seconds (overrides FUZZ_ITER when > 0)
@@ -35,6 +38,13 @@ final String _fuzzMode = Platform.environment['FUZZ_MODE'] ?? '';
 final int _fuzzIter =
     int.tryParse(Platform.environment['FUZZ_ITER'] ?? '') ?? 10000;
 final int _fuzzSecs = int.tryParse(Platform.environment['FUZZ_SECS'] ?? '') ?? 0;
+
+/// The heavy generative loop is opt-in: a plain `dart test` / `make test` skips
+/// it (kept fast — `replay crashes/` + corpus remain as regression guards). It
+/// runs only when a fuzz knob is set, i.e. via `make fuzz` / `make fuzz-time`.
+final bool _fuzzEnabled =
+    Platform.environment.containsKey('FUZZ_ITER') ||
+    Platform.environment.containsKey('FUZZ_SECS');
 final int _fuzzSeed =
     int.tryParse(Platform.environment['FUZZ_SEED'] ?? '') ?? 0xC0FFEE;
 
@@ -99,6 +109,7 @@ void main() {
         printOnFailure('structured fuzz: $iters iters, seed=$_fuzzSeed');
       },
       timeout: const Timeout(Duration(hours: 1)),
+      skip: _fuzzEnabled ? false : 'opt-in: run via `make fuzz` (set FUZZ_ITER/FUZZ_SECS)',
     );
   });
 }
