@@ -39,6 +39,9 @@ enum ProbeQuery {
 
   /// In-band window resize reporting
   inBandResize,
+
+  /// Bracketed paste reporting
+  bracketedPaste,
 }
 
 /// Device attributes from DA1 query.
@@ -168,6 +171,18 @@ enum InBandResizeStatus {
   unknown,
 }
 
+/// Bracketed paste status.
+enum BracketedPasteStatus {
+  /// Bracketed paste is supported and enabled.
+  enabled,
+
+  /// Bracketed paste is supported but disabled.
+  disabled,
+
+  /// Status is unknown or unsupported.
+  unknown,
+}
+
 /// Window size in pixels.
 @immutable
 class WindowSize {
@@ -262,6 +277,11 @@ class TermInfo {
   /// In-band window resize reporting capability.
   QueryResult<InBandResizeStatus> get inBandResize =>
       _results[ProbeQuery.inBandResize] as QueryResult<InBandResizeStatus>? ??
+      const Unavailable(UnavailableReason.skipped);
+
+  /// Bracketed paste reporting capability.
+  QueryResult<BracketedPasteStatus> get bracketedPaste =>
+      _results[ProbeQuery.bracketedPaste] as QueryResult<BracketedPasteStatus>? ??
       const Unavailable(UnavailableReason.skipped);
 }
 

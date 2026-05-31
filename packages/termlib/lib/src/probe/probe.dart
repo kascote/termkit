@@ -55,6 +55,8 @@ Future<TermInfo> probeTerminal(
         builder.set(q, const Unavailable<ColorSchemeMode>(UnavailableReason.skipped));
       case ProbeQuery.inBandResize:
         builder.set(q, const Unavailable<InBandResizeStatus>(UnavailableReason.skipped));
+      case ProbeQuery.bracketedPaste:
+        builder.set(q, const Unavailable<BracketedPasteStatus>(UnavailableReason.skipped));
     }
   }
 
@@ -148,6 +150,16 @@ Future<TermInfo> probeTerminal(
             : const Unavailable<InBandResizeStatus>(UnavailableReason.timeout),
       );
     }
+
+    if (!skip.contains(ProbeQuery.bracketedPaste)) {
+      final e = await term.rawQueryBracketedPaste(timeout);
+      builder.set(
+        ProbeQuery.bracketedPaste,
+        e != null
+            ? Supported(_mapBracketedPasteStatus(e))
+            : const Unavailable<BracketedPasteStatus>(UnavailableReason.timeout),
+      );
+    }
   });
 
   return builder.build();
@@ -174,5 +186,13 @@ InBandResizeStatus _mapInBandResizeStatus(QueryWindowResizeEvent e) {
     DECRPMStatus.enabled || DECRPMStatus.permanentlyEnabled => InBandResizeStatus.enabled,
     DECRPMStatus.disabled || DECRPMStatus.permanentlyDisabled => InBandResizeStatus.disabled,
     _ => InBandResizeStatus.unknown,
+  };
+}
+
+BracketedPasteStatus _mapBracketedPasteStatus(QueryBracketedPasteEvent e) {
+  return switch (e.status) {
+    DECRPMStatus.enabled || DECRPMStatus.permanentlyEnabled => BracketedPasteStatus.enabled,
+    DECRPMStatus.disabled || DECRPMStatus.permanentlyDisabled => BracketedPasteStatus.disabled,
+    _ => BracketedPasteStatus.unknown,
   };
 }

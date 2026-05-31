@@ -235,6 +235,44 @@ void main() {
         await eventController.close();
       });
 
+      test('bracketedPaste populated on response', () async {
+        final eventController = StreamController<Event>.broadcast();
+
+        await mockedTest(
+          (term, _, _) async {
+            final probeFuture = probeTerminal(
+              term,
+              skip: {
+                ProbeQuery.deviceAttrs,
+                ProbeQuery.terminalVersion,
+                ProbeQuery.foregroundColor,
+                ProbeQuery.backgroundColor,
+                ProbeQuery.syncUpdate,
+                ProbeQuery.keyboardCapabilities,
+                ProbeQuery.windowSizePixels,
+                ProbeQuery.unicodeCore,
+                ProbeQuery.colorScheme,
+                ProbeQuery.inBandResize,
+              },
+            );
+
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            eventController.add(QueryBracketedPasteEvent(1));
+
+            final info = await probeFuture;
+
+            expect(info.bracketedPaste, isA<Supported<BracketedPasteStatus>>());
+            final status = (info.bracketedPaste as Supported<BracketedPasteStatus>).value;
+            expect(status, BracketedPasteStatus.enabled);
+
+            await term.dispose();
+          },
+          eventSource: eventController.stream,
+        );
+
+        await eventController.close();
+      });
+
       test('windowSizePixels populated on response', () async {
         final eventController = StreamController<Event>.broadcast();
 
@@ -327,7 +365,7 @@ void main() {
 
   group('ProbeQuery >', () {
     test('all values exist', () {
-      expect(ProbeQuery.values, hasLength(10));
+      expect(ProbeQuery.values, hasLength(11));
       expect(ProbeQuery.values, contains(ProbeQuery.deviceAttrs));
       expect(ProbeQuery.values, contains(ProbeQuery.terminalVersion));
       expect(ProbeQuery.values, contains(ProbeQuery.foregroundColor));
@@ -338,6 +376,7 @@ void main() {
       expect(ProbeQuery.values, contains(ProbeQuery.unicodeCore));
       expect(ProbeQuery.values, contains(ProbeQuery.colorScheme));
       expect(ProbeQuery.values, contains(ProbeQuery.inBandResize));
+      expect(ProbeQuery.values, contains(ProbeQuery.bracketedPaste));
     });
   });
 
@@ -401,6 +440,13 @@ void main() {
       expect(InBandResizeStatus.values, contains(InBandResizeStatus.enabled));
       expect(InBandResizeStatus.values, contains(InBandResizeStatus.disabled));
       expect(InBandResizeStatus.values, contains(InBandResizeStatus.unknown));
+    });
+
+    test('BracketedPasteStatus values', () {
+      expect(BracketedPasteStatus.values, hasLength(3));
+      expect(BracketedPasteStatus.values, contains(BracketedPasteStatus.enabled));
+      expect(BracketedPasteStatus.values, contains(BracketedPasteStatus.disabled));
+      expect(BracketedPasteStatus.values, contains(BracketedPasteStatus.unknown));
     });
   });
 }

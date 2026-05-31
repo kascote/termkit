@@ -199,6 +199,22 @@ void main() {
       expect(event.status, DECRPMStatus.disabled);
     });
 
+    test(r'query bracketed paste event - CSI ?2004;1$y', () {
+      final parser = Parser()..advance(keySequence(r'π[?2004;1$y'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as QueryBracketedPasteEvent;
+      expect(event.code, 1);
+      expect(event.status, DECRPMStatus.enabled);
+    });
+
+    test(r'query bracketed paste event not recognized - CSI ?2004;0$y', () {
+      final parser = Parser()..advance(keySequence(r'π[?2004;0$y'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as QueryBracketedPasteEvent;
+      expect(event.code, 0);
+      expect(event.status, DECRPMStatus.notRecognized);
+    });
+
     test('window resize event - CSI 48;24;80;480;1280t', () {
       final parser = Parser()..advance(keySequence('π[48;24;80;480;1280t'));
       expect(parser.hasEvents, true);
@@ -387,8 +403,7 @@ void main() {
     });
 
     test('CSI ? 62 ; 5:0 c — sub-param in primary device attributes', () {
-      final parser = Parser()
-        ..advance([0x1B, 0x5B, 0x3F, 0x36, 0x32, 0x3B, 0x35, 0x3A, 0x30, 0x63]);
+      final parser = Parser()..advance([0x1B, 0x5B, 0x3F, 0x36, 0x32, 0x3B, 0x35, 0x3A, 0x30, 0x63]);
       // Should still emit a PrimaryDeviceAttributesEvent (vt220, no caps).
       final ev = parser.nextEvent();
       expect(ev, isA<PrimaryDeviceAttributesEvent>());

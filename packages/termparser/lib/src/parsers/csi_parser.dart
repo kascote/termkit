@@ -221,6 +221,8 @@ Event? _parseDECRPMStatus(Parameters params) {
       return UnicodeCoreEvent(int.tryParse(params.values[2]) ?? 0);
     case ['?', '2048', ...]:
       return QueryWindowResizeEvent(int.tryParse(params.values[2]) ?? 0);
+    case ['?', '2004', ...]:
+      return QueryBracketedPasteEvent(int.tryParse(params.values[2]) ?? 0);
     default:
       return null;
   }

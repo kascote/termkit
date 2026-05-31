@@ -67,6 +67,12 @@ extension RawQueries on InteractiveTerm {
     return awaitEvent<QueryWindowResizeEvent>(timeout: Duration(milliseconds: timeout));
   }
 
+  /// Query bracketed paste status.
+  Future<QueryBracketedPasteEvent?> rawQueryBracketedPaste(int timeout) async {
+    write(ansi.Term.queryBracketedPaste);
+    return awaitEvent<QueryBracketedPasteEvent>(timeout: Duration(milliseconds: timeout));
+  }
+
   /// Query cursor position.
   Future<CursorPositionEvent?> rawQueryCursorPosition(int timeout) async {
     write(ansi.Cursor.requestPosition);

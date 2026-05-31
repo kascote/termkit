@@ -48,6 +48,23 @@ extension TermUtils on InteractiveTerm {
   /// Disabled Line Wrapping
   void disableLineWrapping() => write(ansi.Term.disableLineWrapping);
 
+  /// Enable bracketed paste mode.
+  ///
+  /// When enabled, pasted text arrives as a single [PasteEvent] (wrapped in
+  /// `ESC[200~` / `ESC[201~`) instead of a stream of individual key events,
+  /// so an embedded newline does not look like an Enter key press.
+  void enableBracketedPaste() => write(ansi.Term.enableBracketedPaste);
+
+  /// Disable bracketed paste mode.
+  void disableBracketedPaste() => write(ansi.Term.disableBracketedPaste);
+
+  /// Query bracketed paste reporting status.
+  ///
+  /// ref: <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>
+  Future<QueryBracketedPasteEvent?> queryBracketedPaste({int timeout = defaultQueryTimeout}) {
+    return withRawModeAsync<QueryBracketedPasteEvent?>(() => rawQueryBracketedPaste(timeout));
+  }
+
   /// Scroll the terminal up by the specified number of rows.
   void scrollUp(int rows) => write(ansi.Term.scrollUp(rows));
 

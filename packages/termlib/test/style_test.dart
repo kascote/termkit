@@ -125,6 +125,26 @@ void main() {
     });
   });
 
+  group('Style equality >', () {
+    test('two styles with the same fields are equal', () {
+      final a = Style(fg: Color.ansi(1), bold: true);
+      final b = Style(fg: Color.ansi(1), bold: true);
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+    });
+
+    test('differing fields are not equal', () {
+      final a = Style(fg: Color.ansi(1));
+      final b = Style(fg: Color.ansi(2));
+      expect(a, isNot(equals(b)));
+    });
+
+    test('copyWith no-op equals the source', () {
+      final a = Style(fg: Color.ansi(1), italic: true);
+      expect(a.copyWith(), equals(a));
+    });
+  });
+
   group('Style with Profile >', () {
     test('renders no codes and no reset in the noColor profile', () {
       final s = Style(fg: Color.ansi(7), bg: Color.ansi(4), profile: ProfileEnum.noColor);

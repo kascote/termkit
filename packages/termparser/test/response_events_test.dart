@@ -485,6 +485,32 @@ void main() {
     });
   });
 
+  group('QueryBracketedPasteEvent >', () {
+    test('constructor with enabled status', () {
+      final event = QueryBracketedPasteEvent(1);
+      expect(event.code, 1);
+      expect(event.status, DECRPMStatus.enabled);
+    });
+
+    test('constructor with disabled status', () {
+      final event = QueryBracketedPasteEvent(2);
+      expect(event.code, 2);
+      expect(event.status, DECRPMStatus.disabled);
+    });
+
+    test('constructor with not recognized status', () {
+      final event = QueryBracketedPasteEvent(0);
+      expect(event.code, 0);
+      expect(event.status, DECRPMStatus.notRecognized);
+    });
+
+    test('equality and hashCode', () {
+      expect(QueryBracketedPasteEvent(1), equals(QueryBracketedPasteEvent(1)));
+      expect(QueryBracketedPasteEvent(1).hashCode, equals(QueryBracketedPasteEvent(1).hashCode));
+      expect(QueryBracketedPasteEvent(1), isNot(equals(QueryBracketedPasteEvent(2))));
+    });
+  });
+
   group('WindowResizeEvent >', () {
     test('constructor', () {
       const event = WindowResizeEvent(24, 80, 480, 1280);

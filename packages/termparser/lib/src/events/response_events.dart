@@ -431,6 +431,32 @@ final class QueryWindowResizeEvent extends ResponseEvent {
   int get hashCode => code.hashCode;
 }
 
+/// Query bracketed paste status (DECRPM response for mode 2004).
+///
+/// A Ps value of 0 (not recognized) or 4 (permanently disabled) indicates the
+/// terminal does not support bracketed paste.
+@immutable
+final class QueryBracketedPasteEvent extends ResponseEvent {
+  /// The status code reported by the terminal.
+  final int code;
+
+  /// Get the DECRPM status.
+  late final DECRPMStatus status;
+
+  /// Constructs a new instance of [QueryBracketedPasteEvent].
+  QueryBracketedPasteEvent(this.code) {
+    status = DECRPMStatus.values.firstWhere((e) => e.value == code, orElse: () => DECRPMStatus.notRecognized);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is QueryBracketedPasteEvent && runtimeType == other.runtimeType && code == other.code;
+
+  @override
+  int get hashCode => code.hashCode;
+}
+
 /// Window resize event (in-band resize notification).
 ///
 /// Sent when terminal is resized and in-band resize reporting is enabled.

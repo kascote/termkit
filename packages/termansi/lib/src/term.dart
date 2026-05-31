@@ -210,6 +210,12 @@ abstract class Term {
   /// Disable Bracketed Paste
   static const String disableBracketedPaste = '$CSI?2004l';
 
+  /// Query Bracketed Paste status.
+  ///
+  /// Terminal responds with `CSI ? 2004 ; Ps $ y` (DECRPM).
+  /// A Ps value of 0 or 4 indicates unsupported mode.
+  static const String queryBracketedPaste = '$CSI?2004\$p';
+
   /// Set progress bar in terminal tab/taskbar (ConEmu OSC 9;4).
   ///
   /// [state] determines the visual appearance of the progress bar.
