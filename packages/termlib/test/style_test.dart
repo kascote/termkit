@@ -3,237 +3,230 @@ import 'package:test/test.dart';
 
 void main() {
   group('Style >', () {
-    test('should return the text if no styles', () {
-      final s = Style('hello world');
-      expect(s.toString(), equals('hello world'));
-    });
-
-    test('should return an empty string', () {
-      final s = Style('');
-      expect(s.toString(), isEmpty);
-    });
-
-    test('should support callable style', () {
-      final s = Style('');
+    test('renders plain text when no styles', () {
+      const s = Style();
       expect(s('hello world'), equals('hello world'));
     });
 
-    test('should setup foreground color', () {
-      final s = Style('Hello World', profile: ProfileEnum.ansi16)..fg(Color.ansi(1));
-      expect(s.toString(), equals('\x1B[31mHello World'));
+    test('renders an empty string', () {
+      const s = Style();
+      expect(s(''), isEmpty);
     });
 
-    test('should not add reset code', () {
-      final s = Style('Hello World', profile: ProfileEnum.ansi16)..fg(Color.ansi(1));
-      expect(s.toString(), equals('\x1B[31mHello World'));
+    test('is self-closing by default', () {
+      final s = Style(fg: Color.ansi(1), profile: ProfileEnum.ansi16);
+      expect(s('Hello World'), equals('\x1B[31mHello World\x1B[0m'));
     });
 
-    test('should setup background color', () {
-      final s = Style('Hello World', profile: ProfileEnum.ansi16)..bg(Color.ansi(1));
-      expect(s.toString(), equals('\x1B[41mHello World'));
+    test('omits the reset when reset: false (open for composition)', () {
+      final s = Style(fg: Color.ansi(1), profile: ProfileEnum.ansi16);
+      expect(s('Hello World', reset: false), equals('\x1B[31mHello World'));
     });
 
-    test('should setup faint mode', () {
-      final s = Style('Hello World')..faint();
-      expect(s.toString(), equals('\x1B[2mHello World'));
+    test('renders plain text (no reset) when nothing is styled', () {
+      const s = Style();
+      expect(s('Hello World'), equals('Hello World'));
     });
 
-    test('should setup italic mode', () {
-      final s = Style('Hello World')..italic();
-      expect(s.toString(), equals('\x1B[3mHello World'));
+    test('sets up foreground color', () {
+      final s = Style(fg: Color.ansi(1), profile: ProfileEnum.ansi16);
+      expect(s('Hello World', reset: false), equals('\x1B[31mHello World'));
     });
 
-    test('should setup underline mode', () {
-      final s = Style('Hello World')..underline();
-      expect(s.toString(), equals('\x1B[4mHello World'));
+    test('sets up background color', () {
+      final s = Style(bg: Color.ansi(1), profile: ProfileEnum.ansi16);
+      expect(s('Hello World', reset: false), equals('\x1B[41mHello World'));
     });
 
-    test('should setup blink mode', () {
-      final s = Style('Hello World')..blink();
-      expect(s.toString(), equals('\x1B[5mHello World'));
+    test('sets up faint mode', () {
+      const s = Style(faint: true);
+      expect(s('Hello World', reset: false), equals('\x1B[2mHello World'));
     });
 
-    test('should setup Reverse mode', () {
-      final s = Style('Hello World')..reverse();
-      expect(s.toString(), equals('\x1B[7mHello World'));
+    test('sets up italic mode', () {
+      const s = Style(italic: true);
+      expect(s('Hello World', reset: false), equals('\x1B[3mHello World'));
     });
 
-    test('should setup CrossOut mode', () {
-      final s = Style('Hello World')..crossout();
-      expect(s.toString(), equals('\x1B[9mHello World'));
+    test('sets up underline mode', () {
+      const s = Style(underline: Underline.single);
+      expect(s('Hello World', reset: false), equals('\x1B[4mHello World'));
     });
 
-    test('should setup Overline mode', () {
-      final s = Style('Hello World')..overline();
-      expect(s.toString(), equals('\x1B[53mHello World'));
+    test('sets up blink mode', () {
+      const s = Style(blink: true);
+      expect(s('Hello World', reset: false), equals('\x1B[5mHello World'));
     });
 
-    test('should be able to setup all modes at the same time', () {
-      final s = Style('Hello World', profile: ProfileEnum.ansi16)
-        ..fg(Color.ansi(7))
-        ..bg(Color.ansi(4))
-        ..bold()
-        ..faint()
-        ..italic()
-        ..underline()
-        ..blink()
-        ..reverse()
-        ..crossout()
-        ..overline();
-      expect(s.toString(), equals('\x1B[37;44;1;2;3;4;5;7;9;53mHello World'));
+    test('sets up reverse mode', () {
+      const s = Style(reverse: true);
+      expect(s('Hello World', reset: false), equals('\x1B[7mHello World'));
     });
 
-    test('should be able to apply text styles', () {
-      final s = Style('Hello World')
-        ..apply(TextStyle.bold)
-        ..apply(TextStyle.italic)
-        ..apply(TextStyle.underline)
-        ..apply(TextStyle.overline);
-      expect(s.toString(), equals('\x1B[1;3;4;53mHello World'));
+    test('sets up crossOut mode', () {
+      const s = Style(crossOut: true);
+      expect(s('Hello World', reset: false), equals('\x1B[9mHello World'));
     });
 
-    test('should send the reset code at the end', () {
-      final s = Style('Hello World')
-        ..italic()
-        ..resetStyle();
-      expect(s.toString(), equals('\x1B[3mHello World\x1B[0m'));
+    test('sets up overline mode', () {
+      const s = Style(overline: true);
+      expect(s('Hello World', reset: false), equals('\x1B[53mHello World'));
     });
 
-    test('should send the reset code if the text is empty', () {
-      final s = Style('')..resetStyle();
-      expect(s.toString(), equals('\x1B[0m'));
+    test('sets up all modes at the same time', () {
+      final s = Style(
+        fg: Color.ansi(7),
+        bg: Color.ansi(4),
+        bold: true,
+        faint: true,
+        italic: true,
+        underline: Underline.single,
+        blink: true,
+        reverse: true,
+        crossOut: true,
+        overline: true,
+        profile: ProfileEnum.ansi16,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[37;44;1;2;3;4;5;7;9;53mHello World'));
     });
 
-    test('should send the reset code only if the text is empty and has styles', () {
-      final s = Style('')
-        ..bold()
-        ..resetStyle();
-      expect(s.toString(), equals('\x1B[0m'));
+    test('applies text styles', () {
+      final s = const Style()
+          .apply(TextStyle.bold)
+          .apply(TextStyle.italic)
+          .apply(TextStyle.underline)
+          .apply(TextStyle.overline);
+      expect(s('Hello World', reset: false), equals('\x1B[1;3;4;53mHello World'));
+    });
+
+    test('appends a reset at the end of styled text', () {
+      const s = Style(italic: true);
+      expect(s('Hello World'), equals('\x1B[3mHello World\x1B[0m'));
+    });
+
+    test('emits no reset for empty styled text', () {
+      const s = Style(bold: true);
+      expect(s(''), isEmpty);
+    });
+  });
+
+  group('Style copyWith >', () {
+    test('derives a variant without mutating the source', () {
+      final base = Style(fg: Color.ansi(1), profile: ProfileEnum.ansi16);
+      final bolded = base.copyWith(bold: true);
+      expect(base('x', reset: false), equals('\x1B[31mx'));
+      expect(bolded('x', reset: false), equals('\x1B[31;1mx'));
+    });
+
+    test('replaces a color', () {
+      final base = Style(fg: Color.ansi(1), profile: ProfileEnum.ansi16);
+      final blue = base.copyWith(fg: Color.ansi(4));
+      expect(blue('x', reset: false), equals('\x1B[34mx'));
     });
   });
 
   group('Style with Profile >', () {
-    test('should no render codes when use NoColor profile', () {
-      final s = Style('Hello World', profile: ProfileEnum.noColor)
-        ..fg(Color.ansi(7))
-        ..bg(Color.ansi(4));
-      expect(s.toString(), equals('Hello World'));
+    test('renders no codes and no reset in the noColor profile', () {
+      final s = Style(fg: Color.ansi(7), bg: Color.ansi(4), profile: ProfileEnum.noColor);
+      expect(s('Hello World'), equals('Hello World'));
     });
 
-    test('should use rgb colors', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)
-        ..fg(Color.fromRGBComponent(10, 11, 12))
-        ..bg(Color.fromString('#ABCDEF'));
-      expect(s.toString(), equals('\x1B[38;2;10;11;12;48;2;171;205;239mHello World'));
+    test('uses rgb colors', () {
+      final s = Style(
+        fg: Color.fromRGBComponent(10, 11, 12),
+        bg: Color.fromString('#ABCDEF'),
+        profile: ProfileEnum.trueColor,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[38;2;10;11;12;48;2;171;205;239mHello World'));
     });
   });
 
   group('Underline >', () {
-    test('single - should set underline sequence', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..underline();
-      expect(s.toString(), equals('\x1B[4mHello World'));
+    test('single - sets underline sequence', () {
+      const s = Style(underline: Underline.single, profile: ProfileEnum.trueColor);
+      expect(s('Hello World', reset: false), equals('\x1B[4mHello World'));
     });
 
-    test('single - should set underline color if specified', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..underline(Color.fromRGBComponent(1, 2, 3));
-      expect(s.toString(), equals('\x1B[58;2;1;2;3;4mHello World'));
+    test('single - sets underline color if specified', () {
+      final s = Style(
+        underline: Underline.single,
+        underlineColor: Color.fromRGBComponent(1, 2, 3),
+        profile: ProfileEnum.trueColor,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[58;2;1;2;3;4mHello World'));
     });
 
-    test('double - should set underline sequence', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..doubleUnderline();
-      expect(s.toString(), equals('\x1B[4:2mHello World'));
+    test('double - sets underline sequence', () {
+      const s = Style(underline: Underline.double, profile: ProfileEnum.trueColor);
+      expect(s('Hello World', reset: false), equals('\x1B[4:2mHello World'));
     });
 
-    test('double - should set underline color if specified', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..doubleUnderline(Color.fromRGBComponent(1, 2, 3));
-      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:2mHello World'));
+    test('double - sets underline color if specified', () {
+      final s = Style(
+        underline: Underline.double,
+        underlineColor: Color.fromRGBComponent(1, 2, 3),
+        profile: ProfileEnum.trueColor,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[58;2;1;2;3;4:2mHello World'));
     });
 
-    test('curly - should set underline sequence', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..curlyUnderline();
-      expect(s.toString(), equals('\x1B[4:3mHello World'));
+    test('curly - sets underline sequence', () {
+      const s = Style(underline: Underline.curly, profile: ProfileEnum.trueColor);
+      expect(s('Hello World', reset: false), equals('\x1B[4:3mHello World'));
     });
 
-    test('curly - should set underline color if specified', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..curlyUnderline(Color.fromRGBComponent(1, 2, 3));
-      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:3mHello World'));
+    test('curly - sets underline color if specified', () {
+      final s = Style(
+        underline: Underline.curly,
+        underlineColor: Color.fromRGBComponent(1, 2, 3),
+        profile: ProfileEnum.trueColor,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[58;2;1;2;3;4:3mHello World'));
     });
 
-    test('dotted - should set underline sequence', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dottedUnderline();
-      expect(s.toString(), equals('\x1B[4:4mHello World'));
+    test('dotted - sets underline sequence', () {
+      const s = Style(underline: Underline.dotted, profile: ProfileEnum.trueColor);
+      expect(s('Hello World', reset: false), equals('\x1B[4:4mHello World'));
     });
 
-    test('dotted - should set underline color if specified', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dottedUnderline(Color.fromRGBComponent(1, 2, 3));
-      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:4mHello World'));
+    test('dotted - sets underline color if specified', () {
+      final s = Style(
+        underline: Underline.dotted,
+        underlineColor: Color.fromRGBComponent(1, 2, 3),
+        profile: ProfileEnum.trueColor,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[58;2;1;2;3;4:4mHello World'));
     });
 
-    test('dashed - should set underline sequence', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dashedUnderline();
-      expect(s.toString(), equals('\x1B[4:5mHello World'));
+    test('dashed - sets underline sequence', () {
+      const s = Style(underline: Underline.dashed, profile: ProfileEnum.trueColor);
+      expect(s('Hello World', reset: false), equals('\x1B[4:5mHello World'));
     });
 
-    test('dashed - should set underline color if specified', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..dashedUnderline(Color.fromRGBComponent(1, 2, 3));
-      expect(s.toString(), equals('\x1B[58;2;1;2;3;4:5mHello World'));
+    test('dashed - sets underline color if specified', () {
+      final s = Style(
+        underline: Underline.dashed,
+        underlineColor: Color.fromRGBComponent(1, 2, 3),
+        profile: ProfileEnum.trueColor,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[58;2;1;2;3;4:5mHello World'));
     });
 
-    test('set underline color', () {
-      final s = Style('Hello World', profile: ProfileEnum.trueColor)..underlineColor(Color.fromRGBComponent(1, 2, 3));
-      expect(s.toString(), equals('\x1B[58;2;1;2;3mHello World'));
+    test('sets underline color alone', () {
+      final s = Style(underlineColor: Color.fromRGBComponent(1, 2, 3), profile: ProfileEnum.trueColor);
+      expect(s('Hello World', reset: false), equals('\x1B[58;2;1;2;3mHello World'));
     });
   });
 
-  group('Switch off >', () {
-    test('set bold off', () {
-      final s = Style('Hello World')..boldOff();
-      expect(s.toString(), equals('\x1B[22mHello World'));
+  group('Reset colors >', () {
+    test('sets default foreground color', () {
+      const s = Style(fg: Color.reset);
+      expect(s('Hello World', reset: false), equals('\x1B[39mHello World'));
     });
 
-    test('set faint off', () {
-      final s = Style('Hello World')..faintOff();
-      expect(s.toString(), equals('\x1B[22mHello World'));
-    });
-
-    test('set italic off', () {
-      final s = Style('Hello World')..italicOff();
-      expect(s.toString(), equals('\x1B[23mHello World'));
-    });
-
-    test('set underline off', () {
-      final s = Style('Hello World')..underlineOff();
-      expect(s.toString(), equals('\x1B[24mHello World'));
-    });
-
-    test('set blink off', () {
-      final s = Style('Hello World')..blinkOff();
-      expect(s.toString(), equals('\x1B[25mHello World'));
-    });
-
-    test('set reverse off', () {
-      final s = Style('Hello World')..reverseOff();
-      expect(s.toString(), equals('\x1B[27mHello World'));
-    });
-
-    test('set crossout off', () {
-      final s = Style('Hello World')..crossoutOff();
-      expect(s.toString(), equals('\x1B[29mHello World'));
-    });
-
-    test('set overline off', () {
-      final s = Style('Hello World')..overlineOff();
-      expect(s.toString(), equals('\x1B[55mHello World'));
-    });
-
-    test('set default foreground color', () {
-      final s = Style('Hello World')..fg(Color.reset);
-      expect(s.toString(), equals('\x1B[39mHello World'));
-    });
-
-    test('set default background color', () {
-      final s = Style('Hello World')..bg(Color.reset);
-      expect(s.toString(), equals('\x1B[49mHello World'));
+    test('sets default background color', () {
+      const s = Style(bg: Color.reset);
+      expect(s('Hello World', reset: false), equals('\x1B[49mHello World'));
     });
   });
 }

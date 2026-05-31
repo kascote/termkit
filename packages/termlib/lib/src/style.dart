@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
 
 import './colors.dart';
@@ -43,6 +44,27 @@ enum TextStyle {
   overline,
 }
 
+/// Underline rendering variants for a [Style].
+enum Underline {
+  /// No underline.
+  none,
+
+  /// Single underline.
+  single,
+
+  /// Double underline.
+  double,
+
+  /// Curly underline.
+  curly,
+
+  /// Dotted underline.
+  dotted,
+
+  /// Dashed underline.
+  dashed,
+}
+
 const _resetSeq = '0';
 const _boldSeq = '1';
 const _faintSeq = '2';
@@ -56,189 +78,245 @@ const _blinkSeq = '5';
 const _reverseSeq = '7';
 const _crossOutSeq = '9';
 const _overlineSeq = '53';
-const _boldSeqOff = '22';
-const _faintSeqOff = '22';
-const _italicSeqOff = '23';
-const _underlineSeqOff = '24';
-const _blinkSeqOff = '25';
-const _reverseSeqOff = '27';
-const _crossOutSeqOff = '29';
-const _overlineSeqOff = '55';
-// const _defaultFgSeq = '39';
-// const _defaultBgSeq = '49';
 
-/// Represents a text string that could have some properties as color and text
-/// styles.
+/// An immutable description of terminal text appearance: colors and text
+/// attributes for a given color [profile].
+///
+/// A [Style] carries no text. Render text through it with [call] (or [render]),
+/// which returns a self-closing ANSI string by default so styling does not
+/// bleed into following output:
+///
+/// ```dart
+/// final red = Style(fg: Color.red);
+/// term.writeln(red('Hello!'));            // "\x1b[31mHello!\x1b[0m"
+/// final warn = red.copyWith(bold: true);  // derive a variant
+/// ```
+///
+/// Pass `reset: false` to render an *open* fragment for composition, where an
+/// outer [Style] supplies the trailing reset:
+///
+/// ```dart
+/// final lhs = red('left', reset: false);  // "\x1b[31mleft"
+/// term.writeln(Style(bg: Color.blue)(' $lhs '));
+/// ```
+@immutable
 class Style {
-  late final ProfileEnum _profile;
-  final _styles = <String>[];
-  bool _sendReset = false;
+  /// The color profile used to resolve colors when rendering.
+  final ProfileEnum profile;
 
-  /// The text to show when render
-  String text = '';
+  /// Foreground color, or `null` for none.
+  final Color? fg;
 
-  // Dart doesn't support optional and named parameters yet
-  // https://github.com/dart-lang/language/issues/1076
-  /// Creates a new Style.
-  Style(this.text, {ProfileEnum profile = ProfileEnum.ansi256}) : _profile = profile;
+  /// Background color, or `null` for none.
+  final Color? bg;
 
-  /// The profile used by the Style.
-  ProfileEnum get profile => _profile;
+  /// Bold attribute.
+  final bool bold;
 
-  /// Allows calling directly the Style to set the text value.
+  /// Faint attribute.
+  final bool faint;
+
+  /// Italic attribute.
+  final bool italic;
+
+  /// Blink attribute.
+  final bool blink;
+
+  /// Reverse (inverse) attribute.
+  final bool reverse;
+
+  /// Cross-out (strikethrough) attribute.
+  final bool crossOut;
+
+  /// Overline attribute.
+  final bool overline;
+
+  /// Underline variant.
+  final Underline underline;
+
+  /// Underline color, or `null` to use the text color.
+  final Color? underlineColor;
+
+  /// Creates an immutable [Style].
+  const Style({
+    this.fg,
+    this.bg,
+    this.bold = false,
+    this.faint = false,
+    this.italic = false,
+    this.blink = false,
+    this.reverse = false,
+    this.crossOut = false,
+    this.overline = false,
+    this.underline = Underline.none,
+    this.underlineColor,
+    this.profile = ProfileEnum.ansi256,
+  });
+
+  /// Returns a copy of this [Style] with the given fields replaced.
   ///
-  /// ex:
-  /// ```dart
-  ///   final red = termlib.style()..fg(Color.red);
-  ///   termlib.write(red('Hello!'));
-  /// ```
-  String call(Object value) {
-    setText(value.toString());
-    return toString();
+  /// Following the value-type convention, nullable color fields cannot be
+  /// cleared back to `null` through [copyWith]; omit them to keep the current
+  /// value, or build a fresh [Style] to drop a color.
+  Style copyWith({
+    Color? fg,
+    Color? bg,
+    bool? bold,
+    bool? faint,
+    bool? italic,
+    bool? blink,
+    bool? reverse,
+    bool? crossOut,
+    bool? overline,
+    Underline? underline,
+    Color? underlineColor,
+    ProfileEnum? profile,
+  }) {
+    return Style(
+      fg: fg ?? this.fg,
+      bg: bg ?? this.bg,
+      bold: bold ?? this.bold,
+      faint: faint ?? this.faint,
+      italic: italic ?? this.italic,
+      blink: blink ?? this.blink,
+      reverse: reverse ?? this.reverse,
+      crossOut: crossOut ?? this.crossOut,
+      overline: overline ?? this.overline,
+      underline: underline ?? this.underline,
+      underlineColor: underlineColor ?? this.underlineColor,
+      profile: profile ?? this.profile,
+    );
   }
 
-  /// Sets the Style's text value.
-  ///
-  /// This is a convenience method to set the text value.
-  // ignore: use_setters_to_change_properties
-  void setText(String value) => text = value;
-
-  /// Sets the foreground color.
-  void fg(Color color) {
-    if (color == Color.reset) {
-      _styles.add(color.sequence());
-    } else {
-      _styles.add(color.convert(colorKindFromProfile(_profile)).sequence());
-    }
-  }
-
-  /// Sets the background color.
-  void bg(Color color) {
-    if (color == Color.reset) {
-      _styles.add(color.sequence(background: true));
-    } else {
-      _styles.add(color.convert(colorKindFromProfile(_profile)).sequence(background: true));
-    }
-  }
-
-  /// Resets the Style. Resets all styles and colors.
-  void resetStyle() => _sendReset = true;
-
-  /// Sets the bold style.
-  void bold() => _styles.add(_boldSeq);
-
-  /// Sets the bold off style.
-  void boldOff() => _styles.add(_boldSeqOff);
-
-  /// Sets the faint style.
-  void faint() => _styles.add(_faintSeq);
-
-  /// Sets the faint off style.
-  void faintOff() => _styles.add(_faintSeqOff);
-
-  /// Sets the italic style.
-  void italic() => _styles.add(_italicSeq);
-
-  /// Sets the italic off style.
-  void italicOff() => _styles.add(_italicSeqOff);
-
-  // /// Sets the default foreground color.
-  // void setFgDefault() => _styles.add(_defaultFgSeq);
-
-  // /// Sets the default background color.
-  // void setBgDefault() => _styles.add(_defaultBgSeq);
-
-  /// Sets the underline style.
-  void underline([Color? color]) {
-    if (color case final uColor?) underlineColor(uColor);
-    _styles.add(_underlineSeq);
-  }
-
-  /// Sets the underline off style.
-  void underlineOff() => _styles.add(_underlineSeqOff);
-
-  /// Sets the double underline style.
-  void doubleUnderline([Color? color]) {
-    if (color case final uColor?) underlineColor(uColor);
-    _styles.add(_doubleUnderlineSeq);
-  }
-
-  /// Sets the curly underline style.
-  void curlyUnderline([Color? color]) {
-    if (color case final uColor?) underlineColor(uColor);
-    return _styles.add(_curlyUnderlineSeq);
-  }
-
-  /// Sets the dotted underline style.
-  void dottedUnderline([Color? color]) {
-    if (color case final uColor?) underlineColor(uColor);
-    _styles.add(_dottedUnderlineSeq);
-  }
-
-  /// Sets the dashed underline style.
-  void dashedUnderline([Color? color]) {
-    if (color case final uColor?) underlineColor(uColor);
-    _styles.add(_dashedUnderlineSeq);
-  }
-
-  /// Set underline color
-  void underlineColor(Color color) {
-    var colorSeq = color.convert(colorKindFromProfile(_profile)).sequence();
-    if (colorSeq.isNotEmpty) colorSeq = '5${colorSeq.substring(1)}';
-    return _styles.add(colorSeq);
-  }
-
-  /// Sets the blink style.
-  void blink() => _styles.add(_blinkSeq);
-
-  /// Sets the blink off style.
-  void blinkOff() => _styles.add(_blinkSeqOff);
-
-  /// Sets the reverse style.
-  void reverse() => _styles.add(_reverseSeq);
-
-  /// Sets the reverse off style.
-  void reverseOff() => _styles.add(_reverseSeqOff);
-
-  /// Sets the cross out style.
-  void crossout() => _styles.add(_crossOutSeq);
-
-  /// Sets the cross out off style.
-  void crossoutOff() => _styles.add(_crossOutSeqOff);
-
-  /// Sets the overline style.
-  void overline() => _styles.add(_overlineSeq);
-
-  /// Sets the overline off style.
-  void overlineOff() => _styles.add(_overlineSeqOff);
-
-  /// Apply a TextStyle to the Style object
-  void apply(TextStyle style) {
+  /// Returns a copy of this [Style] with [style] applied.
+  Style apply(TextStyle style) {
     return switch (style) {
-      TextStyle.bold => bold(),
-      TextStyle.faint => faint(),
-      TextStyle.italic => italic(),
-      TextStyle.underline => underline(),
-      TextStyle.doubleUnderline => doubleUnderline(),
-      TextStyle.curlyUnderline => curlyUnderline(),
-      TextStyle.dottedUnderline => dottedUnderline(),
-      TextStyle.dashedUnderline => dashedUnderline(),
-      TextStyle.blink => blink(),
-      TextStyle.reverse => reverse(),
-      TextStyle.crossOut => crossout(),
-      TextStyle.overline => overline(),
+      TextStyle.bold => copyWith(bold: true),
+      TextStyle.faint => copyWith(faint: true),
+      TextStyle.italic => copyWith(italic: true),
+      TextStyle.underline => copyWith(underline: Underline.single),
+      TextStyle.doubleUnderline => copyWith(underline: Underline.double),
+      TextStyle.curlyUnderline => copyWith(underline: Underline.curly),
+      TextStyle.dottedUnderline => copyWith(underline: Underline.dotted),
+      TextStyle.dashedUnderline => copyWith(underline: Underline.dashed),
+      TextStyle.blink => copyWith(blink: true),
+      TextStyle.reverse => copyWith(reverse: true),
+      TextStyle.crossOut => copyWith(crossOut: true),
+      TextStyle.overline => copyWith(overline: true),
     };
   }
 
-  /// Returns the ANSI representation of the Style.
-  @override
-  String toString() {
-    if (_profile == ProfileEnum.noColor) return text;
-    if (_styles.isEmpty && !_sendReset) return text;
+  /// Renders [value] through this style.
+  ///
+  /// See [render]. This is the shorthand call form:
+  /// ```dart
+  ///   final red = termlib.style(fg: Color.red);
+  ///   termlib.write(red('Hello!'));
+  /// ```
+  String call(Object value, {bool reset = true}) => render(value.toString(), reset: reset);
 
-    final resolvedStyles = _styles.join(';');
-    final prefix = resolvedStyles.isEmpty || text.isEmpty ? '' : '${ansi.CSI}${resolvedStyles}m';
-    final postfix = _sendReset ? '${ansi.CSI}${_resetSeq}m' : '';
+  /// Renders [text] through this style and returns the ANSI string.
+  ///
+  /// By default the result is self-closing (a trailing SGR reset is appended
+  /// whenever styling was emitted) so it does not bleed into following output.
+  /// Pass `reset: false` to leave it open for composition.
+  ///
+  /// In the [ProfileEnum.noColor] profile, or when the style emits no
+  /// sequences, [text] is returned unchanged with no reset.
+  String render(String text, {bool reset = true}) {
+    if (text.isEmpty || profile == ProfileEnum.noColor) return text;
+
+    final seqs = _sequences();
+    if (seqs.isEmpty) return text;
+
+    final prefix = '${ansi.CSI}${seqs.join(';')}m';
+    final postfix = reset ? '${ansi.CSI}${_resetSeq}m' : '';
     return '$prefix$text$postfix';
   }
+
+  /// Builds the ordered list of SGR parameters for this style.
+  List<String> _sequences() {
+    final kind = colorKindFromProfile(profile);
+    final seqs = <String>[];
+
+    final fgColor = fg;
+    if (fgColor != null) {
+      seqs.add(fgColor == Color.reset ? fgColor.sequence() : fgColor.convert(kind).sequence());
+    }
+    final bgColor = bg;
+    if (bgColor != null) {
+      seqs.add(
+        bgColor == Color.reset ? bgColor.sequence(background: true) : bgColor.convert(kind).sequence(background: true),
+      );
+    }
+    if (bold) seqs.add(_boldSeq);
+    if (faint) seqs.add(_faintSeq);
+    if (italic) seqs.add(_italicSeq);
+
+    final uColor = underlineColor;
+    if (uColor != null) {
+      var colorSeq = uColor.convert(kind).sequence();
+      if (colorSeq.isNotEmpty) colorSeq = '5${colorSeq.substring(1)}';
+      if (colorSeq.isNotEmpty) seqs.add(colorSeq);
+    }
+    final uSeq = _underlineSeq2(underline);
+    if (uSeq.isNotEmpty) seqs.add(uSeq);
+
+    if (blink) seqs.add(_blinkSeq);
+    if (reverse) seqs.add(_reverseSeq);
+    if (crossOut) seqs.add(_crossOutSeq);
+    if (overline) seqs.add(_overlineSeq);
+
+    return seqs;
+  }
+
+  String _underlineSeq2(Underline u) {
+    return switch (u) {
+      Underline.none => '',
+      Underline.single => _underlineSeq,
+      Underline.double => _doubleUnderlineSeq,
+      Underline.curly => _curlyUnderlineSeq,
+      Underline.dotted => _dottedUnderlineSeq,
+      Underline.dashed => _dashedUnderlineSeq,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Style &&
+          runtimeType == other.runtimeType &&
+          fg == other.fg &&
+          bg == other.bg &&
+          bold == other.bold &&
+          faint == other.faint &&
+          italic == other.italic &&
+          blink == other.blink &&
+          reverse == other.reverse &&
+          crossOut == other.crossOut &&
+          overline == other.overline &&
+          underline == other.underline &&
+          underlineColor == other.underlineColor &&
+          profile == other.profile;
+
+  @override
+  int get hashCode => Object.hash(
+    fg,
+    bg,
+    bold,
+    faint,
+    italic,
+    blink,
+    reverse,
+    crossOut,
+    overline,
+    underline,
+    underlineColor,
+    profile,
+  );
+
+  /// A debug representation of the style's SGR parameters. Not for terminal
+  /// output — render text with [call]/[render] instead.
+  @override
+  String toString() => 'Style(${_sequences().join(';')})';
 }

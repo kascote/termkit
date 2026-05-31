@@ -13,15 +13,9 @@ Future<int> display(InteractiveTerm term) async {
   term.writeln('ask for the true color $ctc on different profiles');
 
   final out = [
-    term.style('hello world 16 - $c16')
-      ..fg(c16)
-      ..toString(),
-    term.style('Hello World 256 - $c256')
-      ..fg(c256)
-      ..toString(),
-    term.style('Hello World Tc - $ctc')
-      ..fg(ctc)
-      ..toString(),
+    term.style(fg: c16)('hello world 16 - $c16'),
+    term.style(fg: c256)('Hello World 256 - $c256'),
+    term.style(fg: ctc)('Hello World Tc - $ctc'),
   ];
 
   term.writeln(out.toString());

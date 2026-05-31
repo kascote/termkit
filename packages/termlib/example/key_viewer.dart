@@ -152,8 +152,7 @@ class KeyViewer {
     } on Object catch (e, st) {
       final s = t.style;
       t
-        ..write(s()..fg(baseColors.error))
-        ..writeln('Error: $e')
+        ..writeln(s(fg: baseColors.error)('Error: $e'))
         ..writeln('$st');
     } finally {
       await _cleanup();
@@ -366,21 +365,21 @@ class KeyViewer {
         final mods = keyAndMods.substring(0, plusIdx + 1); // Include the '+'
         final key = keyAndMods.substring(plusIdx + 1);
 
-        final modStyle = t.style()..fg(colors.primary);
-        final keyStyle = t.style()..fg(colors.secondary);
+        final modStyle = t.style(fg: colors.primary);
+        final keyStyle = t.style(fg: colors.secondary);
 
         sb
           ..write(modStyle(mods))
           ..write(keyStyle(key));
       } else {
         // No modifiers
-        final keyStyle = t.style()..fg(colors.secondary);
+        final keyStyle = t.style(fg: colors.secondary);
         sb.write(keyStyle(keyAndMods));
       }
 
       // Event type (PRESS, RELEASE, REPEAT)
       if (parts.length > 1) {
-        final eventStyle = t.style()..fg(colors.muted);
+        final eventStyle = t.style(fg: colors.muted);
         sb
           ..write(' ')
           ..write(eventStyle(parts.sublist(1).join(' ')));
@@ -389,7 +388,7 @@ class KeyViewer {
 
     // Raw sequence part
     if (rawPart.isNotEmpty) {
-      final rawStyle = t.style()..fg(colors.accent);
+      final rawStyle = t.style(fg: colors.accent);
       sb
         ..write('    ')
         ..write(rawStyle(rawPart));

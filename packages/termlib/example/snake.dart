@@ -179,9 +179,9 @@ class SnakeGame {
 
   void redraw() {
     final s = _term.style;
-    final dataStyle = s()..fg(Color.fromString('webGray'));
-    final fruitStyle = s(fruitIcon)..fg(Color.fromString('orangeRed'));
-    final scoreStyle = s('Score: ${score.toString().padLeft(4)}')..fg(Color.fromString('gold'));
+    final dataStyle = s(fg: Color.fromString('webGray'));
+    final fruitStyle = s(fg: Color.fromString('orangeRed'));
+    final scoreStyle = s(fg: Color.fromString('gold'));
     final cl = colorLerp(_headColor, _tailColor);
 
     for (var i = 0; i < snake.length; i++) {
@@ -192,14 +192,14 @@ class SnakeGame {
       if (i == snake.length - 1) body = snakeBody[2];
 
       final c = cl(i / (snake.length - 1));
-      _term.write(s(body)..fg(c));
+      _term.write(s(fg: c)(body));
     }
     _term
       ..startSyncUpdate()
       ..writeAt(_lastTailPos.row, _lastTailPos.col, ' ')
-      ..writeAt(_fruitPos.row, _fruitPos.col, fruitStyle)
+      ..writeAt(_fruitPos.row, _fruitPos.col, fruitStyle(fruitIcon))
       ..writeAt(winRow, winCol + 5, dataStyle('╡ '))
-      ..write(scoreStyle)
+      ..write(scoreStyle('Score: ${score.toString().padLeft(4)}'))
       ..write(dataStyle(' ╞'))
       ..writeAt(
         winRow + rows,
@@ -212,7 +212,7 @@ class SnakeGame {
   void drawBoard() {
     final ts = _term.style;
     final c = status == Finish.lose ? Color.fromString('indianRed') : Color.fromString('webGray');
-    final s = ts()..fg(c);
+    final s = ts(fg: c);
 
     for (var i = 0; i < cols; i++) {
       _term
@@ -234,9 +234,9 @@ class SnakeGame {
 
   Future<bool> startPage() async {
     final s = _term.style;
-    final white = s()..fg(Color.white);
-    final gray = s()..fg(Color.fromString('webGray'));
-    final red = s()..fg(Color.red);
+    final white = s(fg: Color.white);
+    final gray = s(fg: Color.fromString('webGray'));
+    final red = s(fg: Color.red);
 
     _term
       ..writeAt(10, 10, white('S N A K E S'))

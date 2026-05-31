@@ -6,68 +6,62 @@ Future<int> main() async {
 }
 
 Future<int> display(InteractiveTerm term) async {
-  term.writeln(Style('ANSI 16 Colors:\n')..bold());
-  final resetCR = '${Style('')..resetStyle()}\n';
+  term.writeln(const Style(bold: true)('ANSI 16 Colors:\n'));
 
   for (var i = 0; i < 16; i++) {
-    if (i == 8) term.write(resetCR);
+    if (i == 8) term.writeln('');
     final clrNum = i.toString().padLeft(3);
 
-    final style = Style('  $clrNum  ', profile: ProfileEnum.ansi16)
-      ..bg(Color.ansi(i))
-      ..fg(i < 7 ? Color.gray : Color.black);
+    final style = Style(
+      bg: Color.ansi(i),
+      fg: i < 7 ? Color.gray : Color.black,
+      profile: ProfileEnum.ansi16,
+    );
 
-    term.write(style);
+    term.write(style('  $clrNum  '));
   }
   term
-    ..write('$resetCR$resetCR')
+    ..writeln('')
+    ..writeln('')
     ..writeln(
-      Style('ANSI 256 Colors:')
-        ..bold()
-        ..fg(Color.white)
-        ..bg(Color.reset)
-        ..resetStyle(),
+      const Style(bold: true, fg: Color.white, bg: Color.reset)('ANSI 256 Colors:'),
     );
 
   for (var i = 16; i < 232; i++) {
-    if ((i - 16) % 12 == 0) term.write(resetCR);
+    if ((i - 16) % 12 == 0) term.writeln('');
     final clrNum = i.toString().padLeft(3);
 
-    final style = Style('  $clrNum  ')
-      ..bg(Color.indexed(i))
-      ..fg(i < 28 ? Color.gray : Color.black);
+    final style = Style(
+      bg: Color.indexed(i),
+      fg: i < 28 ? Color.gray : Color.black,
+    );
 
-    term.write(style);
+    term.write(style('  $clrNum  '));
   }
   term
-    ..write('$resetCR$resetCR')
+    ..writeln('')
+    ..writeln('')
     ..writeln(
-      Style('Gray Scale Colors:')
-        ..bold()
-        ..fg(Color.white)
-        ..bg(Color.reset)
-        ..resetStyle(),
+      const Style(bold: true, fg: Color.white, bg: Color.reset)('Gray Scale Colors:'),
     );
 
   for (var i = 232; i < 256; i++) {
-    if ((i - 232) % 12 == 0) term.write(resetCR);
+    if ((i - 232) % 12 == 0) term.writeln('');
     final clrNum = i.toString().padLeft(3);
 
-    final style = Style('  $clrNum  ')
-      ..bg(Color.indexed(i))
-      ..fg(i < 244 ? Color.gray : Color.black);
+    final style = Style(
+      bg: Color.indexed(i),
+      fg: i < 244 ? Color.gray : Color.black,
+    );
 
-    term.write(style);
+    term.write(style('  $clrNum  '));
   }
 
   term
-    ..write('$resetCR$resetCR')
+    ..writeln('')
+    ..writeln('')
     ..writeln(
-      Style('True Colors:')
-        ..bold()
-        ..fg(Color.white)
-        ..bg(Color.reset)
-        ..resetStyle(),
+      const Style(bold: true, fg: Color.white, bg: Color.reset)('True Colors:'),
     );
 
   const cols = 80;
@@ -80,15 +74,17 @@ Future<int> display(InteractiveTerm term) async {
     final b = (i * 255 / total).floor(); // % 255;
     if (g > 255) g = 510 - g;
 
-    final style = Style('·', profile: ProfileEnum.trueColor)
-      ..fg(Color.fromRGBComponent(r, g, b))
-      ..bg(Color.fromRGBComponent(255 - r, 255 - g, 255 - b));
+    final style = Style(
+      fg: Color.fromRGBComponent(r, g, b),
+      bg: Color.fromRGBComponent(255 - r, 255 - g, 255 - b),
+      profile: ProfileEnum.trueColor,
+    );
 
-    if (i % cols == 0) term.write(resetCR);
+    if (i % cols == 0) term.writeln('');
 
-    term.write(style);
+    term.write(style('·'));
   }
 
-  term.write(resetCR);
+  term.writeln('');
   return 0;
 }

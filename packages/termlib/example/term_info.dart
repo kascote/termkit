@@ -33,6 +33,7 @@ Future<int> display(InteractiveTerm t) async {
   _showResult(t, theme, 'Sync update', info.syncUpdate, (v) => v.name);
   _showResult(t, theme, 'Unicode Core', info.unicodeCore, (v) => v.name);
   _showResult(t, theme, 'In-band resize', info.inBandResize, (v) => v.name);
+  _showResult(t, theme, 'Bracketed paste', info.bracketedPaste, (v) => v.name);
 
   _section(t, theme, 'Device Attributes');
   _showDeviceAttrs(t, theme, info.deviceAttrs);
@@ -46,11 +47,11 @@ Future<int> display(InteractiveTerm t) async {
 Theme _buildTheme(InteractiveTerm t) {
   final s = t.style;
   return (
-    green: s()..fg(Color.indexed(40)),
-    magenta: s()..fg(Color.indexed(201)),
-    yellow: s()..fg(Color.indexed(190)),
-    white: s()..fg(Color.indexed(15)),
-    text: s()..fg(Color.indexed(7)),
+    green: s(fg: Color.indexed(40)),
+    magenta: s(fg: Color.indexed(201)),
+    yellow: s(fg: Color.indexed(190)),
+    white: s(fg: Color.indexed(15)),
+    text: s(fg: Color.indexed(7)),
   );
 }
 

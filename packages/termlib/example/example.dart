@@ -12,7 +12,7 @@ Future<void> main() async {
     ..eraseClear()
     ..cursorHide()
     ..setTerminalTitle('My Terminal Application')
-    ..writeAt(5, 5, t.style('Hello, World!')..fg(color));
+    ..writeAt(5, 5, t.style(fg: color)('Hello, World!'));
 
   sleep(const Duration(seconds: 2));
 

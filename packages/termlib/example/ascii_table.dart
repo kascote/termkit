@@ -48,24 +48,12 @@ class AsciiTable {
     final s = _term.style;
 
     colors = (
-      codes: s()
-        ..fg(Color.fromString('aqua'))
-        ..bg(Color.reset),
-      text: s()
-        ..fg(Color.fromString('darkGray'))
-        ..bg(Color.reset),
-      cursor: s()
-        ..fg(Color.fromString('white'))
-        ..bg(Color.fromString('darkRed')),
-      cursorSide: s()
-        ..fg(Color.fromString('red'))
-        ..bg(Color.fromString('darkRed')),
-      muted: s()
-        ..fg(Color.fromString('dimGray'))
-        ..bg(Color.reset),
-      hotKeys: s()
-        ..fg(Color.fromString('white'))
-        ..bg(Color.fromString('dimGray')),
+      codes: s(fg: Color.fromString('aqua'), bg: Color.reset),
+      text: s(fg: Color.fromString('darkGray'), bg: Color.reset),
+      cursor: s(fg: Color.fromString('white'), bg: Color.fromString('darkRed')),
+      cursorSide: s(fg: Color.fromString('red'), bg: Color.fromString('darkRed')),
+      muted: s(fg: Color.fromString('dimGray'), bg: Color.reset),
+      hotKeys: s(fg: Color.fromString('white'), bg: Color.fromString('dimGray')),
     );
   }
 

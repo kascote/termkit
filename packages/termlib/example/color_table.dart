@@ -12,7 +12,6 @@ Future<int> display(InteractiveTerm term) async {
   final t = term;
   const black = Color.black;
   const white = Color.darkGray;
-  final resetCR = '${Style('')..resetStyle()}\n';
 
   t.writeln('How 256 colors downgrades to 16 colors\n');
 
@@ -21,23 +20,19 @@ Future<int> display(InteractiveTerm term) async {
     final c16 = c256.convert(ColorKind.ansi);
     final lum16 = colorLuminance(Color.fromRGB(ansi.ansiHex[c16.value]));
 
-    if (i % 12 == 0) t.write(resetCR);
+    if (i % 12 == 0) t.writeln('');
 
-    final style16 = Style('[${c16.value.toString().padLeft(2)}]')
-      ..bg(c16)
-      ..fg(lum16 < 0.2 ? white : black);
+    final style16 = Style(bg: c16, fg: lum16 < 0.2 ? white : black);
 
     final lum256 = colorLuminance(Color.fromRGB(ansi.ansiHex[c256.value]));
-    final style256 = Style(' ${i.toString().padLeft(3)} ')
-      ..bg(c256)
-      ..fg(lum256 < 0.2 ? white : black);
+    final style256 = Style(bg: c256, fg: lum256 < 0.2 ? white : black);
 
     t
-      ..write(style16)
-      ..write(style256)
+      ..write(style16('[${c16.value.toString().padLeft(2)}]'))
+      ..write(style256(' ${i.toString().padLeft(3)} '))
       ..write(' ');
   }
 
-  t.write(resetCR);
+  t.writeln('');
   return 0;
 }

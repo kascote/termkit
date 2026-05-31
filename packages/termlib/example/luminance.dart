@@ -66,10 +66,9 @@ Future<int> display(InteractiveTerm t) async {
   ];
 
   t.writeln(
-    t.style("${'Dark'.padRight(35)}${'Light'.padRight(26)}")
-      ..underline(Color.yellow)
-      ..bg(Color.reset)
-      ..resetStyle(),
+    t.style(underline: Underline.single, underlineColor: Color.yellow, bg: Color.reset)(
+      "${'Dark'.padRight(35)}${'Light'.padRight(26)}",
+    ),
   );
   for (final entry in colors) {
     showColor(t, entry[0].name, entry[0].color);
@@ -85,18 +84,8 @@ void showColor(InteractiveTerm t, String name, String color) {
   final clr = Color.fromString(color);
   final luminance = colorLuminance(clr);
   t
-    ..write(
-      t.style(name.padRight(15))
-        ..faint()
-        ..bg(Color.reset)
-        ..resetStyle(),
-    )
-    ..write(t.style('     ')..bg(clr))
-    ..write(t.style(' ')..bg(Color.reset))
-    ..write(
-      t.style(luminance.toStringAsFixed(3))
-        ..faint()
-        ..bg(Color.reset)
-        ..resetStyle(),
-    );
+    ..write(t.style(faint: true, bg: Color.reset)(name.padRight(15)))
+    ..write(t.style(bg: clr)('     '))
+    ..write(t.style(bg: Color.reset)(' '))
+    ..write(t.style(faint: true, bg: Color.reset)(luminance.toStringAsFixed(3)));
 }

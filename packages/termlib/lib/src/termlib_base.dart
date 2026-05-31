@@ -84,7 +84,34 @@ sealed class Term {
   bool get hasOutputTerminal => _b.stdout.hasTerminal;
 
   /// Returns a [Style] object for the current profile.
-  Style style([String content = '']) => Style(content, profile: profile);
+  Style style({
+    Color? fg,
+    Color? bg,
+    bool bold = false,
+    bool faint = false,
+    bool italic = false,
+    bool blink = false,
+    bool reverse = false,
+    bool crossOut = false,
+    bool overline = false,
+    Underline underline = Underline.none,
+    Color? underlineColor,
+  }) {
+    return Style(
+      fg: fg,
+      bg: bg,
+      bold: bold,
+      faint: faint,
+      italic: italic,
+      blink: blink,
+      reverse: reverse,
+      crossOut: crossOut,
+      overline: overline,
+      underline: underline,
+      underlineColor: underlineColor,
+      profile: profile,
+    );
+  }
 
   /// Write the object's string representation to stdout.
   void write(Object s) => _b.stdout.write(s);

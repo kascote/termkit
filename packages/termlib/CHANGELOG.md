@@ -1,6 +1,7 @@
 ## unreleased
 
-- breaking change (Phase 2 — API shape):
+- breaking change: refactor Style class
+- breaking change:
   - `TermLib` replaced by sealed `Term` with factory `Term.open({TermBackend? backend})` returning `InteractiveTerm` (tty stdin) or `PipedTerm` (piped stdin). Users dispatch via pattern matching.
   - `poll<T>()` renamed to `tryEvent<T>()` and now returns `T?` (no more `NoneEvent` sentinel).
   - `pollTimeout<T>({int timeout})` renamed to `awaitEvent<T>({Duration? timeout})`, returns `Future<T?>` (null on timeout).

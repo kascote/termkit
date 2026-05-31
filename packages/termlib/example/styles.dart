@@ -6,8 +6,6 @@ Future<int> main() async {
 }
 
 Future<int> display(InteractiveTerm t) async {
-  final resetCR = '${Style('')..resetStyle()}\n';
-
   final colors = [
     [center('black', 10), Color.black, Color.white],
     [center('red', 10), Color.red, Color.white],
@@ -20,20 +18,12 @@ Future<int> display(InteractiveTerm t) async {
   ];
 
   for (final color in colors) {
-    final lhs = t.style(color[0] as String)
-      ..fg(color[1] as Color)
-      ..bg(Color.reset);
-    final rhs = t.style(color[0] as String)
-      ..fg(color[2] as Color)
-      ..bg(color[1] as Color);
-    t.writeln(
-      t.style(' $lhs \t $rhs')
-        ..bg(Color.reset)
-        ..resetStyle(),
-    );
+    final lhs = t.style(fg: color[1] as Color, bg: Color.reset)(color[0] as String, reset: false);
+    final rhs = t.style(fg: color[2] as Color, bg: color[1] as Color)(color[0] as String, reset: false);
+    t.writeln(t.style(bg: Color.reset)(' $lhs \t $rhs'));
   }
 
-  t.writeln(resetCR);
+  t.writeln('');
 
   final styles = [
     [center('bold', 15), TextStyle.bold],
@@ -51,25 +41,17 @@ Future<int> display(InteractiveTerm t) async {
   ];
 
   for (final style in styles) {
-    final s = t.style(style[0] as String)
-      ..apply(style[1] as TextStyle)
-      ..fg(Color.white)
-      ..resetStyle();
+    final s = t.style(fg: Color.white).apply(style[1] as TextStyle);
 
-    t.writeln(s);
+    t.writeln(s(style[0] as String));
   }
 
   t
     ..writeln(
-      ' ${t.style('underline color')
-        ..fg(Color.indexed(160))
-        ..curlyUnderline(Color.indexed(120))
-        ..resetStyle()}',
+      ' ${t.style(fg: Color.indexed(160), underline: Underline.curly, underlineColor: Color.indexed(120))('underline color')}',
     )
     ..writeln(
-      ' ${t.style('underline color')
-        ..dottedUnderline(Color.indexed(196))
-        ..resetStyle()}',
+      ' ${t.style(underline: Underline.dotted, underlineColor: Color.indexed(196))('underline color')}',
     );
 
   return 0;
