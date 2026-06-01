@@ -1,6 +1,4 @@
-import 'package:termansi/termansi.dart' as ansi;
-
-import '../termlib_base.dart';
+part of '../termlib_base.dart';
 
 /// Eraser handling functions
 extension EraseUtils on InteractiveTerm {

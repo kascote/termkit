@@ -1,9 +1,4 @@
-import 'package:termansi/termansi.dart' as ansi;
-import 'package:termparser/termparser_events.dart';
-
-import '../probe/raw_queries.dart';
-import '../termlib_base.dart';
-import 'term.dart';
+part of '../termlib_base.dart';
 
 /// Cursor handling functions
 extension CursorUtils on InteractiveTerm {

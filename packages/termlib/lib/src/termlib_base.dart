@@ -1,14 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show exit, stderr;
 
+import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser.dart';
 import 'package:termparser/termparser_events.dart';
 
 import './colors.dart';
 import './event_queue.dart';
-import './extensions/cursor.dart';
-import './extensions/term.dart';
+import './extensions/types.dart';
 import './probe/probe.dart';
+import './probe/raw_queries.dart';
 import './probe/term_info.dart';
 import './readline.dart';
 import './shared/color_util.dart';
@@ -18,6 +20,10 @@ import './style.dart';
 export './event_queue.dart' show QueueOverflowEvent, TermDisposed, TerminalNotInteractive;
 export './shared/term_backend.dart' show EnvironmentData, TermBackend;
 export './shared/term_sink.dart' show BufferTermSink, TermSink;
+
+part './extensions/cursor.dart';
+part './extensions/erase.dart';
+part './extensions/term.dart';
 
 /// Record that represent a coordinate position
 typedef Pos = ({int row, int col});

@@ -1,10 +1,4 @@
-import 'dart:convert';
-
-import 'package:termansi/termansi.dart' as ansi;
-import 'package:termlib/termlib.dart';
-import 'package:termparser/termparser_events.dart';
-
-import '../probe/raw_queries.dart';
+part of '../termlib_base.dart';
 
 /// Default timeout to wait for terminal query responses.
 ///

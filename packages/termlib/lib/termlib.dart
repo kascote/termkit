@@ -5,9 +5,6 @@
 library;
 
 export 'src/colors.dart';
-export 'src/extensions/cursor.dart';
-export 'src/extensions/erase.dart';
-export 'src/extensions/term.dart';
 export 'src/extensions/types.dart';
 export 'src/key_binding.dart';
 export 'src/probe/probe.dart';

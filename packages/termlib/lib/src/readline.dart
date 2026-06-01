@@ -3,9 +3,6 @@ import 'package:meta/meta.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:termunicode/termunicode.dart' show widthString;
 
-import 'extensions/cursor.dart';
-import 'extensions/erase.dart';
-import 'extensions/term.dart';
 import 'key_binding.dart';
 import 'probe/query_result.dart';
 import 'probe/term_info.dart';
