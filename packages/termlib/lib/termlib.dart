@@ -13,6 +13,7 @@ export 'src/key_binding.dart';
 export 'src/probe/probe.dart';
 export 'src/probe/query_result.dart';
 export 'src/probe/term_info.dart';
+export 'src/readline.dart' show ReadlineAction, ReadlineOptions;
 export 'src/style.dart';
 export 'src/term_runner.dart';
 export 'src/termlib_base.dart';

@@ -488,57 +488,6 @@ void main() {
       });
     });
 
-    test(
-      'readLine must read input until ENTER',
-      () async {
-        await mockedTest(
-          (term, out, tos) async {
-            final line = await term.readLine();
-            expect(line, 'hello world');
-            expect(out.output, 'hello world');
-            expect(tos.callStack[0], 'enableRawMode');
-            expect(tos.callStack[1], 'disableRawMode');
-          },
-          stdin: streamString('hello world\n'),
-        );
-      },
-      skip: true,
-    );
-
-    test(
-      'readLine must return empty if kit ESC is pressed',
-      () async {
-        await mockedTest(
-          (term, out, tos) async {
-            final line = await term.readLine();
-            expect(line, '');
-            expect(out.output, '');
-            expect(tos.callStack[0], 'enableRawMode');
-            expect(tos.callStack[1], 'disableRawMode');
-          },
-          stdin: streamString('hello world\x1B'),
-        );
-      },
-      skip: true,
-    );
-
-    test(
-      'readLine must support initialize the buffer with some text',
-      () async {
-        await mockedTest(
-          (term, out, tos) async {
-            final line = await term.readLine('bananas');
-            expect(line, 'bananas hello world');
-            expect(out.output, 'bananas hello world');
-            expect(tos.callStack[0], 'enableRawMode');
-            expect(tos.callStack[1], 'disableRawMode');
-          },
-          stdin: streamString(' hello world\n'),
-        );
-      },
-      skip: true,
-    );
-
     test('nextEvent() must block until event arrives', () async {
       final controller = StreamController<List<int>>.broadcast();
       await mockedTest(

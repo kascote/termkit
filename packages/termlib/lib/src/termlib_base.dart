@@ -368,15 +368,22 @@ final class InteractiveTerm extends Term {
   }
 
   /// Read a line from the terminal with basic editing. Returns null on ESC.
-  Future<String?> readLine([String initBuffer = '']) async {
-    return (await Readline.create(this, initBuffer)).read();
+  Future<String?> readLine([ReadlineOptions options = const ReadlineOptions()]) {
+    return Readline(this, options).read();
   }
 
-  /// Probe terminal capabilities.
+  /// The most recent [probe] result, or null if [probe] was never called.
+  ///
+  /// Cached so capability-dependent helpers can rely on a single probe instead
+  /// of re-querying the terminal on every call.
+  TermInfo? get termInfo => _termInfo;
+  TermInfo? _termInfo;
+
+  /// Probe terminal capabilities. The result is cached in [termInfo].
   Future<TermInfo> probe({
     Set<ProbeQuery> skip = const {},
     int timeout = 500,
-  }) => probeTerminal(this, skip: skip, timeout: timeout);
+  }) async => _termInfo = await probeTerminal(this, skip: skip, timeout: timeout);
 
   /// Dispose event plumbing. Pending [awaitEvent]/[nextEvent] futures
   /// complete with [TermDisposed].

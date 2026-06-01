@@ -17,11 +17,13 @@ resolution: workspace
 
 # Add regular dependencies here.
 dependencies:
+  characters: ^1.3.0
   equatable: ^2.0.5
   ffi: ^2.1.0
   meta: ^1.15.0
   termansi: ^0.4.0
   termparser: ^0.4.0
+  termunicode: ^0.2.0
   win32: ^5.5.3
 
 dev_dependencies:
