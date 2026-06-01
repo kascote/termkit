@@ -329,6 +329,84 @@ void main() {
         await eventController.close();
       });
     });
+
+    // term.probe() (the InteractiveTerm method, not the bare probeTerminal
+    // function) seeds the live tracked mode state from the probe result, so
+    // later withModes save/restore starts from the terminal's actual state.
+    // Seeding is internal; it is observed here through restore behavior: a
+    // scope that force-disables a seeded-on mode must re-enable it on exit.
+    group('mode seeding (term.probe) >', () {
+      // Probe only [keep]; everything else is skipped.
+      Set<ProbeQuery> only(ProbeQuery keep) => ProbeQuery.values.where((q) => q != keep).toSet();
+
+      test('seeds bracketed paste enabled → withModes restores it on', () async {
+        final eventController = StreamController<Event>.broadcast();
+        final out = BufferTermSink();
+
+        await mockedTest(
+          (term, _, _) async {
+            final probeFuture = term.probe(skip: only(ProbeQuery.bracketedPaste), timeout: 50);
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            eventController.add(QueryBracketedPasteEvent(1)); // enabled
+            await probeFuture;
+
+            await term.withModes(() async {}, bracketedPaste: false);
+            await term.dispose();
+          },
+          stdout: out,
+          eventSource: eventController.stream,
+        );
+
+        // Entry disabled it; exit restored to the seeded-on state.
+        expect(out.output, contains('\x1b[?2004h'));
+        await eventController.close();
+      });
+
+      test('seeds in-band resize enabled → withModes restores it on', () async {
+        final eventController = StreamController<Event>.broadcast();
+        final out = BufferTermSink();
+
+        await mockedTest(
+          (term, _, _) async {
+            final probeFuture = term.probe(skip: only(ProbeQuery.inBandResize), timeout: 50);
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            eventController.add(QueryWindowResizeEvent(1)); // enabled
+            await probeFuture;
+
+            await term.withModes(() async {}, inBandResize: false);
+            await term.dispose();
+          },
+          stdout: out,
+          eventSource: eventController.stream,
+        );
+
+        expect(out.output, contains('\x1b[?2048h'));
+        await eventController.close();
+      });
+
+      test('an unknown (notRecognized) result is not seeded → restores off', () async {
+        final eventController = StreamController<Event>.broadcast();
+        final out = BufferTermSink();
+
+        await mockedTest(
+          (term, _, _) async {
+            final probeFuture = term.probe(skip: only(ProbeQuery.bracketedPaste), timeout: 50);
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            eventController.add(QueryBracketedPasteEvent(0)); // notRecognized → unknown
+            await probeFuture;
+
+            await term.withModes(() async {}, bracketedPaste: false);
+            await term.dispose();
+          },
+          stdout: out,
+          eventSource: eventController.stream,
+        );
+
+        // Not seeded: prior stays at the default (off), so exit re-disables.
+        expect(out.output, isNot(contains('\x1b[?2004h')));
+        await eventController.close();
+      });
+    });
   });
 
   group('QueryResult >', () {

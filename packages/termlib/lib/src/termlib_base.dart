@@ -11,6 +11,7 @@ import './colors.dart';
 import './event_queue.dart';
 import './extensions/types.dart';
 import './probe/probe.dart';
+import './probe/query_result.dart';
 import './probe/raw_queries.dart';
 import './probe/term_info.dart';
 import './readline.dart';
@@ -450,11 +451,73 @@ final class InteractiveTerm extends Term {
   TermInfo? get termInfo => _termInfo;
   TermInfo? _termInfo;
 
-  /// Probe terminal capabilities. The result is cached in [termInfo].
+  /// Probe terminal capabilities. The result is cached in [termInfo] and seeds
+  /// the live tracked mode state ([_seedModesFromProbe]) so subsequent
+  /// `withModes` save/restore starts from the terminal's actual state rather
+  /// than assumed defaults.
   Future<TermInfo> probe({
     Set<ProbeQuery> skip = const {},
     int timeout = 500,
-  }) async => _termInfo = await probeTerminal(this, skip: skip, timeout: timeout);
+  }) async {
+    final info = await probeTerminal(this, skip: skip, timeout: timeout);
+    _termInfo = info;
+    _seedModesFromProbe(info);
+    return info;
+  }
+
+  /// Seeds [_modes] from a fresh [TermInfo].
+  ///
+  /// Seed mode M ⟺ M has a probe query **and** that query returned a definite
+  /// state (`enabled`/`disabled`; for keyboard: any flags). `unknown` /
+  /// `Unavailable` results are not seeded — those modes keep their current
+  /// (default) tracked value. `syncUpdate` is deliberately not a mode (§3.5).
+  void _seedModesFromProbe(TermInfo info) {
+    bool? definite(QueryResult<Object> r, bool Function(Object) isEnabled, bool Function(Object) isDisabled) {
+      return switch (r) {
+        Supported(:final value) when isEnabled(value) => true,
+        Supported(:final value) when isDisabled(value) => false,
+        _ => null,
+      };
+    }
+
+    _modes = _modes.copyWith(
+      bracketedPaste: definite(
+        info.bracketedPaste,
+        (v) => v == BracketedPasteStatus.enabled,
+        (v) => v == BracketedPasteStatus.disabled,
+      ),
+      inBandResize: definite(
+        info.inBandResize,
+        (v) => v == InBandResizeStatus.enabled,
+        (v) => v == InBandResizeStatus.disabled,
+      ),
+      unicodeCore: definite(
+        info.unicodeCore,
+        (v) => v == UnicodeCoreStatus.enabled,
+        (v) => v == UnicodeCoreStatus.disabled,
+      ),
+    );
+
+    // Keyboard enhancement seeds the flags value directly: a definite
+    // result is any reported KeyboardFlags, even all-zero (which tracks as
+    // disabled). withKeyboardFlags is used because copyWith treats a null
+    // keyboardFlags as "leave unchanged".
+    if (info.keyboardCapabilities case Supported(:final value)) {
+      _modes = _modes.withKeyboardFlags(_keyboardFlagsToEvent(value));
+    }
+  }
+
+  /// Converts probe [KeyboardFlags] into the [KeyboardEnhancementFlagsEvent]
+  /// value tracked by [TermModes].
+  KeyboardEnhancementFlagsEvent _keyboardFlagsToEvent(KeyboardFlags f) {
+    var bits = 0;
+    if (f.disambiguateEscapeCodes) bits |= KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes;
+    if (f.reportEventTypes) bits |= KeyboardEnhancementFlagsEvent.reportEventTypes;
+    if (f.reportAlternateKeys) bits |= KeyboardEnhancementFlagsEvent.reportAlternateKeys;
+    if (f.reportAllKeysAsEscapeCodes) bits |= KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes;
+    if (f.reportAssociatedText) bits |= KeyboardEnhancementFlagsEvent.reportAssociatedText;
+    return KeyboardEnhancementFlagsEvent(bits);
+  }
 
   /// Dispose event plumbing. Pending [awaitEvent]/[nextEvent] futures
   /// complete with [TermDisposed].
