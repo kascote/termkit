@@ -260,7 +260,7 @@ void main() {
       expect(r.result, 'hi');
     });
 
-    test('relies on a prior probe (TermInfo) to enable bracketed paste', () async {
+    test('does not derive bracketed paste from a prior probe', () async {
       final out = BufferTermSink();
       await mockedTest(
         (term, _, _) async {
@@ -293,8 +293,11 @@ void main() {
           enter,
         ]),
       );
-      // readLine picked up support from the cached probe — no re-query.
-      expect(out.output, contains('\x1b[?2004h'));
+      // readLine no longer reads TermInfo: with the default (false = don't
+      // manage) it inherits the host's state and toggles nothing. A probe
+      // setting termInfo must not, by itself, make readline emit the escape.
+      expect(out.output, isNot(contains('\x1b[?2004h')));
+      expect(out.output, isNot(contains('\x1b[?2004l')));
     });
 
     test('paste event still handled even on the fallback path', () async {

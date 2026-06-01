@@ -4,8 +4,6 @@ import 'package:termparser/termparser_events.dart';
 import 'package:termunicode/termunicode.dart' show widthString;
 
 import 'key_binding.dart';
-import 'probe/query_result.dart';
-import 'probe/term_info.dart';
 import 'style.dart';
 import 'termlib_base.dart';
 
@@ -72,8 +70,8 @@ final class ReadlineOptions {
     this.prompt,
     this.promptStyle,
     this.keyBinding,
-    this.bracketedPaste,
-    this.inBandResize,
+    this.bracketedPaste = false,
+    this.inBandResize = false,
   });
 
   /// Initial text. Cut at the first newline, then truncated to [maxLength].
@@ -104,22 +102,23 @@ final class ReadlineOptions {
   /// Override key bindings. `null` uses the defaults.
   final KeyBinding<ReadlineAction>? keyBinding;
 
-  /// Whether to use bracketed paste.
+  /// Whether to manage bracketed paste for the readline session.
   ///
-  /// `null` (default) derives support from [InteractiveTerm.termInfo] — i.e.
-  /// the result of a prior [InteractiveTerm.probe] (no support assumed if the
-  /// terminal was never probed). Set explicitly to force on/off.
-  final bool? bracketedPaste;
+  /// `false` (default) = don't manage: the mode is left as the host left it, so
+  /// a readline running inside a paste-enabled host keeps paste working and a
+  /// bare script that never enabled it doesn't get it. `true` = force-enable for
+  /// the readline session only, restoring the prior state on return.
+  final bool bracketedPaste;
 
-  /// Whether to enable in-band window resize reporting.
+  /// Whether to manage in-band window resize reporting for the readline session.
   ///
   /// When enabled, the terminal sends a [WindowResizeEvent] on resize and the
   /// widget reflows immediately (instead of only on the next keypress).
   ///
-  /// `null` (default) derives support from [InteractiveTerm.termInfo] — i.e.
-  /// the result of a prior [InteractiveTerm.probe] (no support assumed if the
-  /// terminal was never probed). Set explicitly to force on/off.
-  final bool? inBandResize;
+  /// `false` (default) = don't manage (inherit the host's setting). `true` =
+  /// force-enable for the readline session only, restoring the prior state on
+  /// return.
+  final bool inBandResize;
 }
 
 /// A visual line described by a `[start, end)` range of grapheme indices.
@@ -185,14 +184,20 @@ class Readline {
   /// Rows used by the previous paint (so the next paint can clear leftovers).
   int _renderedRows = 1;
 
-  /// Whether the terminal supports bracketed paste (probed at startup).
-  bool _bracketedPaste = false;
-
-  /// Whether in-band window resize reporting is active (probed at startup).
-  bool _inBandResize = false;
-
   /// Starts reading from the keyboard.
-  Future<String?> read() => term.withModes<String?>(_read, rawMode: true);
+  ///
+  /// Readline owns line-wrapping for its lifetime (it places every visual line
+  /// itself; a full-width row would otherwise scroll a phantom line in) and
+  /// restores it on return. Bracketed paste / in-band resize are managed only
+  /// when opted in via [ReadlineOptions]; otherwise they inherit the host's
+  /// state (good-citizen — see §3.3).
+  Future<String?> read() => term.withModes<String?>(
+        _read,
+        rawMode: true,
+        lineWrapping: false,
+        bracketedPaste: options.bracketedPaste ? true : null,
+        inBandResize: options.inBandResize ? true : null,
+      );
 
   // --- width helpers -------------------------------------------------------
 
@@ -295,53 +300,7 @@ class Readline {
     final pos = await term.cursorPosition;
     _startRow = pos?.row ?? 1;
     _startCol = pos?.col ?? 1;
-    _bracketedPaste = _resolveBracketedPaste();
-    _inBandResize = _resolveInBandResize();
-
-    // We place every visual line ourselves; let the terminal never insert its
-    // own break (writing a full-width row would otherwise scroll a phantom
-    // line in). Bracketed paste, when supported, keeps pasted newlines out of
-    // the key stream; otherwise paste degrades to the raw-key path. In-band
-    // resize, when supported, delivers a WindowResizeEvent so the widget
-    // reflows on resize instead of only on the next keypress.
-    term.disableLineWrapping();
-    if (_bracketedPaste) term.enableBracketedPaste();
-    if (_inBandResize) term.enableInBandResize();
-    try {
-      return await _loop();
-    } finally {
-      term.enableLineWrapping();
-      if (_bracketedPaste) term.disableBracketedPaste();
-      if (_inBandResize) term.disableInBandResize();
-    }
-  }
-
-  /// Resolves bracketed-paste support without re-querying the terminal.
-  ///
-  /// Honors an explicit [ReadlineOptions.bracketedPaste]; otherwise reads the
-  /// cached [InteractiveTerm.termInfo] from a prior probe. A terminal that was
-  /// never probed is treated as unsupported (paste degrades to raw keys).
-  bool _resolveBracketedPaste() {
-    final override = options.bracketedPaste;
-    if (override != null) return override;
-    return switch (term.termInfo?.bracketedPaste) {
-      Supported(value: BracketedPasteStatus.enabled || BracketedPasteStatus.disabled) => true,
-      _ => false,
-    };
-  }
-
-  /// Resolves in-band resize support without re-querying the terminal.
-  ///
-  /// Honors an explicit [ReadlineOptions.inBandResize]; otherwise reads the
-  /// cached [InteractiveTerm.termInfo] from a prior probe. A terminal that was
-  /// never probed is treated as unsupported.
-  bool _resolveInBandResize() {
-    final override = options.inBandResize;
-    if (override != null) return override;
-    return switch (term.termInfo?.inBandResize) {
-      Supported(value: InBandResizeStatus.enabled || InBandResizeStatus.disabled) => true,
-      _ => false,
-    };
+    return _loop();
   }
 
   Future<String?> _loop() async {
