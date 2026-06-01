@@ -361,20 +361,81 @@ final class InteractiveTerm extends Term {
   /// Current buffered length of the internal event queue. Read-only diagnostic.
   int get queueLength => _eventQueue?.length ?? 0;
 
-  /// Run [fn] with raw mode enabled, restoring prior state on return.
-  T withRawMode<T>(T Function() fn) {
-    final original = _setRawMode(true);
-    try {
-      return fn();
-    } finally {
-      _setRawMode(original);
-    }
-  }
+  /// Run [fn] with the named terminal modes applied, restoring each to the
+  /// state it had at scope entry once [fn] completes (normally or with error).
+  ///
+  /// Each mode param is three-state:
+  ///
+  /// - `null`  → **not managed**: untouched, inherits whatever the outer scope
+  ///   set. An inner scope never clobbers an outer scope's settings.
+  /// - `true`  → ensure **on** for the duration, restore prior tracked value.
+  /// - `false` → ensure **off** for the duration, restore prior tracked value.
+  ///
+  /// [keyboardEnhancement] carries the same three states via
+  /// [KeyboardEnhancement] (`null` = not managed). When managed it is applied
+  /// and restored through the kitty push/pop stack rather than cell-replay: the
+  /// terminal restores the prior flags itself, which is correct even when the
+  /// prior value was never known (§3.7).
+  ///
+  /// **Serial-only.** Scopes must be strictly **nested or sequential** — never
+  /// two `withModes` calls concurrently pending (each with an `await` in
+  /// flight). The tracked state is a single mutable cell; interleaved
+  /// save/restore is no longer LIFO and leaves the wrong final state. This is
+  /// not a new constraint — two pending scopes already mean two flows driving
+  /// one physical terminal (the classic termios save/restore assumption). It is
+  /// documented, not guarded: a correct nesting-vs-interleaving guard needs
+  /// `Zone` tracking the library deliberately avoids.
+  Future<T> withModes<T>(
+    Future<T> Function() fn, {
+    bool? rawMode,
+    bool? alternateScreen,
+    bool? mouseEvents,
+    KeyboardEnhancement? keyboardEnhancement,
+    bool? bracketedPaste,
+    bool? inBandResize,
+    bool? lineWrapping,
+    bool? cursorVisible,
+  }) async {
+    // Restore actions run in reverse (LIFO) on exit. Built incrementally as
+    // each mode is applied, so a mid-apply failure still restores the modes
+    // that were already applied (partial-apply restore).
+    final restores = <void Function()>[];
 
-  /// Async variant of [withRawMode].
-  Future<T> withRawModeAsync<T>(Future<T> Function() fn) async {
-    final original = _setRawMode(true);
-    return fn().whenComplete(() => _setRawMode(original));
+    void manage(bool? want, TerminalMode mode, void Function() enable, void Function() disable) {
+      if (want == null) return;
+      final prior = _modes.isEnabled(mode);
+      (want ? enable : disable)();
+      restores.add(prior ? enable : disable);
+    }
+
+    try {
+      // Apply loop sits inside the try so a throwing toggle still triggers the
+      // finally and restores whatever was applied before it.
+      manage(rawMode, TerminalMode.rawMode, enableRawMode, disableRawMode);
+      manage(alternateScreen, TerminalMode.alternateScreen, enableAlternateScreen, disableAlternateScreen);
+      manage(mouseEvents, TerminalMode.mouseEvents, enableMouseEvents, disableMouseEvents);
+      manage(bracketedPaste, TerminalMode.bracketedPaste, enableBracketedPaste, disableBracketedPaste);
+      manage(inBandResize, TerminalMode.inBandResize, enableInBandResize, disableInBandResize);
+      manage(lineWrapping, TerminalMode.lineWrapping, enableLineWrapping, disableLineWrapping);
+      manage(cursorVisible, TerminalMode.cursorVisible, cursorShow, cursorHide);
+
+      if (keyboardEnhancement != null) {
+        final priorFlags = _modes.keyboardFlags;
+        pushKeyboardFlags(keyboardEnhancement.flags);
+        restores.add(() {
+          // The terminal restores the prior flags from its own stack; pop is
+          // untracked, so reset the cell to the value captured at entry.
+          popKeyboardFlags();
+          _modes = _modes.withKeyboardFlags(priorFlags);
+        });
+      }
+
+      return await fn();
+    } finally {
+      for (final restore in restores.reversed) {
+        restore();
+      }
+    }
   }
 
   /// Read a line from the terminal with basic editing. Returns null on ESC.

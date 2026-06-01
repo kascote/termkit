@@ -413,20 +413,10 @@ void main() {
       );
     });
 
-    test('withRawMode must enable/disable raw mode while executing the callback', () async {
+    test('withModes(rawMode: true) must enable/disable raw mode while executing the callback', () async {
       var ran = false;
       await mockedTest((term, _, tos) async {
-        term.withRawMode(() => ran = true);
-        expect(tos.callStack[0], 'enableRawMode');
-        expect(tos.callStack[1], 'disableRawMode');
-        expect(ran, true);
-      });
-    });
-
-    test('withRawModeAsync must enable/disable raw mode while execute callback', () async {
-      var ran = false;
-      await mockedTest((term, _, tos) async {
-        await term.withRawModeAsync(() async => ran = true);
+        await term.withModes(() async => ran = true, rawMode: true);
         expect(tos.callStack[0], 'enableRawMode');
         expect(tos.callStack[1], 'disableRawMode');
         expect(ran, true);

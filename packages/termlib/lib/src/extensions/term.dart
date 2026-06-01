@@ -80,7 +80,7 @@ extension TermUtils on InteractiveTerm {
   ///
   /// ref: <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>
   Future<QueryBracketedPasteEvent?> queryBracketedPaste({int timeout = defaultQueryTimeout}) {
-    return withRawModeAsync<QueryBracketedPasteEvent?>(() => rawQueryBracketedPaste(timeout));
+    return withModes<QueryBracketedPasteEvent?>(() => rawQueryBracketedPaste(timeout), rawMode: true);
   }
 
   /// Scroll the terminal up by the specified number of rows.
@@ -100,42 +100,42 @@ extension TermUtils on InteractiveTerm {
 
   /// Query Sync status
   Future<QuerySyncUpdateEvent?> querySyncUpdate({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<QuerySyncUpdateEvent?>(() => rawQuerySyncUpdateStatus(timeout));
+    return withModes<QuerySyncUpdateEvent?>(() => rawQuerySyncUpdateStatus(timeout), rawMode: true);
   }
 
   /// Request terminal name and version
   Future<String> queryTerminalVersion({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<String>(() async {
+    return withModes<String>(() async {
       final event = await rawQueryTerminalVersion(timeout);
       return event?.value ?? '';
-    });
+    }, rawMode: true);
   }
 
   /// Returns the current terminal status report.
   Future<Color?> queryOSCStatus(int status, {int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<Color?>(() async {
+    return withModes<Color?>(() async {
       final event = await rawQueryColor(status, timeout);
       return (event != null) ? Color.fromRGBComponent(event.r, event.g, event.b) : null;
-    });
+    }, rawMode: true);
   }
 
   /// Query Keyboard enhancement support
   Future<bool> queryKeyboardEnhancementSupport({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<bool>(() async {
+    return withModes<bool>(() async {
       write(ansi.Term.queryKeyboardEnhancementSupport);
       final event = await awaitEvent<KeyboardEnhancementFlagsEvent>(timeout: Duration(milliseconds: timeout));
       return event != null;
-    });
+    }, rawMode: true);
   }
 
   /// Query Primary Device Attributes
   Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<PrimaryDeviceAttributesEvent?>(() => rawQueryDeviceAttrs(timeout));
+    return withModes<PrimaryDeviceAttributesEvent?>(() => rawQueryDeviceAttrs(timeout), rawMode: true);
   }
 
   /// Query Terminal window size in pixels
   Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<QueryTerminalWindowSizeEvent?>(() => rawQueryWindowSizePixels(timeout));
+    return withModes<QueryTerminalWindowSizeEvent?>(() => rawQueryWindowSizePixels(timeout), rawMode: true);
   }
 
   /// Set Clipboard content
@@ -156,17 +156,17 @@ extension TermUtils on InteractiveTerm {
   /// Can use the timeout parameter to wait for longer time if the terminal
   /// use some interface to request permissions.
   Future<ClipboardCopyEvent?> queryClipboard(Clipboard clipboard, {int timeout = defaultQueryTimeout}) {
-    return withRawModeAsync<ClipboardCopyEvent?>(() async {
+    return withModes<ClipboardCopyEvent?>(() async {
       write(ansi.Term.clipboard(clipboard.target, ClipboardMode.query.mode));
       return awaitEvent<ClipboardCopyEvent>(timeout: Duration(milliseconds: timeout));
-    });
+    }, rawMode: true);
   }
 
   /// Request keyboard capabilities
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
   Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<KeyboardEnhancementFlagsEvent?>(() => rawQueryKeyboardFlags(timeout));
+    return withModes<KeyboardEnhancementFlagsEvent?>(() => rawQueryKeyboardFlags(timeout), rawMode: true);
   }
 
   /// Set keyboard flags
@@ -186,30 +186,13 @@ extension TermUtils on InteractiveTerm {
   }
 
   /// Enable keyboard enhancement
-  void enableKeyboardEnhancement() {
-    const keyFlags = KeyboardEnhancementFlagsEvent(
-      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
-          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportEventTypes,
-    );
-    setKeyboardFlags(keyFlags);
-  }
+  void enableKeyboardEnhancement() => setKeyboardFlags(KeyboardEnhancement.basic.flags);
 
   /// Enable keyboard enhancement with all parameters
-  void enableKeyboardEnhancementFull() {
-    const keyFlags = KeyboardEnhancementFlagsEvent(
-      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
-          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
-          KeyboardEnhancementFlagsEvent.reportEventTypes |
-          KeyboardEnhancementFlagsEvent.reportAssociatedText,
-    );
-    setKeyboardFlags(keyFlags);
-  }
+  void enableKeyboardEnhancementFull() => setKeyboardFlags(KeyboardEnhancement.full.flags);
 
   /// Disable keyboard enhancements
-  void disableKeyboardEnhancement() => setKeyboardFlags(const KeyboardEnhancementFlagsEvent(0));
+  void disableKeyboardEnhancement() => setKeyboardFlags(KeyboardEnhancement.off.flags);
 
   /// Pop keyboard flags from the stack
   ///
@@ -241,7 +224,7 @@ extension TermUtils on InteractiveTerm {
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
   Future<UnicodeCoreEvent?> queryUnicodeCore({int timeout = defaultQueryTimeout}) {
-    return withRawModeAsync<UnicodeCoreEvent?>(() => rawQueryUnicodeCoreStatus(timeout));
+    return withModes<UnicodeCoreEvent?>(() => rawQueryUnicodeCoreStatus(timeout), rawMode: true);
   }
 
   /// Enable color palette update notifications.
@@ -261,7 +244,7 @@ extension TermUtils on InteractiveTerm {
   ///
   /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
   Future<ColorSchemeEvent?> queryColorScheme({int timeout = defaultQueryTimeout}) {
-    return withRawModeAsync<ColorSchemeEvent?>(() => rawQueryColorScheme(timeout));
+    return withModes<ColorSchemeEvent?>(() => rawQueryColorScheme(timeout), rawMode: true);
   }
 
   /// Enable in-band window resize reporting.
@@ -287,6 +270,6 @@ extension TermUtils on InteractiveTerm {
   ///
   /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
   Future<QueryWindowResizeEvent?> queryInBandResize({int timeout = defaultQueryTimeout}) {
-    return withRawModeAsync<QueryWindowResizeEvent?>(() => rawQueryInBandResize(timeout));
+    return withModes<QueryWindowResizeEvent?>(() => rawQueryInBandResize(timeout), rawMode: true);
   }
 }

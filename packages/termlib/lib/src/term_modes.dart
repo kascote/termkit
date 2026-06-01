@@ -31,6 +31,41 @@ enum TerminalMode {
   cursorVisible,
 }
 
+/// Keyboard enhancement level passed to [InteractiveTerm.withModes].
+///
+/// Three-state like the `bool?` mode params: a `null` param means *not
+/// managed* (no push/pop, inherited from the outer scope); any non-null value
+/// is managed via the kitty push/pop stack (§3.7).
+enum KeyboardEnhancement {
+  /// All enhancement flags off (pushes an all-disabled stack entry).
+  off,
+
+  /// Disambiguate escape codes, report alternate keys, report all keys as
+  /// escape codes, report event types.
+  basic,
+
+  /// [basic] plus associated-text reporting.
+  full;
+
+  /// The kitty flags this level pushes onto the terminal stack.
+  KeyboardEnhancementFlagsEvent get flags => switch (this) {
+    KeyboardEnhancement.off => const KeyboardEnhancementFlagsEvent(0),
+    KeyboardEnhancement.basic => const KeyboardEnhancementFlagsEvent(
+      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
+          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportEventTypes,
+    ),
+    KeyboardEnhancement.full => const KeyboardEnhancementFlagsEvent(
+      KeyboardEnhancementFlagsEvent.disambiguateEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportAlternateKeys |
+          KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes |
+          KeyboardEnhancementFlagsEvent.reportEventTypes |
+          KeyboardEnhancementFlagsEvent.reportAssociatedText,
+    ),
+  };
+}
+
 /// Live state of each terminal mode — the source of truth for save/restore.
 ///
 /// Immutable snapshot held in a private mutable cell on [InteractiveTerm];
@@ -120,6 +155,11 @@ class TermModes {
     f = _apply(f, TerminalMode.cursorVisible, cursorVisible);
     return TermModes._(f, keyboardFlags ?? this.keyboardFlags);
   }
+
+  /// Returns a copy whose [keyboardFlags] is replaced with [flags], including
+  /// `null` — which [copyWith] cannot express (there `null` = leave unchanged).
+  /// Used by `withModes` to restore the keyboard state captured at scope entry.
+  TermModes withKeyboardFlags(KeyboardEnhancementFlagsEvent? flags) => TermModes._(_flags, flags);
 
   static int _apply(int flags, TerminalMode m, bool? value) {
     if (value == null) return flags;

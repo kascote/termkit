@@ -41,7 +41,7 @@ extension CursorUtils on InteractiveTerm {
 
   /// Queries the current cursor position.
   Future<CursorPositionEvent?> queryCursorPosition({int timeout = defaultQueryTimeout}) async {
-    return withRawModeAsync<CursorPositionEvent?>(() => rawQueryCursorPosition(timeout));
+    return withModes<CursorPositionEvent?>(() => rawQueryCursorPosition(timeout), rawMode: true);
   }
 
   /// Hides the cursor.

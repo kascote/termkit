@@ -192,7 +192,7 @@ class Readline {
   bool _inBandResize = false;
 
   /// Starts reading from the keyboard.
-  Future<String?> read() => term.withRawModeAsync<String?>(_read);
+  Future<String?> read() => term.withModes<String?>(_read, rawMode: true);
 
   // --- width helpers -------------------------------------------------------
 

@@ -62,7 +62,7 @@ Future<TermInfo> probeTerminal(
 
   skip.forEach(markSkipped);
 
-  await term.withRawModeAsync(() async {
+  await term.withModes(rawMode: true, () async {
     if (!skip.contains(ProbeQuery.deviceAttrs)) {
       final e = await term.rawQueryDeviceAttrs(timeout);
       builder.set(
