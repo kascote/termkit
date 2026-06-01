@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show exit, stderr;
 
+import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser.dart';
 import 'package:termparser/termparser_events.dart';
@@ -24,6 +25,7 @@ export './shared/term_sink.dart' show BufferTermSink, TermSink;
 part './extensions/cursor.dart';
 part './extensions/erase.dart';
 part './extensions/term.dart';
+part './term_modes.dart';
 
 /// Record that represent a coordinate position
 typedef Pos = ({int row, int col});
@@ -261,7 +263,9 @@ final class InteractiveTerm extends Term {
     }
   }
 
-  bool _isRawMode = false;
+  /// Live mode state — source of truth for save/restore. Every tracked
+  /// enableX`/`disableX` toggle swaps this cell
+  TermModes _modes = TermModes.initial;
   EventQueue? _eventQueue;
   StreamSubscription<Event>? _eventSubscription;
   StreamController<Event>? _eventBroadcastController;
@@ -283,7 +287,7 @@ final class InteractiveTerm extends Term {
   void disableRawMode() => _setRawMode(false);
 
   /// Newline sequence honoring raw-mode state (`\r\n` in raw mode, else `\n`).
-  String get newLine => _isRawMode ? '\r\n' : '\n';
+  String get newLine => _modes.rawMode ? '\r\n' : '\n';
 
   @override
   String get _newLine => newLine;
@@ -291,7 +295,7 @@ final class InteractiveTerm extends Term {
   @override
   void writeln(Object s) {
     var text = s.toString();
-    if (_isRawMode) {
+    if (_modes.rawMode) {
       text = text.replaceAll('\n', '\r\n');
     }
     _b.stdout.write('$text$newLine');
@@ -417,8 +421,8 @@ final class InteractiveTerm extends Term {
   }
 
   bool _setRawMode(bool value) {
-    final original = _isRawMode;
-    _isRawMode = value;
+    final original = _modes.rawMode;
+    _modes = _modes.copyWith(rawMode: value);
     if (value) {
       _b.termOs.enableRawMode();
     } else {

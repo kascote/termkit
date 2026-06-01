@@ -45,10 +45,16 @@ extension CursorUtils on InteractiveTerm {
   }
 
   /// Hides the cursor.
-  void cursorHide() => write(ansi.Cursor.hide);
+  void cursorHide() {
+    write(ansi.Cursor.hide);
+    _modes = _modes.copyWith(cursorVisible: false);
+  }
 
   /// Shows the cursor.
-  void cursorShow() => write(ansi.Cursor.show);
+  void cursorShow() {
+    write(ansi.Cursor.show);
+    _modes = _modes.copyWith(cursorVisible: true);
+  }
 
   /// Enables blinking of the terminal cursor.
   ///

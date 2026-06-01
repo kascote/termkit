@@ -13,4 +13,4 @@ export 'src/probe/term_info.dart';
 export 'src/readline.dart' show ReadlineAction, ReadlineOptions;
 export 'src/style.dart';
 export 'src/term_runner.dart';
-export 'src/termlib_base.dart';
+export 'src/termlib_base.dart' hide TermModes;

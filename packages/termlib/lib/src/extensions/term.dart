@@ -16,19 +16,31 @@ extension TermUtils on InteractiveTerm {
   void notify(String title, String message) => write(ansi.Term.notify(title, message));
 
   /// Enable Alternate Screen
-  void enableAlternateScreen() => write(ansi.Term.enableAlternateScreen);
+  void enableAlternateScreen() {
+    write(ansi.Term.enableAlternateScreen);
+    _modes = _modes.copyWith(alternateScreen: true);
+  }
 
   /// Disable Alternate Screen
-  void disableAlternateScreen() => write(ansi.Term.disableAlternateScreen);
+  void disableAlternateScreen() {
+    write(ansi.Term.disableAlternateScreen);
+    _modes = _modes.copyWith(alternateScreen: false);
+  }
 
   /// Set Terminal Title
   void setTerminalTitle(String title) => write(ansi.Term.setTerminalTitle(title));
 
   /// Start receiving mouse events
-  void enableMouseEvents() => write(ansi.Term.enableMouseEvents);
+  void enableMouseEvents() {
+    write(ansi.Term.enableMouseEvents);
+    _modes = _modes.copyWith(mouseEvents: true);
+  }
 
   /// Stop receiving mouse events
-  void disableMouseEvents() => write(ansi.Term.disableMouseEvents);
+  void disableMouseEvents() {
+    write(ansi.Term.disableMouseEvents);
+    _modes = _modes.copyWith(mouseEvents: false);
+  }
 
   /// Start receiving focus events
   void startFocusTracking() => write(ansi.Term.enableFocusTracking);
@@ -37,20 +49,32 @@ extension TermUtils on InteractiveTerm {
   void endFocusTracking() => write(ansi.Term.disableFocusTracking);
 
   /// Enabled Line Wrapping
-  void enableLineWrapping() => write(ansi.Term.enableLineWrapping);
+  void enableLineWrapping() {
+    write(ansi.Term.enableLineWrapping);
+    _modes = _modes.copyWith(lineWrapping: true);
+  }
 
   /// Disabled Line Wrapping
-  void disableLineWrapping() => write(ansi.Term.disableLineWrapping);
+  void disableLineWrapping() {
+    write(ansi.Term.disableLineWrapping);
+    _modes = _modes.copyWith(lineWrapping: false);
+  }
 
   /// Enable bracketed paste mode.
   ///
   /// When enabled, pasted text arrives as a single [PasteEvent] (wrapped in
   /// `ESC[200~` / `ESC[201~`) instead of a stream of individual key events,
   /// so an embedded newline does not look like an Enter key press.
-  void enableBracketedPaste() => write(ansi.Term.enableBracketedPaste);
+  void enableBracketedPaste() {
+    write(ansi.Term.enableBracketedPaste);
+    _modes = _modes.copyWith(bracketedPaste: true);
+  }
 
   /// Disable bracketed paste mode.
-  void disableBracketedPaste() => write(ansi.Term.disableBracketedPaste);
+  void disableBracketedPaste() {
+    write(ansi.Term.disableBracketedPaste);
+    _modes = _modes.copyWith(bracketedPaste: false);
+  }
 
   /// Query bracketed paste reporting status.
   ///
@@ -148,13 +172,18 @@ extension TermUtils on InteractiveTerm {
   /// Set keyboard flags
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void setKeyboardFlags(KeyboardEnhancementFlagsEvent flags) =>
-      write(ansi.Term.setKeyboardCapabilities(flags.flags, flags.mode));
+  void setKeyboardFlags(KeyboardEnhancementFlagsEvent flags) {
+    write(ansi.Term.setKeyboardCapabilities(flags.flags, flags.mode));
+    _modes = _modes.copyWith(keyboardFlags: flags);
+  }
 
   /// Push keyboard flags to the stack
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  void pushKeyboardFlags(KeyboardEnhancementFlagsEvent flags) => write(ansi.Term.pushKeyboardCapabilities(flags.flags));
+  void pushKeyboardFlags(KeyboardEnhancementFlagsEvent flags) {
+    write(ansi.Term.pushKeyboardCapabilities(flags.flags));
+    _modes = _modes.copyWith(keyboardFlags: flags);
+  }
 
   /// Enable keyboard enhancement
   void enableKeyboardEnhancement() {
@@ -184,18 +213,29 @@ extension TermUtils on InteractiveTerm {
 
   /// Pop keyboard flags from the stack
   ///
+  /// Tracked mode state is intentionally not updated here: the prior flags
+  /// value lives on the terminal's own stack, not in [TermModes], so it cannot
+  /// be recovered locally. `withModes` restores from the value it captured at
+  /// scope entry rather than relying on this.
+  ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
   void popKeyboardFlags([int entries = 1]) => write(ansi.Term.popKeyboardCapabilities(entries));
 
   /// Enable Unicode Core
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
-  void enableUnicodeCore() => write(ansi.Term.enableUnicodeCore);
+  void enableUnicodeCore() {
+    write(ansi.Term.enableUnicodeCore);
+    _modes = _modes.copyWith(unicodeCore: true);
+  }
 
   /// Disable Unicode Core
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
-  void disableUnicodeCore() => write(ansi.Term.disableUnicodeCore);
+  void disableUnicodeCore() {
+    write(ansi.Term.disableUnicodeCore);
+    _modes = _modes.copyWith(unicodeCore: false);
+  }
 
   /// Query Unicode Core status
   ///
@@ -230,12 +270,18 @@ extension TermUtils on InteractiveTerm {
   /// An immediate report is sent when first enabled.
   ///
   /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
-  void enableInBandResize() => write(ansi.Term.enableInBandResize);
+  void enableInBandResize() {
+    write(ansi.Term.enableInBandResize);
+    _modes = _modes.copyWith(inBandResize: true);
+  }
 
   /// Disable in-band window resize reporting.
   ///
   /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
-  void disableInBandResize() => write(ansi.Term.disableInBandResize);
+  void disableInBandResize() {
+    write(ansi.Term.disableInBandResize);
+    _modes = _modes.copyWith(inBandResize: false);
+  }
 
   /// Query in-band window resize reporting status.
   ///
