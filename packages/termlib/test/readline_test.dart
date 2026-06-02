@@ -300,6 +300,48 @@ void main() {
       expect(out.output, isNot(contains('\x1b[?2004l')));
     });
 
+    test('inside a paste-enabled host, readline leaves paste ON after return (regression)', () async {
+      final out = BufferTermSink();
+      String? result;
+      await mockedTest(
+        (term, _, _) async {
+          term.enableBracketedPaste(); // host turned it on
+          out.clearOutput();
+          result = await term.readLine();
+        },
+        stdout: out,
+        eventSource: Stream<Event>.fromIterable(<Event>[
+          const CursorPositionEvent(1, 1),
+          ...type('hi'),
+          enter,
+        ]),
+      );
+      expect(result, 'hi');
+      expect(out.output, isNot(contains('\x1b[?2004l')), reason: 'never disables the host paste mode');
+    });
+
+    test('opting in inside a paste-enabled host restores paste ON, not off', () async {
+      // bracketedPaste:true manages it for the session, but restore must return
+      // it to the host's prior ON state, not the default off.
+      final out = BufferTermSink();
+      await mockedTest(
+        (term, _, _) async {
+          term.enableBracketedPaste();
+          out.clearOutput();
+          await term.readLine(const ReadlineOptions(bracketedPaste: true));
+        },
+        stdout: out,
+        eventSource: Stream<Event>.fromIterable(<Event>[
+          const CursorPositionEvent(1, 1),
+          ...type('hi'),
+          enter,
+        ]),
+      );
+      // re-enabled on entry, restored to prior ON on exit → no disable escape.
+      expect(out.output, contains('\x1b[?2004h'));
+      expect(out.output, isNot(contains('\x1b[?2004l')));
+    });
+
     test('paste event still handled even on the fallback path', () async {
       // A PasteEvent that arrives is always honored; only the enable/disable
       // escape emission is gated on support.
