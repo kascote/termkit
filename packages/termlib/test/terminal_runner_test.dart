@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
 import 'termlib_mock.dart';
@@ -23,8 +24,8 @@ void main() {
     group('build()', () {
       test('creates TermLib with default settings', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend);
-          final term = setup.build();
+          final setup = TermRunner(backend: backend, probe: false);
+          final term = await setup.build();
 
           expect(stdout.output, isEmpty);
           expect(termOs.callStack, isEmpty);
@@ -35,8 +36,9 @@ void main() {
 
       test('enables alternate screen', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend, alternateScreen: true);
-          final term = setup.build();
+          final setup = TermRunner(backend: backend,
+            probe: false, alternateScreen: true);
+          final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?1049h'));
 
@@ -46,8 +48,9 @@ void main() {
 
       test('enables raw mode', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend, rawMode: true);
-          final term = setup.build();
+          final setup = TermRunner(backend: backend,
+            probe: false, rawMode: true);
+          final term = await setup.build();
 
           expect(termOs.callStack, contains('enableRawMode'));
 
@@ -57,8 +60,9 @@ void main() {
 
       test('hides cursor', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend, hideCursor: true);
-          final term = setup.build();
+          final setup = TermRunner(backend: backend,
+            probe: false, hideCursor: true);
+          final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?25l'));
 
@@ -68,8 +72,9 @@ void main() {
 
       test('enables mouse events', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend, mouseEvents: true);
-          final term = setup.build();
+          final setup = TermRunner(backend: backend,
+            probe: false, mouseEvents: true);
+          final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?1000;1003;1006h'));
 
@@ -79,8 +84,9 @@ void main() {
 
       test('sets terminal title', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend, title: 'Test App');
-          final term = setup.build();
+          final setup = TermRunner(backend: backend,
+            probe: false, title: 'Test App');
+          final term = await setup.build();
 
           expect(stdout.output, contains('\x1B]0;Test App\x07'));
 
@@ -90,11 +96,48 @@ void main() {
 
       test('enables keyboard enhancement', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend, keyboardEnhancement: true);
-          final term = setup.build();
+          final setup = TermRunner(backend: backend,
+            probe: false, keyboardEnhancement: true);
+          final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[='));
           expect(stdout.output, contains('u'));
+
+          await term.dispose();
+        });
+      });
+
+      test('enables bracketed paste', () async {
+        await withFakeBackend((backend, stdout, termOs) async {
+          final setup = TermRunner(backend: backend,
+            probe: false, bracketedPaste: true);
+          final term = await setup.build();
+
+          expect(stdout.output, contains('\x1B[?2004h'));
+
+          await term.dispose();
+        });
+      });
+
+      test('enables in-band resize', () async {
+        await withFakeBackend((backend, stdout, termOs) async {
+          final setup = TermRunner(backend: backend,
+            probe: false, inBandResize: true);
+          final term = await setup.build();
+
+          expect(stdout.output, contains('\x1B[?2048h'));
+
+          await term.dispose();
+        });
+      });
+
+      test('disables line wrapping', () async {
+        await withFakeBackend((backend, stdout, termOs) async {
+          final setup = TermRunner(backend: backend,
+            probe: false, lineWrapping: true);
+          final term = await setup.build();
+
+          expect(stdout.output, contains('\x1B[?7l'));
 
           await term.dispose();
         });
@@ -104,6 +147,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             alternateScreen: true,
             rawMode: true,
             hideCursor: true,
@@ -111,7 +155,7 @@ void main() {
             keyboardEnhancement: true,
             title: 'Full App',
           );
-          final term = setup.build();
+          final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?1049h'));
           expect(stdout.output, contains('\x1B[?25l'));
@@ -131,6 +175,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             exitCallback: (term, code) async {
               capturedExitCode = code;
             },
@@ -148,6 +193,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             exitCallback: (term, code) async {
               capturedExitCode = code;
             },
@@ -164,6 +210,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             alternateScreen: true,
             rawMode: true,
             hideCursor: true,
@@ -180,11 +227,50 @@ void main() {
         });
       });
 
+      test('restores new modes to the build-time snapshot on exit', () async {
+        await withFakeBackend((backend, stdout, termOs) async {
+          final setup = TermRunner(
+            backend: backend,
+            probe: false,
+            bracketedPaste: true,
+            inBandResize: true,
+            lineWrapping: true, // disables wrapping for the app
+            exitCallback: (term, code) async {},
+          );
+
+          await setup.run((term) async => 0);
+
+          // snapshot had paste/resize off and wrapping on → restore inverts.
+          expect(stdout.output, contains('\x1B[?2004l'));
+          expect(stdout.output, contains('\x1B[?2048l'));
+          expect(stdout.output, contains('\x1B[?7h'));
+        });
+      });
+
+      test('leaves unmanaged modes untouched on exit (no spurious escapes)', () async {
+        await withFakeBackend((backend, stdout, termOs) async {
+          final setup = TermRunner(
+            backend: backend,
+            probe: false,
+            rawMode: true,
+            exitCallback: (term, code) async {},
+          );
+
+          await setup.run((term) async => 0);
+
+          // Only raw mode was managed; no alt-screen / mouse / paste escapes.
+          expect(stdout.output, isNot(contains('\x1B[?1049')));
+          expect(stdout.output, isNot(contains('\x1B[?1000')));
+          expect(stdout.output, isNot(contains('\x1B[?2004')));
+        });
+      });
+
       test('handles error and returns default error code', () async {
         int? capturedExitCode;
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             showError: false,
             exitCallback: (term, code) async {
               capturedExitCode = code;
@@ -205,6 +291,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             defaultErrorCode: 99,
             showError: false,
             exitCallback: (term, code) async {
@@ -227,6 +314,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             showError: false,
             onError: (term, error, stack) {
               capturedError = error;
@@ -252,6 +340,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             rawMode: true,
             showError: false,
             onError: (term, error, stack) {
@@ -274,6 +363,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             showError: false,
             onError: (term, error, stack) async {
               await Future<void>.delayed(Duration.zero);
@@ -303,6 +393,7 @@ void main() {
             await withFakeBackend((backend, stdout, termOs) async {
               final setup = TermRunner(
                 backend: backend,
+            probe: false,
                 exitCallback: (term, code) async {},
               );
 
@@ -323,6 +414,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final setup = TermRunner(
             backend: backend,
+            probe: false,
             showError: false,
             exitCallback: (term, code) async {},
           );
@@ -342,6 +434,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final runner = TermRunner(
             backend: backend,
+            probe: false,
             onCleanup: (term) async {
               cleanupCalled = true;
             },
@@ -359,6 +452,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final runner = TermRunner(
             backend: backend,
+            probe: false,
             showError: false,
             onCleanup: (term) async {
               cleanupCalled = true;
@@ -379,6 +473,7 @@ void main() {
         await withFakeBackend((backend, stdout, termOs) async {
           final runner = TermRunner(
             backend: backend,
+            probe: false,
             rawMode: true,
             onCleanup: (term) async {
               wasTerminalRestored = termOs.callStack.contains('disableRawMode');
@@ -390,6 +485,52 @@ void main() {
 
           expect(wasTerminalRestored, isTrue);
         });
+      });
+    });
+
+    group('probe', () {
+      test('probe:false issues no probe queries', () async {
+        await withFakeBackend((backend, stdout, termOs) async {
+          final setup = TermRunner(
+            backend: backend,
+            probe: false,
+            exitCallback: (term, code) async {},
+          );
+
+          await setup.run((term) async => 0);
+
+          // DECRQM bracketed-paste query never sent.
+          expect(stdout.output, isNot(contains('\x1B[?2004\$p')));
+        });
+      });
+
+      test('probe:true seeds the snapshot so an already-on managed mode is left on at exit', () async {
+        final events = StreamController<Event>.broadcast();
+        final stdout = BufferTermSink();
+        final backend = TermBackend.fake(
+          stdout: stdout,
+          termOs: TermOsMock(),
+          eventSource: events.stream,
+        );
+
+        final setup = TermRunner(
+          backend: backend,
+          bracketedPaste: true, // managed
+          probeQueries: {ProbeQuery.bracketedPaste},
+          probeTimeout: 50,
+          exitCallback: (term, code) async {},
+        );
+
+        final runFuture = setup.run((term) async => 0);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        events.add(QueryBracketedPasteEvent(1)); // enabled
+        await runFuture;
+
+        // Query was issued, mode enabled, but since it was seeded ON the exit
+        // restore must NOT disable it (no §4 drift).
+        expect(stdout.output, contains('\x1B[?2004\$p'));
+        expect(stdout.output, isNot(contains('\x1B[?2004l')));
+        await events.close();
       });
     });
   });

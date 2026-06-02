@@ -439,6 +439,12 @@ final class InteractiveTerm extends Term {
     }
   }
 
+  /// The current live tracked mode state. Internal — the only seam `TermRunner`
+  /// needs to snapshot at build time and later restore to (the restore itself
+  /// is its own concern, driven through the public toggle methods).
+  @internal
+  TermModes get modes => _modes;
+
   /// Read a line from the terminal with basic editing. Returns null on ESC.
   Future<String?> readLine([ReadlineOptions options = const ReadlineOptions()]) {
     return Readline(this, options).read();

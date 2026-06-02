@@ -44,6 +44,19 @@ enum ProbeQuery {
   bracketedPaste,
 }
 
+/// The [ProbeQuery] subset whose results seed live mode state (`TermModes`):
+/// bracketed paste, in-band resize, unicode core, and keyboard capabilities.
+/// These map one-to-one to the seedable `TerminalMode`s (see
+/// `InteractiveTerm._seedModesFromProbe`). Used as `TermRunner`'s default probe
+/// set so its build-time snapshot reflects inherited terminal state without
+/// paying for the queries that don't feed a mode.
+const Set<ProbeQuery> seedableProbeQueries = {
+  ProbeQuery.bracketedPaste,
+  ProbeQuery.inBandResize,
+  ProbeQuery.unicodeCore,
+  ProbeQuery.keyboardCapabilities,
+};
+
 /// Device attributes from DA1 query.
 @immutable
 class DeviceAttributes {

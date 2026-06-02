@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:meta/meta.dart';
 import 'package:termlib/termlib.dart';
+import 'package:termparser/termparser_events.dart' show KeyboardEnhancementFlagsEvent;
+
+import 'termlib_base.dart' show TermModes;
 
 /// Error handler callback type.
 ///
@@ -59,8 +62,38 @@ class TermRunner {
   /// Enable Kitty keyboard enhancement protocol
   final bool keyboardEnhancement;
 
+  /// Enable bracketed paste mode
+  final bool bracketedPaste;
+
+  /// Enable in-band window resize reporting
+  final bool inBandResize;
+
+  /// Disable line wrapping (DECAWM) for the app. Terminals start wrapped; a
+  /// full-screen app that positions every line itself wants this off. Restored
+  /// to its prior (on) state on exit.
+  final bool lineWrapping;
+
   /// Set terminal title
   final String? title;
+
+  /// Probe the terminal before snapshotting, so the build-time snapshot
+  /// reflects modes the parent process left on (otherwise they're assumed off
+  /// and the §4 best-effort drift applies). Defaults to **true**: only
+  /// `TermRunner` can seed its own snapshot — the term is created here and not
+  /// exposed until the run callback, which is after the snapshot. Opt out with
+  /// `probe: false` to skip the startup round-trips entirely.
+  final bool probe;
+
+  /// Which queries to run when [probe] is true. Defaults to
+  /// [seedableProbeQueries] — exactly the queries that feed live mode state.
+  /// Probe queries run sequentially, each waiting up to [probeTimeout], so the
+  /// default keeps worst-case startup latency bounded. Widen it to also
+  /// populate [InteractiveTerm.termInfo] with extra capability info.
+  final Set<ProbeQuery> probeQueries;
+
+  /// Per-query timeout (ms) for [probe]. Bounds the worst-case startup hang on
+  /// a terminal that ignores the queries to `probeQueries.length * probeTimeout`.
+  final int probeTimeout;
 
   /// Force specific color profile
   final ProfileEnum? profile;
@@ -89,6 +122,10 @@ class TermRunner {
   StreamSubscription<ProcessSignal>? _sigtermSub;
   bool _disposed = false;
 
+  /// Mode state captured at [build] (after any probe seeding), restored on
+  /// every exit path. Null until [build] runs.
+  TermModes? _snapshot;
+
   /// Configure terminal features
   TermRunner({
     this.alternateScreen = false,
@@ -96,7 +133,13 @@ class TermRunner {
     this.hideCursor = false,
     this.mouseEvents = false,
     this.keyboardEnhancement = false,
+    this.bracketedPaste = false,
+    this.inBandResize = false,
+    this.lineWrapping = false,
     this.title,
+    this.probe = true,
+    this.probeQueries = seedableProbeQueries,
+    this.probeTimeout = 500,
     this.profile,
     this.defaultErrorCode = 1,
     this.showError = true,
@@ -107,27 +150,71 @@ class TermRunner {
   });
 
   /// Build and configure terminal. Requires an interactive tty.
-  InteractiveTerm build() {
+  ///
+  /// Async because, when [probe] is true, it queries the terminal before
+  /// snapshotting so the snapshot reflects modes inherited from the parent.
+  Future<InteractiveTerm> build() async {
     final term = Term.open(backend: backend, profile: profile);
     if (term is! InteractiveTerm) {
       throw const TerminalNotInteractive('TermRunner requires an interactive terminal (tty stdin).');
     }
+    // Seed live mode state from the terminal first, so the snapshot below is
+    // the real entry state rather than assumed defaults.
+    if (probe) {
+      await term.probe(
+        skip: ProbeQuery.values.toSet().difference(probeQueries),
+        timeout: probeTimeout,
+      );
+    }
+    // Snapshot the entry state (reflecting any probe seeding) so every exit
+    // path can restore exactly what was here before we touched anything.
+    _snapshot = term.modes;
     if (alternateScreen) term.enableAlternateScreen();
     if (rawMode) term.enableRawMode();
     if (hideCursor) term.cursorHide();
     if (mouseEvents) term.enableMouseEvents();
     if (keyboardEnhancement) term.enableKeyboardEnhancement();
+    if (bracketedPaste) term.enableBracketedPaste();
+    if (inBandResize) term.enableInBandResize();
+    if (lineWrapping) term.disableLineWrapping();
     if (title != null) term.setTerminalTitle(title!);
     return term;
   }
 
-  /// Restore terminal output state (sync, just writes to stdout)
+  /// Restore terminal output state (sync, just writes to stdout). Drives every
+  /// mode back to the [build]-time snapshot — sane even on a signal mid-way
+  /// through a nested scope, whose own `finally` won't run.
   void _restoreTerminalState(InteractiveTerm term) {
-    if (keyboardEnhancement) term.disableKeyboardEnhancement();
-    if (mouseEvents) term.disableMouseEvents();
-    if (hideCursor) term.cursorShow();
-    if (rawMode) term.disableRawMode();
-    if (alternateScreen) term.disableAlternateScreen();
+    final snapshot = _snapshot;
+    if (snapshot != null) _restoreModes(term, snapshot);
+  }
+
+  /// Drives every tracked mode back to the state captured in [target] via the
+  /// public toggle methods (so the escapes are emitted and the term's tracked
+  /// state stays in sync). A mode already matching [target] is left untouched
+  /// (no escape). This is `TermRunner`'s snapshot-restore policy — it needs no
+  /// private terminal state, only the [InteractiveTerm.modes] getter.
+  void _restoreModes(InteractiveTerm term, TermModes target) {
+    final cur = term.modes;
+    void sync(TerminalMode mode, void Function() enable, void Function() disable) {
+      if (cur.isEnabled(mode) == target.isEnabled(mode)) return;
+      (target.isEnabled(mode) ? enable : disable)();
+    }
+
+    sync(TerminalMode.alternateScreen, term.enableAlternateScreen, term.disableAlternateScreen);
+    sync(TerminalMode.mouseEvents, term.enableMouseEvents, term.disableMouseEvents);
+    sync(TerminalMode.bracketedPaste, term.enableBracketedPaste, term.disableBracketedPaste);
+    sync(TerminalMode.inBandResize, term.enableInBandResize, term.disableInBandResize);
+    sync(TerminalMode.unicodeCore, term.enableUnicodeCore, term.disableUnicodeCore);
+    sync(TerminalMode.lineWrapping, term.enableLineWrapping, term.disableLineWrapping);
+    sync(TerminalMode.cursorVisible, term.cursorShow, term.cursorHide);
+    sync(TerminalMode.rawMode, term.enableRawMode, term.disableRawMode);
+
+    // Keyboard enhancement is a flags value, not a bit. Restore via
+    // setKeyboardFlags (a null snapshot = enhancement never managed = off).
+    if (cur.keyboardFlags != target.keyboardFlags) {
+      term.setKeyboardFlags(target.keyboardFlags ?? const KeyboardEnhancementFlagsEvent(0));
+    }
   }
 
   /// Restore terminal state and dispose (async)
@@ -208,7 +295,7 @@ class TermRunner {
   /// Returns exit code from [fn], error handler, or signal.
   /// Always calls `flushThenExit` with the exit code.
   Future<int> run(AppRunner fn) async {
-    final term = build();
+    final term = await build();
 
     _setupSignalHandlers(term);
 
