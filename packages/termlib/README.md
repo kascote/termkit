@@ -85,6 +85,9 @@ Future<void> main() async {
     rawMode: true,
     hideCursor: true,
     mouseEvents: true,
+    bracketedPaste: true,
+    inBandResize: true,
+    lineWrapping: true, // disables autowrap for the app, restored on exit
     title: 'My App',
   ).run((term) async {
     term.writeln('Press q to quit');
@@ -105,6 +108,39 @@ Future<void> main() async {
 - Auto cleanup on normal exit, errors, and signals (SIGINT/SIGTERM)
 - `onCleanup` callback for resource cleanup
 - `onError` callback for custom error handling
+- Snapshots terminal modes at `build()` (after probe seeding) and restores them
+  on every exit path, including signals
+
+## Terminal Modes (`withModes`)
+
+`withModes` is the scoped save/restore primitive for terminal modes (raw,
+alternate screen, mouse, keyboard enhancement, bracketed paste, in-band resize,
+line wrapping, cursor visibility). It applies the named modes for the duration
+of a callback, then restores each to the state it had at scope entry — so any
+component (readline, a widget, a query helper) leaves the terminal exactly as it
+found it.
+
+```dart
+await term.withModes(() async {
+  // raw on + autowrap off for the duration; restored on return or throw.
+  return doInteractiveWork();
+}, rawMode: true, lineWrapping: false);
+```
+
+Each mode param is three-state:
+
+- `null` (default) — **not managed**: untouched, inherits the outer scope. An
+  inner scope never clobbers an outer scope's settings (the good-citizen rule).
+- `true` — ensure **on** for the duration, restore the prior value after.
+- `false` — ensure **off** for the duration, restore the prior value after.
+
+So a `readLine()` running inside a host that enabled bracketed paste keeps the
+host's paste working: readline doesn't request that mode, so it leaves it alone.
+
+> **Serial-only.** Scopes must be strictly nested or sequential — never two
+> `withModes` calls concurrently pending. Signal-safe teardown lives only in
+> `TermRunner`, so apps that must survive Ctrl-C should use it as the outermost
+> harness.
 
 ## Input Handling
 

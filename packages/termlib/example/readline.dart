@@ -9,34 +9,41 @@
 //   dart run example/readline.dart wrap       # narrow area, soft-wrap to rows
 //   dart run example/readline.dart all        # prompt + maxLength + wrap
 //
+// Runs under `TermRunner` with the Kitty keyboard enhancement enabled, so the
+// Alt-prefixed word shortcuts (Alt+B/F/D, Alt+Backspace) are disambiguated and
+// reliably reach `readLine` instead of arriving as a bare ESC + char. The
+// runner also probes at startup and restores the keyboard state on exit.
+//
 import 'package:characters/characters.dart';
 import 'package:termlib/termlib.dart';
 
 Future<void> main(List<String> args) async {
   final mode = args.isEmpty ? 'plain' : args.first;
-  final t = Term.open() as InteractiveTerm;
 
-  // Probe once at startup; readLine relies on the cached TermInfo to decide
-  // whether to use bracketed paste (no per-call re-query).
-  await t.probe();
+  // `run` builds the term, probes once (seeding TermInfo for bracketed-paste
+  // decisions), enables Kitty keyboard enhancement for the session, then
+  // restores and exits via `flushThenExit` when the callback returns.
+  await TermRunner(keyboardEnhancement: true).run((t) async {
+    final (options, banner) = _configFor(t, mode);
 
-  final (options, banner) = _configFor(t, mode);
+    t
+      ..writeln('readline example — mode: $mode  (Enter submits, Esc cancels)')
+      ..writeln(banner)
+      ..writeln(
+        'Shortcuts: Ctrl+W / Alt+Backspace kill word · Alt+B/F word motion · '
+        'Alt+D kill word forward · Ctrl+Y yank · Ctrl+T transpose · Ctrl+L clear.',
+      )
+      ..writeln('');
 
-  t
-    ..writeln('readline example — mode: $mode  (Enter submits, Esc cancels)')
-    ..writeln(banner)
-    ..writeln('');
+    final input = await t.readLine(options);
 
-  final input = await t.readLine(options);
-
-  if (input == null) {
-    t.writeln('${t.newLine}Cancelled${t.newLine}');
-  } else {
-    t.writeln('${t.newLine}You typed (${input.characters.length} graphemes): [$input]${t.newLine}');
-  }
-
-  await t.dispose();
-  return t.flushThenExit(0);
+    if (input == null) {
+      t.writeln('${t.newLine}Cancelled${t.newLine}');
+    } else {
+      t.writeln('${t.newLine}You typed (${input.characters.length} graphemes): [$input]${t.newLine}');
+    }
+    return 0;
+  });
 }
 
 (ReadlineOptions, String) _configFor(InteractiveTerm t, String mode) {
@@ -55,9 +62,18 @@ Future<void> main(List<String> args) async {
       );
 
     case 'scroll':
+      // Mixed graphemes to exercise cursor motion over multi-codepoint clusters:
+      //   👩‍💻 / 👨‍👩‍👧‍👦 / 🏳️‍🌈  ZWJ sequences (joined codepoints)
+      //   👋🏽                      skin-tone modifier (longer rep)
+      //   🇺🇸                      regional-indicator flag (two codepoints)
+      // Some sit apart (move word-by-word over text) and the flags 🇺🇸🏳️‍🌈 sit
+      // adjacent, so left/right must step a whole cluster at a time.
       return (
-        const ReadlineOptions(visualLength: 24, initBuffer: 'edit me — type past the right edge to scroll'),
-        'visualLength: 24, wrap: false — one row, horizontal scroll.',
+        const ReadlineOptions(
+          visualLength: 24,
+          initBuffer: 'the coder 👩‍💻 waves 👋🏽 bye as the family 👨‍👩‍👧‍👦 sails 🇺🇸🏳️‍🌈 home — type past the edge to scroll',
+        ),
+        'visualLength: 24, wrap: false — one row, horizontal scroll over wide graphemes.',
       );
 
     case 'wrap':

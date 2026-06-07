@@ -41,6 +41,32 @@ enum ReadlineAction {
 
   /// Move the cursor to the end of the buffer.
   end,
+
+  /// Delete the emacs-word before the cursor (Alt+Backspace). Feeds the kill
+  /// buffer.
+  deleteWordBackward,
+
+  /// Delete the emacs-word after the cursor (Alt+D). Feeds the kill buffer.
+  deleteWordForward,
+
+  /// Delete the unix-word (whitespace-delimited) before the cursor (Ctrl+W).
+  /// Feeds the kill buffer.
+  unixWordRubout,
+
+  /// Move the cursor to the start of the previous emacs-word (Alt+B).
+  moveWordLeft,
+
+  /// Move the cursor to the end of the next emacs-word (Alt+F).
+  moveWordRight,
+
+  /// Insert the kill buffer at the cursor (Ctrl+Y).
+  yank,
+
+  /// Swap the two graphemes around the cursor (Ctrl+T).
+  transposeChars,
+
+  /// Clear the screen and redraw the prompt + line at the top (Ctrl+L).
+  clearScreen,
 }
 
 /// Default key bindings for [Readline].
@@ -54,7 +80,15 @@ KeyBinding<ReadlineAction> _defaultKeyBinding() => KeyBinding<ReadlineAction>()
   ..map(['left', 'ctrl+b'], ReadlineAction.moveLeft)
   ..map(['right', 'ctrl+f'], ReadlineAction.moveRight)
   ..map(['home', 'ctrl+a'], ReadlineAction.home)
-  ..map(['end', 'ctrl+e'], ReadlineAction.end);
+  ..map(['end', 'ctrl+e'], ReadlineAction.end)
+  ..map(['ctrl+w'], ReadlineAction.unixWordRubout)
+  ..map(['alt+backSpace'], ReadlineAction.deleteWordBackward)
+  ..map(['alt+d'], ReadlineAction.deleteWordForward)
+  ..map(['alt+b'], ReadlineAction.moveWordLeft)
+  ..map(['alt+f'], ReadlineAction.moveWordRight)
+  ..map(['ctrl+y'], ReadlineAction.yank)
+  ..map(['ctrl+t'], ReadlineAction.transposeChars)
+  ..map(['ctrl+l'], ReadlineAction.clearScreen);
 
 /// Options for [InteractiveTerm.readLine].
 ///
@@ -165,6 +199,10 @@ class Readline {
   /// Grapheme index in `[0, graphemeCount]`.
   int _cursor = 0;
 
+  /// Single-slot kill ring: the last killed text. Filled by the kill ops,
+  /// inserted by [ReadlineAction.yank]. Empty kills leave it unchanged.
+  String _killBuffer = '';
+
   /// Normalized, single-line prompt text (display only).
   late final String _promptText;
 
@@ -192,12 +230,12 @@ class Readline {
   /// when opted in via [ReadlineOptions]; otherwise they inherit the host's
   /// state (good-citizen — see §3.3).
   Future<String?> read() => term.withModes<String?>(
-        _read,
-        rawMode: true,
-        lineWrapping: false,
-        bracketedPaste: options.bracketedPaste ? true : null,
-        inBandResize: options.inBandResize ? true : null,
-      );
+    _read,
+    rawMode: true,
+    lineWrapping: false,
+    bracketedPaste: options.bracketedPaste ? true : null,
+    inBandResize: options.inBandResize ? true : null,
+  );
 
   // --- width helpers -------------------------------------------------------
 
@@ -237,6 +275,59 @@ class Readline {
     return c < 0x20 || c == 0x7f;
   }
 
+  // --- word boundaries -----------------------------------------------------
+
+  static final _wordRe = RegExp(r'[\p{L}\p{N}_]', unicode: true);
+  static final _spaceRe = RegExp(r'\s', unicode: true);
+
+  /// True if [g]'s first codepoint is a letter, digit, or `_` (emacs-word).
+  /// Multi-codepoint clusters (emoji ZWJ, flags) are non-word — they act as
+  /// their own units.
+  bool _isWordChar(String g) => g.isNotEmpty && _wordRe.matchAsPrefix(g) != null;
+
+  /// True if [g] is whitespace.
+  bool _isSpace(String g) => g.isNotEmpty && _spaceRe.matchAsPrefix(g) != null;
+
+  /// emacs-word: from [from], skip separators then word chars, going left.
+  int _wordStartBackward(int from) {
+    final gs = _graphemes;
+    var i = from;
+    while (i > 0 && !_isWordChar(gs[i - 1])) {
+      i--;
+    }
+    while (i > 0 && _isWordChar(gs[i - 1])) {
+      i--;
+    }
+    return i;
+  }
+
+  /// emacs-word: from [from], skip separators then word chars, going right.
+  int _wordEndForward(int from) {
+    final gs = _graphemes;
+    final n = gs.length;
+    var i = from;
+    while (i < n && !_isWordChar(gs[i])) {
+      i++;
+    }
+    while (i < n && _isWordChar(gs[i])) {
+      i++;
+    }
+    return i;
+  }
+
+  /// unix-word: from [from], skip whitespace then non-whitespace, going left.
+  int _unixWordStartBackward(int from) {
+    final gs = _graphemes;
+    var i = from;
+    while (i > 0 && _isSpace(gs[i - 1])) {
+      i--;
+    }
+    while (i > 0 && !_isSpace(gs[i - 1])) {
+      i--;
+    }
+    return i;
+  }
+
   /// Inserts a single codepoint/grapheme [g] at the cursor (maxLength-gated).
   ///
   /// The cursor is recomputed from a grapheme count, never `++`, so a combining
@@ -271,12 +362,75 @@ class Readline {
   }
 
   void _clearBOL() {
-    _text = _text.characters.skip(_cursor).toString();
+    if (_cursor == 0) return;
+    final chars = _text.characters;
+    final killed = chars.take(_cursor).toString();
+    if (killed.isNotEmpty) _killBuffer = killed;
+    _text = chars.skip(_cursor).toString();
     _cursor = 0;
   }
 
   void _clearEOL() {
-    _text = _text.characters.take(_cursor).toString();
+    final chars = _text.characters;
+    if (_cursor >= chars.length) return;
+    final killed = chars.skip(_cursor).toString();
+    if (killed.isNotEmpty) _killBuffer = killed;
+    _text = chars.take(_cursor).toString();
+  }
+
+  /// Kills the grapheme range `[from, _cursor)` going left to [from], filling
+  /// the kill buffer and moving the cursor to [from].
+  void _killBackTo(int from) {
+    if (from >= _cursor) return;
+    final chars = _text.characters;
+    final killed = chars.skip(from).take(_cursor - from).toString();
+    if (killed.isNotEmpty) _killBuffer = killed;
+    final before = chars.take(from);
+    final after = chars.skip(_cursor);
+    _text = '$before$after';
+    _cursor = from;
+  }
+
+  void _deleteWordBackward() => _killBackTo(_wordStartBackward(_cursor));
+
+  void _unixWordRubout() => _killBackTo(_unixWordStartBackward(_cursor));
+
+  void _deleteWordForward() {
+    final to = _wordEndForward(_cursor);
+    if (to <= _cursor) return;
+    final chars = _text.characters;
+    final killed = chars.skip(_cursor).take(to - _cursor).toString();
+    if (killed.isNotEmpty) _killBuffer = killed;
+    final before = chars.take(_cursor);
+    final after = chars.skip(to);
+    _text = '$before$after';
+  }
+
+  void _yank() {
+    if (_killBuffer.isEmpty) return;
+    _killBuffer.characters.forEach(_insert);
+  }
+
+  /// `transpose-chars`: swap the two graphemes around the cursor. At the end of
+  /// the buffer swaps the last two; mid-buffer swaps cursor-1/cursor and rides
+  /// the cursor past the pair. No-op at the start or with fewer than 2.
+  void _transpose() {
+    final gs = _graphemes;
+    final n = gs.length;
+    if (n < 2 || _cursor == 0) return;
+    final i = _cursor >= n ? n - 1 : _cursor;
+    final tmp = gs[i - 1];
+    gs[i - 1] = gs[i];
+    gs[i] = tmp;
+    _text = gs.join();
+    if (_cursor < n) _cursor++;
+  }
+
+  void _clearScreen() {
+    term.eraseClear();
+    _startRow = 1;
+    _startCol = 1;
+    _renderedRows = 1;
   }
 
   void _paste(String text) {
@@ -312,7 +466,11 @@ class Readline {
       if (ev == null) continue;
 
       if (ev is KeyEvent) {
-        if (ev.eventType != KeyEventType.keyPress) continue;
+        // Accept press and auto-repeat, drop release. Under the Kitty protocol
+        // (reportEventTypes) held keys arrive as `keyRepeat`; on a plain
+        // terminal OS auto-repeat re-sends bytes as ordinary `keyPress`. Both
+        // paths now repeat; only `keyRelease` is filtered.
+        if (ev.eventType == KeyEventType.keyRelease) continue;
         final action = _binding.resolve(ev);
         switch (action) {
           case ReadlineAction.enter:
@@ -337,6 +495,22 @@ class Readline {
             _cursor = 0;
           case ReadlineAction.end:
             _cursor = _graphemeCount;
+          case ReadlineAction.deleteWordBackward:
+            _deleteWordBackward();
+          case ReadlineAction.deleteWordForward:
+            _deleteWordForward();
+          case ReadlineAction.unixWordRubout:
+            _unixWordRubout();
+          case ReadlineAction.moveWordLeft:
+            _cursor = _wordStartBackward(_cursor);
+          case ReadlineAction.moveWordRight:
+            _cursor = _wordEndForward(_cursor);
+          case ReadlineAction.yank:
+            _yank();
+          case ReadlineAction.transposeChars:
+            _transpose();
+          case ReadlineAction.clearScreen:
+            _clearScreen();
           case null:
             if (ev.code.name == KeyCodeName.tab) {
               for (var i = 0; i < options.tabWidth; i++) {

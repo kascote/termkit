@@ -14,12 +14,21 @@ KeyEvent named(KeyCodeName n) => KeyEvent(KeyCode.named(n));
 final enter = KeyEvent.fromString('enter');
 final esc = KeyEvent.fromString('escape');
 final left = KeyEvent.fromString('left');
+final right = KeyEvent.fromString('right');
 final home = KeyEvent.fromString('home');
 final end = KeyEvent.fromString('end');
 final backspace = KeyEvent.fromString('backSpace');
 final del = KeyEvent.fromString('delete');
 final ctrlU = KeyEvent.fromString('ctrl+u');
 final ctrlK = KeyEvent.fromString('ctrl+k');
+final ctrlW = KeyEvent.fromString('ctrl+w');
+final ctrlY = KeyEvent.fromString('ctrl+y');
+final ctrlT = KeyEvent.fromString('ctrl+t');
+final ctrlL = KeyEvent.fromString('ctrl+l');
+final altBackspace = KeyEvent.fromString('alt+backSpace');
+final altD = KeyEvent.fromString('alt+d');
+final altB = KeyEvent.fromString('alt+b');
+final altF = KeyEvent.fromString('alt+f');
 
 /// Type each char of [s] as a separate KeyEvent.
 List<KeyEvent> type(String s) => s.split('').map(ch).toList();
@@ -103,6 +112,96 @@ void main() {
     test('ctrl+k clears from cursor to end', () async {
       final r = await run([...type('abcdef'), left, left, ctrlK, enter]);
       expect(r.result, 'abcd');
+    });
+  });
+
+  group('Readline - word operations', () {
+    test('ctrl+w kills unix-word before cursor', () async {
+      final r = await run([...type('foo bar'), ctrlW, enter]);
+      expect(r.result, 'foo ');
+    });
+
+    test('ctrl+w skips trailing whitespace then the word', () async {
+      final r = await run([...type('foo   '), ctrlW, enter]);
+      expect(r.result, '');
+    });
+
+    test('alt+backspace kills emacs-word (stops at punctuation)', () async {
+      final r = await run([...type('foo.bar'), altBackspace, enter]);
+      expect(r.result, 'foo.');
+    });
+
+    test('alt+d kills emacs-word after cursor', () async {
+      final r = await run([...type('foo bar'), home, altD, enter]);
+      expect(r.result, ' bar');
+    });
+
+    test('alt+b moves to start of previous word', () async {
+      final r = await run([...type('foo bar'), altB, ch('X'), enter]);
+      expect(r.result, 'foo Xbar');
+    });
+
+    test('alt+f moves to end of next word', () async {
+      final r = await run([...type('foo bar'), home, altF, ch('X'), enter]);
+      expect(r.result, 'fooX bar');
+    });
+  });
+
+  group('Readline - kill ring', () {
+    test('ctrl+k then ctrl+y round-trips', () async {
+      final r = await run([...type('hello'), home, ctrlK, ctrlY, enter]);
+      expect(r.result, 'hello');
+    });
+
+    test('ctrl+w then ctrl+y reinserts the word', () async {
+      final r = await run([...type('foo bar'), ctrlW, ctrlY, enter]);
+      expect(r.result, 'foo bar');
+    });
+
+    test('yank with empty slot is a no-op', () async {
+      final r = await run([ctrlY, ...type('ab'), enter]);
+      expect(r.result, 'ab');
+    });
+
+    test('empty kill does not clobber the slot', () async {
+      // kill "ab" (slot="ab"), kill again at col 0 (no-op), yank -> "ab"
+      final r = await run([...type('ab'), ctrlW, ctrlW, ctrlY, enter]);
+      expect(r.result, 'ab');
+    });
+  });
+
+  group('Readline - transpose', () {
+    test('ctrl+t at end swaps last two', () async {
+      final r = await run([...type('ab'), ctrlT, enter]);
+      expect(r.result, 'ba');
+    });
+
+    test('ctrl+t mid-buffer swaps around cursor and advances', () async {
+      // "abc", cursor at 1, ctrl+t -> "bac"
+      final r = await run([...type('abc'), home, right, ctrlT, enter]);
+      expect(r.result, 'bac');
+    });
+
+    test('ctrl+t with fewer than 2 is a no-op', () async {
+      final r = await run([...type('a'), ctrlT, enter]);
+      expect(r.result, 'a');
+    });
+
+    test('ctrl+t at start is a no-op', () async {
+      final r = await run([...type('ab'), home, ctrlT, enter]);
+      expect(r.result, 'ab');
+    });
+  });
+
+  group('Readline - clear screen', () {
+    test('ctrl+l preserves buffer and cursor', () async {
+      final r = await run([...type('abc'), left, ctrlL, ch('X'), enter]);
+      expect(r.result, 'abXc');
+    });
+
+    test('ctrl+l emits an erase-clear sequence', () async {
+      final r = await run([...type('abc'), ctrlL, enter]);
+      expect(r.output, contains('\x1b[2J'));
     });
   });
 
