@@ -32,8 +32,8 @@ bool _isMalformed(String basename) =>
 /// Value = finding ID to look up in PLAN.md.
 const Map<String, String> _skipForFinding = <String, String>{};
 
-void main() {
-  final corpusDir = defaultCorpusDir();
+Future<void> main() async {
+  final corpusDir = await defaultCorpusDir();
   if (!corpusDir.existsSync()) {
     // Fail loudly — Phase 3 requires seeds to be present.
     throw StateError('corpus dir missing: ${corpusDir.path}');

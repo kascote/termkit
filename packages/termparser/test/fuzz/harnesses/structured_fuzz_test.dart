@@ -51,8 +51,8 @@ final int _fuzzSeed =
 const int _maxBytesPerProgram = 4096;
 const int _maxSeqsPerProgram = 8;
 
-void main() {
-  final crashesDir = defaultCrashesDir();
+Future<void> main() async {
+  final crashesDir = await defaultCrashesDir();
 
   group('structured fuzz', () {
     test('replay crashes/ (regression guard)', () => replayCrashes(crashesDir));

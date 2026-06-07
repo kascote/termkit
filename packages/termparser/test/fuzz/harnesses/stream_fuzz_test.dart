@@ -54,8 +54,8 @@ final Generator<Uint8List> biasedBytesGen = any.simple(
   },
 );
 
-void main() {
-  final crashesDir = defaultCrashesDir();
+Future<void> main() async {
+  final crashesDir = await defaultCrashesDir();
 
   group('stream fuzz', () {
     test('replay crashes/ (regression guard)', () => replayCrashes(crashesDir));

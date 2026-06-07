@@ -50,8 +50,8 @@ final int _fuzzSeed =
 
 const int _maxBytes = 4096;
 
-void main() {
-  final crashesDir = defaultCrashesDir();
+Future<void> main() async {
+  final crashesDir = await defaultCrashesDir();
 
   group('utf8 fuzz', () {
     test('replay crashes/ (regression guard)', () => replayCrashes(crashesDir));

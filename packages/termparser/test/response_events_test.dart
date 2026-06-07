@@ -102,43 +102,65 @@ void main() {
 
   group('ColorQueryEvent >', () {
     test('constructor', () {
-      const event = ColorQueryEvent(255, 128, 64);
+      const event = ColorQueryEvent(11, 255, 128, 64);
+      expect(event.code, 11);
+      expect(event.index, isNull);
       expect(event.r, 255);
       expect(event.g, 128);
       expect(event.b, 64);
     });
 
+    test('constructor - with palette index (OSC 4)', () {
+      const event = ColorQueryEvent(4, 255, 128, 64, index: 7);
+      expect(event.code, 4);
+      expect(event.index, 7);
+    });
+
     test('equality - identical events', () {
-      const event1 = ColorQueryEvent(100, 150, 200);
-      const event2 = ColorQueryEvent(100, 150, 200);
+      const event1 = ColorQueryEvent(11, 100, 150, 200);
+      const event2 = ColorQueryEvent(11, 100, 150, 200);
 
       expect(event1, equals(event2));
       expect(event1.hashCode, equals(event2.hashCode));
     });
 
+    test('equality - different code', () {
+      const event1 = ColorQueryEvent(10, 100, 150, 200);
+      const event2 = ColorQueryEvent(11, 100, 150, 200);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
+    test('equality - different index', () {
+      const event1 = ColorQueryEvent(4, 100, 150, 200, index: 1);
+      const event2 = ColorQueryEvent(4, 100, 150, 200, index: 2);
+
+      expect(event1, isNot(equals(event2)));
+    });
+
     test('equality - different r', () {
-      const event1 = ColorQueryEvent(100, 150, 200);
-      const event2 = ColorQueryEvent(101, 150, 200);
+      const event1 = ColorQueryEvent(11, 100, 150, 200);
+      const event2 = ColorQueryEvent(11, 101, 150, 200);
 
       expect(event1, isNot(equals(event2)));
     });
 
     test('equality - different g', () {
-      const event1 = ColorQueryEvent(100, 150, 200);
-      const event2 = ColorQueryEvent(100, 151, 200);
+      const event1 = ColorQueryEvent(11, 100, 150, 200);
+      const event2 = ColorQueryEvent(11, 100, 151, 200);
 
       expect(event1, isNot(equals(event2)));
     });
 
     test('equality - different b', () {
-      const event1 = ColorQueryEvent(100, 150, 200);
-      const event2 = ColorQueryEvent(100, 150, 201);
+      const event1 = ColorQueryEvent(11, 100, 150, 200);
+      const event2 = ColorQueryEvent(11, 100, 150, 201);
 
       expect(event1, isNot(equals(event2)));
     });
 
     test('hashCode - consistent', () {
-      const event = ColorQueryEvent(10, 20, 30);
+      const event = ColorQueryEvent(11, 10, 20, 30);
       expect(event.hashCode, equals(event.hashCode));
     });
   });

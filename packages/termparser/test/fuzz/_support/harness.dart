@@ -265,8 +265,24 @@ String dumpCrash(
   return key;
 }
 
+/// The termparser package root, resolved independent of the current working
+/// directory.
+///
+/// Anchored on the package's own `lib/` via the package config, so fuzz tests
+/// pass whether run from the package dir (`dart test`) or the workspace root
+/// (`dart test packages/termparser`). Falls back to CWD if resolution fails.
+Future<Directory> _packageRoot() async {
+  final libUri = await Isolate.resolvePackageUri(
+    Uri.parse('package:termparser/termparser.dart'),
+  );
+  // libUri = <pkg>/lib/termparser.dart -> <pkg>/
+  return libUri == null ? Directory.current : Directory.fromUri(libUri.resolve('../'));
+}
+
 /// `packages/termparser/test/fuzz/crashes/`, resolved relative to package root.
-Directory defaultCrashesDir() => Directory('test/fuzz/crashes');
+Future<Directory> defaultCrashesDir() async =>
+    Directory.fromUri((await _packageRoot()).uri.resolve('test/fuzz/crashes/'));
 
 /// `packages/termparser/test/fuzz/corpus/`, resolved relative to package root.
-Directory defaultCorpusDir() => Directory('test/fuzz/corpus');
+Future<Directory> defaultCorpusDir() async =>
+    Directory.fromUri((await _packageRoot()).uri.resolve('test/fuzz/corpus/'));

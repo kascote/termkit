@@ -686,7 +686,7 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const ColorQueryEvent(255, 255, 255)),
+        equals(const ColorQueryEvent(11, 255, 255, 255)),
       );
     });
 
@@ -695,8 +695,16 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const ColorQueryEvent(171, 188, 205)), // ab/bc/cd
+        equals(const ColorQueryEvent(11, 171, 188, 205)), // ab/bc/cd
       );
+    });
+
+    test('10 vs 11 distinguished by code', () {
+      final fg = (Parser()..advance(keySequence(r'π]10;rgb:ff/ff/ffπ\\'))).nextEvent();
+      final bg = (Parser()..advance(keySequence(r'π]11;rgb:ff/ff/ffπ\\'))).nextEvent();
+      expect(fg, equals(const ColorQueryEvent(10, 255, 255, 255)));
+      expect(bg, equals(const ColorQueryEvent(11, 255, 255, 255)));
+      expect(fg, isNot(equals(bg)));
     });
 
     test('52 - clipboard query', () {
