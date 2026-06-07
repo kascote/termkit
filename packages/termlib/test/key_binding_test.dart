@@ -23,13 +23,13 @@ void main() {
       expect(kb.resolve(KeyEvent.fromString('ctrl+x')), isNull);
     });
 
-    test('non-keyPress events are ignored', () {
+    test('press and repeat resolve; release is ignored', () {
       final kb = KeyBinding<_TestAction>()..map(['ctrl+s'], _TestAction.save);
       final press = KeyEvent.fromString('ctrl+s');
       final repeat = press.copyWith(eventType: KeyEventType.keyRepeat);
       final release = press.copyWith(eventType: KeyEventType.keyRelease);
       expect(kb.resolve(press), _TestAction.save);
-      expect(kb.resolve(repeat), isNull);
+      expect(kb.resolve(repeat), _TestAction.save);
       expect(kb.resolve(release), isNull);
     });
 

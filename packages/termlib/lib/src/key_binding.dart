@@ -29,8 +29,8 @@ class InvalidKeySpecException implements Exception {
 /// }
 /// ```
 ///
-/// Only `KeyEventType.keyPress` events are resolved; repeat and release
-/// events return `null`.
+/// Press and auto-repeat events are resolved (a held key keeps firing its
+/// action); only `KeyEventType.keyRelease` events return `null`.
 class KeyBinding<A> {
   final Map<String, A> _bindings = {};
 
@@ -80,9 +80,11 @@ class KeyBinding<A> {
 
   /// Resolves a [KeyEvent] to an action, or `null` if not bound.
   ///
-  /// Only matches key press events (not repeat or release).
+  /// Matches press and auto-repeat events (so a held key keeps firing its
+  /// action); release events return `null`. Callers that need a once-per-press
+  /// action can filter [KeyEvent.eventType] themselves before calling.
   A? resolve(KeyEvent event) {
-    if (event.eventType != KeyEventType.keyPress) return null;
+    if (event.eventType == KeyEventType.keyRelease) return null;
     return _bindings[event.toSpec()];
   }
 
