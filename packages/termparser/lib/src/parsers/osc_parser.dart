@@ -17,6 +17,9 @@ Event? parseOscSequence(Parameters params, String char) {
 
 Event? _parserColorSequence(Parameters params) {
   if (params.values.length < 2) return null;
+  // OSC selector (decimal): 10 = fg, 11 = bg, ...
+  final code = int.tryParse(params.values[0]);
+  if (code == null) return null;
   final buffer = params.values[1];
   // has malformed data
   if (buffer.length < 12 || buffer.contains('�') || !buffer.startsWith('rgb:')) {
@@ -33,7 +36,7 @@ Event? _parserColorSequence(Parameters params) {
 
   if (r == null || g == null || b == null) return null;
 
-  return ColorQueryEvent(r, g, b);
+  return ColorQueryEvent(code, r, g, b);
 }
 
 Event? _parseClipboardSequence(Parameters params) {

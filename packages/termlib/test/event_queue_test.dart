@@ -317,7 +317,7 @@ void main() {
     test('should handle ResponseEvent hierarchy', () {
       final queue = EventQueue();
       const cursorPos = CursorPositionEvent(10, 20);
-      const colorQuery = ColorQueryEvent(0xAB, 0xCD, 0xEF);
+      const colorQuery = ColorQueryEvent(11, 0xAB, 0xCD, 0xEF);
 
       queue
         ..enqueue(cursorPos)

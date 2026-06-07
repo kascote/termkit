@@ -82,6 +82,22 @@ final class KeyboardEnhancementFlagsEvent extends ResponseEvent {
 /// Represent a Color event response from OSC 11
 @immutable
 final class ColorQueryEvent extends ResponseEvent {
+  /// The OSC selector identifying which color was queried.
+  ///
+  /// Dynamic colors: 10 = foreground, 11 = background, 12 = cursor,
+  /// 13 = mouse foreground, 14 = mouse background, 17 = highlight background,
+  /// 19 = highlight foreground. This field is what disambiguates otherwise
+  /// identically-shaped replies (e.g. fg vs bg) when queries are batched.
+  final int code;
+
+  /// Palette index for indexed-color replies — OSC 4 (`OSC 4 ; index ; rgb:…`)
+  /// and OSC 5 special colors — whose replies carry an extra index beyond the
+  /// [code]. `null` for the dynamic colors above.
+  ///
+  /// Reserved extension point: OSC 4/5 are not parsed yet; when added, the
+  /// parser populates [index] without changing this event's shape.
+  final int? index;
+
   /// The red color value.
   final int r;
 
@@ -92,15 +108,21 @@ final class ColorQueryEvent extends ResponseEvent {
   final int b;
 
   /// Constructs a new instance of [ColorQueryEvent].
-  const ColorQueryEvent(this.r, this.g, this.b);
+  const ColorQueryEvent(this.code, this.r, this.g, this.b, {this.index});
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ColorQueryEvent && runtimeType == other.runtimeType && r == other.r && g == other.g && b == other.b;
+      other is ColorQueryEvent &&
+          runtimeType == other.runtimeType &&
+          code == other.code &&
+          index == other.index &&
+          r == other.r &&
+          g == other.g &&
+          b == other.b;
 
   @override
-  int get hashCode => Object.hash(r, g, b);
+  int get hashCode => Object.hash(code, index, r, g, b);
 }
 
 /// Device Attribute Type

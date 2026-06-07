@@ -184,7 +184,7 @@ void main() {
             );
 
             await Future<void>.delayed(const Duration(milliseconds: 10));
-            eventController.add(const ColorQueryEvent(0xFF, 0x80, 0x40));
+            eventController.add(const ColorQueryEvent(10, 0xFF, 0x80, 0x40));
 
             final info = await probeFuture;
 

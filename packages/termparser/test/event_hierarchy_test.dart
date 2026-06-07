@@ -42,7 +42,7 @@ void main() {
     });
 
     test('ColorQueryEvent extends ResponseEvent', () {
-      const event = ColorQueryEvent(255, 128, 64);
+      const event = ColorQueryEvent(11, 255, 128, 64);
       expect(event, isA<ResponseEvent>());
       expect(event, isA<Event>());
     });
