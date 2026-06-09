@@ -162,6 +162,11 @@ abstract class Term {
   /// Query Primary Device Attributes
   static const String queryPrimaryDeviceAttributes = '${CSI}c';
 
+  /// Query Secondary Device Attributes (DA2)
+  ///
+  /// Reply is `CSI > Pp ; Pv ; Pc c` (terminal type / version / cartridge).
+  static const String querySecondaryDeviceAttributes = '$CSI>c';
+
   /// Soft terminal reset
   ///
   /// https://vt100.net/docs/vt510-rm/DECSTR.html
