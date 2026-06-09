@@ -187,6 +187,12 @@ enum DeviceAttributeParams {
   /// Technical character set
   technicalCharacters(15),
 
+  /// DEC Locator
+  locator(16),
+
+  /// Terminal state interrogation
+  terminalStateInterrogation(17),
+
   /// Windowing capability
   userWindows(18),
 
@@ -196,8 +202,16 @@ enum DeviceAttributeParams {
   /// ANSI color
   ansiColor(22),
 
+  /// Rectangular area editing (DECRARA/DECCRA/…)
+  rectangularEditing(28),
+
   /// ANSI text locator
   ansiTextLocator(29),
+
+  /// Clipboard access via OSC 52. Only reported when the terminal
+  /// permits clipboard writes. Read support is NOT implied — that stays gated
+  /// by the terminal.
+  clipboard(52),
 
   /// Unknown
   unknown(999999);
@@ -231,6 +245,40 @@ final class PrimaryDeviceAttributesEvent extends ResponseEvent {
 
   @override
   int get hashCode => Object.hash(type, Object.hashAll(params));
+}
+
+/// Secondary Device Attributes (DA2)
+///
+/// Reply to `CSI > c`, of the form `CSI > Pp ; Pv ; Pc c`. Identifies the
+/// terminal [type] (Pp), firmware [version] (Pv) and [cartridge]/ROM (Pc).
+/// Useful for emulator detection (xterm vs mintty vs iTerm2 vs kitty …).
+///
+/// ref: https://vt100.net/docs/vt510-rm/DA2.html
+@immutable
+final class SecondaryDeviceAttributesEvent extends ResponseEvent {
+  /// Terminal type identifier (Pp).
+  final int type;
+
+  /// Firmware / version (Pv).
+  final int version;
+
+  /// Cartridge / ROM number (Pc), usually 0.
+  final int cartridge;
+
+  /// Constructs a new instance of [SecondaryDeviceAttributesEvent].
+  const SecondaryDeviceAttributesEvent(this.type, this.version, this.cartridge);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SecondaryDeviceAttributesEvent &&
+          runtimeType == other.runtimeType &&
+          type == other.type &&
+          version == other.version &&
+          cartridge == other.cartridge;
+
+  @override
+  int get hashCode => Object.hash(type, version, cartridge);
 }
 
 /// Terminal Name and Version

@@ -26,7 +26,7 @@ Event? parseCSISequence(Parameters params, String char) {
     'I' => const FocusEvent(),
     'O' => const FocusEvent(hasFocus: false),
     'u' => _parseKeyboardEnhancedMode(params, char),
-    'c' => _primaryDeviceAttributes(params, char),
+    'c' => _deviceAttributes(params, char),
     '~' => _parseSpecialKeyCode(params, char),
     'R' => _parseCursorPosition(params),
     'y' => _parseDECRPMStatus(params),
@@ -118,6 +118,21 @@ Event? _parseKeyboardEnhancedMode(Parameters params, String char) {
     modifiers: modifiers,
     eventType: kind,
   );
+}
+
+// Routes the `c` final byte: `?` marker → DA1 (primary), `>` marker → DA2
+// (secondary). Anything else is not a device-attributes reply.
+Event? _deviceAttributes(Parameters params, String char) {
+  if (params.values.isEmpty) return null;
+  if (params.values[0] == '>') return _secondaryDeviceAttributes(params);
+  return _primaryDeviceAttributes(params, char);
+}
+
+// CSI > Pp ; Pv ; Pc c  — values[0] is the '>' marker, the rest are numeric.
+Event? _secondaryDeviceAttributes(Parameters params) {
+  final values = params.values.sublist(1);
+  int at(int i) => i < values.length ? (int.tryParse(values[i]) ?? 0) : 0;
+  return SecondaryDeviceAttributesEvent(at(0), at(1), at(2));
 }
 
 Event? _primaryDeviceAttributes(Parameters params, String char) {

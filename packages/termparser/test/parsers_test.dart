@@ -344,6 +344,41 @@ void main() {
       expect(event.type, DeviceAttributeType.vt220);
       expect(event.params, isEmpty); // Unknown param should be filtered out
     });
+
+    test('device attributes - clipboard (OSC 52) advertised, Ghostty-style', () {
+      // 62=VT220, 22=color, 52=clipboard.
+      final parser = Parser()..advance(keySequence('π[?62;22;52c'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as PrimaryDeviceAttributesEvent;
+      expect(event.type, DeviceAttributeType.vt220);
+      expect(event.params, containsAll([DeviceAttributeParams.ansiColor, DeviceAttributeParams.clipboard]));
+    });
+
+    test('secondary device attributes (DA2) - type/version/cartridge', () {
+      // CSI > 0 ; 276 ; 0 c  (xterm patch 276)
+      final parser = Parser()..advance(keySequence('π[>0;276;0c'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as SecondaryDeviceAttributesEvent;
+      expect(event.type, 0);
+      expect(event.version, 276);
+      expect(event.cartridge, 0);
+    });
+
+    test('secondary device attributes (DA2) - missing fields default to 0', () {
+      final parser = Parser()..advance(keySequence('π[>1c'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as SecondaryDeviceAttributesEvent;
+      expect(event.type, 1);
+      expect(event.version, 0);
+      expect(event.cartridge, 0);
+    });
+
+    test('DA1 (?) and DA2 (>) markers route to distinct events', () {
+      final da1 = (Parser()..advance(keySequence('π[?62;9999c'))).nextEvent();
+      final da2 = (Parser()..advance(keySequence('π[>0;276;0c'))).nextEvent();
+      expect(da1, isA<PrimaryDeviceAttributesEvent>());
+      expect(da2, isA<SecondaryDeviceAttributesEvent>());
+    });
   });
 
   group('key_parser >', () {

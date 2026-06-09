@@ -226,6 +226,30 @@ void main() {
     });
   });
 
+  group('SecondaryDeviceAttributesEvent >', () {
+    test('constructor', () {
+      const event = SecondaryDeviceAttributesEvent(0, 276, 0);
+      expect(event.type, 0);
+      expect(event.version, 276);
+      expect(event.cartridge, 0);
+    });
+
+    test('equality - identical events', () {
+      const event1 = SecondaryDeviceAttributesEvent(1, 95, 0);
+      const event2 = SecondaryDeviceAttributesEvent(1, 95, 0);
+
+      expect(event1, equals(event2));
+      expect(event1.hashCode, equals(event2.hashCode));
+    });
+
+    test('equality - different fields', () {
+      const base = SecondaryDeviceAttributesEvent(1, 95, 0);
+      expect(base, isNot(equals(const SecondaryDeviceAttributesEvent(2, 95, 0))));
+      expect(base, isNot(equals(const SecondaryDeviceAttributesEvent(1, 96, 0))));
+      expect(base, isNot(equals(const SecondaryDeviceAttributesEvent(1, 95, 1))));
+    });
+  });
+
   group('NameAndVersionEvent >', () {
     test('constructor', () {
       const event = NameAndVersionEvent('xterm-256color');
