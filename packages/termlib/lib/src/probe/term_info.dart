@@ -296,6 +296,27 @@ class TermInfo {
   QueryResult<BracketedPasteStatus> get bracketedPaste =>
       _results[ProbeQuery.bracketedPaste] as QueryResult<BracketedPasteStatus>? ??
       const Unavailable(UnavailableReason.skipped);
+
+  /// Whether the terminal advertises OSC 52 clipboard support via DA1 (param 52).
+  ///
+  /// Derived from [deviceAttrs] — non-intrusive (no clipboard popup or timeout,
+  /// unlike querying OSC 52 directly). [Supported] carries `true`/`false` for
+  /// param present/absent; if DA1 itself was unavailable, that reason is
+  /// propagated. Note: `52` certifies clipboard *write* only (the terminal must
+  /// also permit it); clipboard *read* stays terminal-gated and is not implied.
+  QueryResult<bool> get clipboardOsc52 => _deviceAttrFlag(DeviceAttributeParams.clipboard);
+
+  /// Whether the terminal advertises Sixel graphics via DA1 (param 4).
+  ///
+  /// Derived from [deviceAttrs]; see [clipboardOsc52] for the result semantics.
+  QueryResult<bool> get sixelGraphics => _deviceAttrFlag(DeviceAttributeParams.sixelGraphics);
+
+  /// Maps [deviceAttrs] to a boolean capability flag for DA1 param [p].
+  QueryResult<bool> _deviceAttrFlag(DeviceAttributeParams p) => switch (deviceAttrs) {
+    Supported(:final value) => Supported(value.params.contains(p)),
+    Unavailable(:final reason) => Unavailable(reason),
+    Pending() => const Pending(),
+  };
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

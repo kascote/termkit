@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:termansi/termansi.dart' as ansi;
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
@@ -22,7 +23,7 @@ void main() {
 
         await mockedTest(
           (term, _, _) async {
-            final future = probeTerminal(term, timeout: 1);
+            final future = probeTerminal(term, deadline: 1);
             expect(future, isA<Future<TermInfo>>());
             await future;
             await term.dispose();
@@ -38,8 +39,8 @@ void main() {
 
         await mockedTest(
           (term, _, _) async {
-            final info1 = await probeTerminal(term, timeout: 1);
-            final info2 = await probeTerminal(term, timeout: 1);
+            final info1 = await probeTerminal(term, deadline: 1);
+            final info2 = await probeTerminal(term, deadline: 1);
 
             expect(identical(info1, info2), isFalse);
             await term.dispose();
@@ -60,7 +61,7 @@ void main() {
             final info = await probeTerminal(
               term,
               skip: {ProbeQuery.syncUpdate, ProbeQuery.unicodeCore},
-              timeout: 1,
+              deadline: 1,
             );
 
             expect(info.syncUpdate, isA<Unavailable<SyncUpdateStatus>>());
@@ -92,7 +93,7 @@ void main() {
                 ProbeQuery.windowSizePixels,
                 ProbeQuery.unicodeCore,
               },
-              timeout: 1,
+              deadline: 1,
             );
 
             expect(info.deviceAttrs, isA<Unavailable<DeviceAttributes>>());
@@ -113,7 +114,7 @@ void main() {
 
         await mockedTest(
           (term, _, _) async {
-            final info = await probeTerminal(term, timeout: 1);
+            final info = await probeTerminal(term, deadline: 1);
 
             expect(info.deviceAttrs, isA<Unavailable<DeviceAttributes>>());
             expect((info.deviceAttrs as Unavailable).reason, UnavailableReason.timeout);
@@ -184,7 +185,9 @@ void main() {
             );
 
             await Future<void>.delayed(const Duration(milliseconds: 10));
-            eventController.add(const ColorQueryEvent(10, 0xFF, 0x80, 0x40));
+            eventController
+              ..add(const ColorQueryEvent(10, 0xFF, 0x80, 0x40))
+              ..add(const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, [])); // fence → early-exit
 
             final info = await probeFuture;
 
@@ -219,7 +222,9 @@ void main() {
             );
 
             await Future<void>.delayed(const Duration(milliseconds: 10));
-            eventController.add(QuerySyncUpdateEvent(1));
+            eventController
+              ..add(QuerySyncUpdateEvent(1))
+              ..add(const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, [])); // fence → early-exit
 
             final info = await probeFuture;
 
@@ -257,7 +262,9 @@ void main() {
             );
 
             await Future<void>.delayed(const Duration(milliseconds: 10));
-            eventController.add(QueryBracketedPasteEvent(1));
+            eventController
+              ..add(QueryBracketedPasteEvent(1))
+              ..add(const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, [])); // fence → early-exit
 
             final info = await probeFuture;
 
@@ -292,7 +299,9 @@ void main() {
             );
 
             await Future<void>.delayed(const Duration(milliseconds: 10));
-            eventController.add(const QueryTerminalWindowSizeEvent(1920, 1080));
+            eventController
+              ..add(const QueryTerminalWindowSizeEvent(1920, 1080))
+              ..add(const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, [])); // fence → early-exit
 
             final info = await probeFuture;
 
@@ -310,13 +319,146 @@ void main() {
       });
     });
 
+    group('batch behavior >', () {
+      // Probe everything except [keep]. DA1 is still sent as the fence even
+      // though deviceAttrs lands in the skip set.
+      Set<ProbeQuery> allBut(Set<ProbeQuery> keep) => ProbeQuery.values.toSet()..removeAll(keep);
+
+      test('fg and bg disambiguated by .code in one batch', () async {
+        final eventController = StreamController<Event>.broadcast();
+
+        await mockedTest(
+          (term, _, _) async {
+            final probeFuture = probeTerminal(
+              term,
+              skip: allBut({ProbeQuery.foregroundColor, ProbeQuery.backgroundColor}),
+            );
+
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            eventController
+              ..add(const ColorQueryEvent(10, 0xFF, 0x00, 0x00)) // fg
+              ..add(const ColorQueryEvent(11, 0x00, 0x00, 0xFF)) // bg
+              ..add(const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, [])); // fence
+
+            final info = await probeFuture;
+
+            // Two identically-typed replies land in distinct slots, keyed by .code.
+            expect((info.foregroundColor as Supported<Color>).value, Color.fromRGBComponent(0xFF, 0x00, 0x00));
+            expect((info.backgroundColor as Supported<Color>).value, Color.fromRGBComponent(0x00, 0x00, 0xFF));
+
+            await term.dispose();
+          },
+          eventSource: eventController.stream,
+        );
+
+        await eventController.close();
+      });
+
+      test('strays during a probe are requeued (drainable afterwards)', () async {
+        final eventController = StreamController<Event>.broadcast();
+
+        await mockedTest(
+          (term, _, _) async {
+            // Skip everything; only the DA1 fence is sent.
+            final probeFuture = probeTerminal(term, skip: ProbeQuery.values.toSet());
+
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            eventController
+              ..add(KeyEvent.fromString('a')) // stray input
+              ..add(const ColorQueryEvent(12, 0x11, 0x22, 0x33)) // cursor color: never queried → stray
+              ..add(const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, [])); // fence
+
+            await probeFuture;
+
+            // Both strays fell through to the queue and are drainable.
+            expect(term.tryEvent<KeyEvent>(), isA<KeyEvent>());
+            final stray = term.tryEvent<ColorQueryEvent>();
+            expect(stray, isA<ColorQueryEvent>());
+            expect(stray!.code, 12);
+
+            await term.dispose();
+          },
+          eventSource: eventController.stream,
+        );
+
+        await eventController.close();
+      });
+
+      test('writes a single batch with DA1 (CSI c) last', () async {
+        final eventController = StreamController<Event>.broadcast();
+        final out = BufferTermSink();
+
+        await mockedTest(
+          (term, _, _) async {
+            // No fence emitted → resolves on the small deadline; we only inspect
+            // what was written.
+            await probeTerminal(term, deadline: 30);
+
+            final output = out.output;
+            // Every non-DA1 query escape is present...
+            for (final esc in <String>[
+              ansi.Term.requestTermVersion,
+              ansi.Term.queryOSCColors(10),
+              ansi.Term.queryOSCColors(11),
+              ansi.Term.querySyncUpdate,
+              ansi.Term.requestKeyboardCapabilities,
+              ansi.Term.queryWindowSizePixels,
+              ansi.Term.queryUnicodeCore,
+              ansi.Term.queryColorScheme,
+              ansi.Term.queryInBandResize,
+              ansi.Term.queryBracketedPaste,
+            ]) {
+              expect(output, contains(esc));
+            }
+            // ...and DA1 is the final query in the buffer (the fence).
+            expect(output.endsWith(ansi.Term.queryPrimaryDeviceAttributes), isTrue);
+
+            await term.dispose();
+          },
+          stdout: out,
+          eventSource: eventController.stream,
+        );
+
+        await eventController.close();
+      });
+
+      test('early-exit: resolves on the fence, not the (large) deadline', () async {
+        final eventController = StreamController<Event>.broadcast();
+
+        await mockedTest(
+          (term, _, _) async {
+            // Deadline is 30s; without the fence early-exit this would hang.
+            final probeFuture = probeTerminal(
+              term,
+              skip: allBut({ProbeQuery.foregroundColor}),
+              deadline: 30000,
+            );
+
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            eventController
+              ..add(const ColorQueryEvent(10, 0x01, 0x02, 0x03))
+              ..add(const PrimaryDeviceAttributesEvent(DeviceAttributeType.vt220, [])); // fence
+
+            // Completes promptly, well under the 30s deadline.
+            final info = await probeFuture.timeout(const Duration(seconds: 2));
+            expect(info.foregroundColor, isA<Supported<Color>>());
+
+            await term.dispose();
+          },
+          eventSource: eventController.stream,
+        );
+
+        await eventController.close();
+      });
+    });
+
     group('raw mode >', () {
       test('probe enables/disables raw mode', () async {
         final eventController = StreamController<Event>.broadcast();
 
         await mockedTest(
           (term, _, tos) async {
-            await probeTerminal(term, timeout: 1);
+            await probeTerminal(term, deadline: 1);
 
             expect(tos.callStack, contains('enableRawMode'));
             expect(tos.callStack, contains('disableRawMode'));
@@ -345,7 +487,7 @@ void main() {
 
         await mockedTest(
           (term, _, _) async {
-            final probeFuture = term.probe(skip: only(ProbeQuery.bracketedPaste), timeout: 50);
+            final probeFuture = term.probe(skip: only(ProbeQuery.bracketedPaste), deadline: 50);
             await Future<void>.delayed(const Duration(milliseconds: 10));
             eventController.add(QueryBracketedPasteEvent(1)); // enabled
             await probeFuture;
@@ -368,7 +510,7 @@ void main() {
 
         await mockedTest(
           (term, _, _) async {
-            final probeFuture = term.probe(skip: only(ProbeQuery.inBandResize), timeout: 50);
+            final probeFuture = term.probe(skip: only(ProbeQuery.inBandResize), deadline: 50);
             await Future<void>.delayed(const Duration(milliseconds: 10));
             eventController.add(QueryWindowResizeEvent(1)); // enabled
             await probeFuture;
@@ -390,7 +532,7 @@ void main() {
 
         await mockedTest(
           (term, _, _) async {
-            final probeFuture = term.probe(skip: only(ProbeQuery.bracketedPaste), timeout: 50);
+            final probeFuture = term.probe(skip: only(ProbeQuery.bracketedPaste), deadline: 50);
             await Future<void>.delayed(const Duration(milliseconds: 10));
             eventController.add(QueryBracketedPasteEvent(0)); // notRecognized → unknown
             await probeFuture;
@@ -525,6 +667,50 @@ void main() {
       expect(BracketedPasteStatus.values, contains(BracketedPasteStatus.enabled));
       expect(BracketedPasteStatus.values, contains(BracketedPasteStatus.disabled));
       expect(BracketedPasteStatus.values, contains(BracketedPasteStatus.unknown));
+    });
+  });
+
+  group('TermInfo DA1-derived flags >', () {
+    TermInfo infoWith(DeviceAttributes attrs) =>
+        (TermInfoBuilder()..set(ProbeQuery.deviceAttrs, Supported(attrs))).build();
+
+    test('clipboardOsc52 true when DA1 lists param 52', () {
+      final info = infoWith(
+        const DeviceAttributes(DeviceAttributeType.vt220, [
+          DeviceAttributeParams.ansiColor,
+          DeviceAttributeParams.clipboard,
+        ]),
+      );
+      expect(info.clipboardOsc52, const Supported(true));
+    });
+
+    test('clipboardOsc52 false when DA1 omits param 52', () {
+      final info = infoWith(
+        const DeviceAttributes(DeviceAttributeType.vt220, [DeviceAttributeParams.ansiColor]),
+      );
+      expect(info.clipboardOsc52, const Supported(false));
+    });
+
+    test('sixelGraphics true when DA1 lists param 4', () {
+      final info = infoWith(
+        const DeviceAttributes(DeviceAttributeType.vt220, [DeviceAttributeParams.sixelGraphics]),
+      );
+      expect(info.sixelGraphics, const Supported(true));
+      expect(info.clipboardOsc52, const Supported(false));
+    });
+
+    test('propagates Unavailable reason when DA1 itself is unavailable', () {
+      final info =
+          (TermInfoBuilder()
+                ..set(ProbeQuery.deviceAttrs, const Unavailable<DeviceAttributes>(UnavailableReason.timeout)))
+              .build();
+      expect(info.clipboardOsc52, const Unavailable<bool>(UnavailableReason.timeout));
+      expect(info.sixelGraphics, const Unavailable<bool>(UnavailableReason.timeout));
+    });
+
+    test('Unavailable(skipped) when DA1 absent from results', () {
+      final info = TermInfoBuilder().build();
+      expect(info.clipboardOsc52, const Unavailable<bool>(UnavailableReason.skipped));
     });
   });
 }

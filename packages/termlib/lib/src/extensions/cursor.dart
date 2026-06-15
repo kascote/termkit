@@ -40,9 +40,8 @@ extension CursorUtils on InteractiveTerm {
   void restorePosition() => write(ansi.Cursor.restorePosition);
 
   /// Queries the current cursor position.
-  Future<CursorPositionEvent?> queryCursorPosition({int timeout = defaultQueryTimeout}) async {
-    return withModes<CursorPositionEvent?>(() => rawQueryCursorPosition(timeout), rawMode: true);
-  }
+  Future<CursorPositionEvent?> queryCursorPosition({int timeout = defaultQueryTimeout}) =>
+      _query<CursorPositionEvent>(ansi.Cursor.requestPosition, timeout);
 
   /// Hides the cursor.
   void cursorHide() {

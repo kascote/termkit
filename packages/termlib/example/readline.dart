@@ -71,7 +71,8 @@ Future<void> main(List<String> args) async {
       return (
         const ReadlineOptions(
           visualLength: 24,
-          initBuffer: 'the coder 👩‍💻 waves 👋🏽 bye as the family 👨‍👩‍👧‍👦 sails 🇺🇸🏳️‍🌈 home — type past the edge to scroll',
+          initBuffer:
+              'the coder 👩‍💻 waves 👋🏽 bye as the family 👨‍👩‍👧‍👦 sails 🇺🇸🏳️‍🌈 home — type past the edge to scroll',
         ),
         'visualLength: 24, wrap: false — one row, horizontal scroll over wide graphemes.',
       );

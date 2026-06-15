@@ -79,9 +79,8 @@ extension TermUtils on InteractiveTerm {
   /// Query bracketed paste reporting status.
   ///
   /// ref: <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>
-  Future<QueryBracketedPasteEvent?> queryBracketedPaste({int timeout = defaultQueryTimeout}) {
-    return withModes<QueryBracketedPasteEvent?>(() => rawQueryBracketedPaste(timeout), rawMode: true);
-  }
+  Future<QueryBracketedPasteEvent?> queryBracketedPaste({int timeout = defaultQueryTimeout}) =>
+      _query<QueryBracketedPasteEvent>(ansi.Term.queryBracketedPaste, timeout);
 
   /// Scroll the terminal up by the specified number of rows.
   void scrollUp(int rows) => write(ansi.Term.scrollUp(rows));
@@ -99,44 +98,41 @@ extension TermUtils on InteractiveTerm {
   void softReset() => write(ansi.Term.softTerminalReset);
 
   /// Query Sync status
-  Future<QuerySyncUpdateEvent?> querySyncUpdate({int timeout = defaultQueryTimeout}) async {
-    return withModes<QuerySyncUpdateEvent?>(() => rawQuerySyncUpdateStatus(timeout), rawMode: true);
-  }
+  Future<QuerySyncUpdateEvent?> querySyncUpdate({int timeout = defaultQueryTimeout}) =>
+      _query<QuerySyncUpdateEvent>(ansi.Term.querySyncUpdate, timeout);
 
   /// Request terminal name and version
   Future<String> queryTerminalVersion({int timeout = defaultQueryTimeout}) async {
-    return withModes<String>(() async {
-      final event = await rawQueryTerminalVersion(timeout);
-      return event?.value ?? '';
-    }, rawMode: true);
+    final event = await _query<NameAndVersionEvent>(ansi.Term.requestTermVersion, timeout);
+    return event?.value ?? '';
   }
 
   /// Returns the current terminal status report.
   Future<Color?> queryOSCStatus(int status, {int timeout = defaultQueryTimeout}) async {
-    return withModes<Color?>(() async {
-      final event = await rawQueryColor(status, timeout);
-      return (event != null) ? Color.fromRGBComponent(event.r, event.g, event.b) : null;
-    }, rawMode: true);
+    final event = await _query<ColorQueryEvent>(ansi.Term.queryOSCColors(status), timeout);
+    return (event != null) ? Color.fromRGBComponent(event.r, event.g, event.b) : null;
   }
 
   /// Query Keyboard enhancement support
   Future<bool> queryKeyboardEnhancementSupport({int timeout = defaultQueryTimeout}) async {
-    return withModes<bool>(() async {
-      write(ansi.Term.queryKeyboardEnhancementSupport);
-      final event = await awaitEvent<KeyboardEnhancementFlagsEvent>(timeout: Duration(milliseconds: timeout));
-      return event != null;
-    }, rawMode: true);
+    final event = await _query<KeyboardEnhancementFlagsEvent>(ansi.Term.queryKeyboardEnhancementSupport, timeout);
+    return event != null;
   }
 
   /// Query Primary Device Attributes
-  Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes({int timeout = defaultQueryTimeout}) async {
-    return withModes<PrimaryDeviceAttributesEvent?>(() => rawQueryDeviceAttrs(timeout), rawMode: true);
-  }
+  Future<PrimaryDeviceAttributesEvent?> queryPrimaryDeviceAttributes({int timeout = defaultQueryTimeout}) =>
+      _query<PrimaryDeviceAttributesEvent>(ansi.Term.queryPrimaryDeviceAttributes, timeout);
+
+  /// Query Secondary Device Attributes (DA2)
+  ///
+  /// Returns the terminal type / firmware version / cartridge, or `null` if the
+  /// terminal does not answer within [timeout].
+  Future<SecondaryDeviceAttributesEvent?> querySecondaryDeviceAttributes({int timeout = defaultQueryTimeout}) =>
+      _query<SecondaryDeviceAttributesEvent>(ansi.Term.querySecondaryDeviceAttributes, timeout);
 
   /// Query Terminal window size in pixels
-  Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels({int timeout = defaultQueryTimeout}) async {
-    return withModes<QueryTerminalWindowSizeEvent?>(() => rawQueryWindowSizePixels(timeout), rawMode: true);
-  }
+  Future<QueryTerminalWindowSizeEvent?> queryWindowSizeInPixels({int timeout = defaultQueryTimeout}) =>
+      _query<QueryTerminalWindowSizeEvent>(ansi.Term.queryWindowSizePixels, timeout);
 
   /// Set Clipboard content
   void clipboardSet(Clipboard clipboard, String data) {
@@ -155,19 +151,14 @@ extension TermUtils on InteractiveTerm {
   ///
   /// Can use the timeout parameter to wait for longer time if the terminal
   /// use some interface to request permissions.
-  Future<ClipboardCopyEvent?> queryClipboard(Clipboard clipboard, {int timeout = defaultQueryTimeout}) {
-    return withModes<ClipboardCopyEvent?>(() async {
-      write(ansi.Term.clipboard(clipboard.target, ClipboardMode.query.mode));
-      return awaitEvent<ClipboardCopyEvent>(timeout: Duration(milliseconds: timeout));
-    }, rawMode: true);
-  }
+  Future<ClipboardCopyEvent?> queryClipboard(Clipboard clipboard, {int timeout = defaultQueryTimeout}) =>
+      _query<ClipboardCopyEvent>(ansi.Term.clipboard(clipboard.target, ClipboardMode.query.mode), timeout);
 
   /// Request keyboard capabilities
   ///
   /// ref: <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>
-  Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities({int timeout = defaultQueryTimeout}) async {
-    return withModes<KeyboardEnhancementFlagsEvent?>(() => rawQueryKeyboardFlags(timeout), rawMode: true);
-  }
+  Future<KeyboardEnhancementFlagsEvent?> queryKeyboardCapabilities({int timeout = defaultQueryTimeout}) =>
+      _query<KeyboardEnhancementFlagsEvent>(ansi.Term.requestKeyboardCapabilities, timeout);
 
   /// Set keyboard flags
   ///
@@ -223,9 +214,8 @@ extension TermUtils on InteractiveTerm {
   /// Query Unicode Core status
   ///
   /// ref:  https://github.com/contour-terminal/terminal-unicode-core
-  Future<UnicodeCoreEvent?> queryUnicodeCore({int timeout = defaultQueryTimeout}) {
-    return withModes<UnicodeCoreEvent?>(() => rawQueryUnicodeCoreStatus(timeout), rawMode: true);
-  }
+  Future<UnicodeCoreEvent?> queryUnicodeCore({int timeout = defaultQueryTimeout}) =>
+      _query<UnicodeCoreEvent>(ansi.Term.queryUnicodeCore, timeout);
 
   /// Enable color palette update notifications.
   ///
@@ -243,9 +233,8 @@ extension TermUtils on InteractiveTerm {
   /// Query terminal color scheme preference (light/dark mode).
   ///
   /// ref: https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
-  Future<ColorSchemeEvent?> queryColorScheme({int timeout = defaultQueryTimeout}) {
-    return withModes<ColorSchemeEvent?>(() => rawQueryColorScheme(timeout), rawMode: true);
-  }
+  Future<ColorSchemeEvent?> queryColorScheme({int timeout = defaultQueryTimeout}) =>
+      _query<ColorSchemeEvent>(ansi.Term.queryColorScheme, timeout);
 
   /// Enable in-band window resize reporting.
   ///
@@ -269,7 +258,19 @@ extension TermUtils on InteractiveTerm {
   /// Query in-band window resize reporting status.
   ///
   /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
-  Future<QueryWindowResizeEvent?> queryInBandResize({int timeout = defaultQueryTimeout}) {
-    return withModes<QueryWindowResizeEvent?>(() => rawQueryInBandResize(timeout), rawMode: true);
+  Future<QueryWindowResizeEvent?> queryInBandResize({int timeout = defaultQueryTimeout}) =>
+      _query<QueryWindowResizeEvent>(ansi.Term.queryInBandResize, timeout);
+
+  /// Sends [escape] and waits up to [timeout] ms for a reply of type [T] with
+  /// raw mode applied for the duration; returns null on timeout.
+  ///
+  /// Shared mechanism behind every single-shot `queryX` method here and in
+  /// [CursorUtils]. Not exposed — public queries wrap it (and map its result
+  /// where needed). For batched capability probing see `probeTerminal`.
+  Future<T?> _query<T extends Event>(Object escape, int timeout) {
+    return withModes<T?>(() async {
+      write(escape);
+      return awaitEvent<T>(timeout: Duration(milliseconds: timeout));
+    }, rawMode: true);
   }
 }

@@ -86,14 +86,16 @@ class TermRunner {
 
   /// Which queries to run when [probe] is true. Defaults to
   /// [seedableProbeQueries] — exactly the queries that feed live mode state.
-  /// Probe queries run sequentially, each waiting up to [probeTimeout], so the
-  /// default keeps worst-case startup latency bounded. Widen it to also
-  /// populate [InteractiveTerm.termInfo] with extra capability info.
+  /// All probe queries are fired in a single batch bounded by one
+  /// [probeDeadline] (see `specs/PROBE_BATCHING.md`), so widening the set adds
+  /// little startup cost. Widen it to also populate [InteractiveTerm.termInfo]
+  /// with extra capability info.
   final Set<ProbeQuery> probeQueries;
 
-  /// Per-query timeout (ms) for [probe]. Bounds the worst-case startup hang on
-  /// a terminal that ignores the queries to `probeQueries.length * probeTimeout`.
-  final int probeTimeout;
+  /// Whole-batch deadline (ms) for [probe]. All queries are fired at once and a
+  /// silent terminal now costs ~one deadline (not `probeQueries.length ×` it),
+  /// so this can be generous without an N× startup hang.
+  final int probeDeadline;
 
   /// Force specific color profile
   final ProfileEnum? profile;
@@ -139,7 +141,7 @@ class TermRunner {
     this.title,
     this.probe = true,
     this.probeQueries = seedableProbeQueries,
-    this.probeTimeout = 500,
+    this.probeDeadline = 500,
     this.profile,
     this.defaultErrorCode = 1,
     this.showError = true,
@@ -163,7 +165,7 @@ class TermRunner {
     if (probe) {
       await term.probe(
         skip: ProbeQuery.values.toSet().difference(probeQueries),
-        timeout: probeTimeout,
+        deadline: probeDeadline,
       );
     }
     // Snapshot the entry state (reflecting any probe seeding) so every exit

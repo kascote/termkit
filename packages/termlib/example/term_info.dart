@@ -37,9 +37,20 @@ Future<int> display(InteractiveTerm t) async {
 
   _section(t, theme, 'Device Attributes');
   _showDeviceAttrs(t, theme, info.deviceAttrs);
+  _showOptional(
+    t,
+    theme,
+    'Secondary (DA2)',
+    await t.querySecondaryDeviceAttributes(),
+    (e) => 'type ${e.type}, version ${e.version}, cartridge ${e.cartridge}',
+  );
 
   _section(t, theme, 'Keyboard');
   _showKeyboardFlags(t, theme, info.keyboardCapabilities);
+
+  _section(t, theme, 'Other');
+  _showResult(t, theme, 'Clipboard (OSC 52)', info.clipboardOsc52, (v) => v ? 'supported' : 'no');
+  _showOptional(t, theme, 'Cursor position', await t.queryCursorPosition(), (e) => '${e.x},${e.y}');
 
   return 0;
 }
@@ -75,6 +86,19 @@ void _showResult<T>(
     Unavailable(:final reason) => theme.magenta(reason.name),
     Pending() => theme.yellow('pending'),
   };
+  t.writeln('  ${theme.text(label)}: $styled');
+}
+
+void _showOptional<T>(
+  InteractiveTerm t,
+  Theme theme,
+  String label,
+  T? value, [
+  String Function(T)? format,
+]) {
+  final styled = value != null
+      ? theme.green(format != null ? format(value) : value.toString())
+      : theme.magenta('unavailable');
   t.writeln('  ${theme.text(label)}: $styled');
 }
 

@@ -11,8 +11,8 @@ import './colors.dart';
 import './event_queue.dart';
 import './extensions/types.dart';
 import './probe/probe.dart';
+import './probe/probe_collector.dart';
 import './probe/query_result.dart';
-import './probe/raw_queries.dart';
 import './probe/term_info.dart';
 import './readline.dart';
 import './shared/color_util.dart';
@@ -271,6 +271,11 @@ final class InteractiveTerm extends Term {
   StreamSubscription<Event>? _eventSubscription;
   StreamController<Event>? _eventBroadcastController;
 
+  /// Active batch-probe tap, installed only for the duration of a probe by
+  /// [runProbeBatch]. When set, [_onEventParsed] offers each parsed event to it
+  /// first; consumed probe replies bypass the queue
+  ProbeCollector? _probeCollector;
+
   /// Always `true` for [InteractiveTerm]. Retained for ergonomic parity with
   /// [hasOutputTerminal] and for conditional logic in code that holds a [Term].
   bool get hasTerminal => true;
@@ -402,7 +407,7 @@ final class InteractiveTerm extends Term {
     // that were already applied (partial-apply restore).
     final restores = <void Function()>[];
 
-    void manage(bool? want, TerminalMode mode, void Function() enable, void Function() disable) {
+    void manage(TerminalMode mode, void Function() enable, void Function() disable, {bool? want = false}) {
       if (want == null) return;
       final prior = _modes.isEnabled(mode);
       (want ? enable : disable)();
@@ -412,13 +417,13 @@ final class InteractiveTerm extends Term {
     try {
       // Apply loop sits inside the try so a throwing toggle still triggers the
       // finally and restores whatever was applied before it.
-      manage(rawMode, TerminalMode.rawMode, enableRawMode, disableRawMode);
-      manage(alternateScreen, TerminalMode.alternateScreen, enableAlternateScreen, disableAlternateScreen);
-      manage(mouseEvents, TerminalMode.mouseEvents, enableMouseEvents, disableMouseEvents);
-      manage(bracketedPaste, TerminalMode.bracketedPaste, enableBracketedPaste, disableBracketedPaste);
-      manage(inBandResize, TerminalMode.inBandResize, enableInBandResize, disableInBandResize);
-      manage(lineWrapping, TerminalMode.lineWrapping, enableLineWrapping, disableLineWrapping);
-      manage(cursorVisible, TerminalMode.cursorVisible, cursorShow, cursorHide);
+      manage(TerminalMode.rawMode, enableRawMode, disableRawMode, want: rawMode);
+      manage(TerminalMode.alternateScreen, enableAlternateScreen, disableAlternateScreen, want: alternateScreen);
+      manage(TerminalMode.mouseEvents, enableMouseEvents, disableMouseEvents, want: mouseEvents);
+      manage(TerminalMode.bracketedPaste, enableBracketedPaste, disableBracketedPaste, want: bracketedPaste);
+      manage(TerminalMode.inBandResize, enableInBandResize, disableInBandResize, want: inBandResize);
+      manage(TerminalMode.lineWrapping, enableLineWrapping, disableLineWrapping, want: lineWrapping);
+      manage(TerminalMode.cursorVisible, cursorShow, cursorHide, want: cursorVisible);
 
       if (keyboardEnhancement != null) {
         final priorFlags = _modes.keyboardFlags;
@@ -463,12 +468,30 @@ final class InteractiveTerm extends Term {
   /// than assumed defaults.
   Future<TermInfo> probe({
     Set<ProbeQuery> skip = const {},
-    int timeout = 500,
+    int deadline = 500,
   }) async {
-    final info = await probeTerminal(this, skip: skip, timeout: timeout);
+    final info = await probeTerminal(this, skip: skip, deadline: deadline);
     _termInfo = info;
     _seedModesFromProbe(info);
     return info;
+  }
+
+  /// Runs one batched probe: installs [collector] as the event tap, writes the
+  /// whole [batch] of query escapes at once, then waits for either the DA1 fence
+  /// (early-exit via [ProbeCollector.done]) or the batch [deadline].
+  ///
+  /// The tap is installed **before** the write so no fast reply is missed, and
+  /// removed in `finally` so any post-deadline straggler becomes an ordinary
+  /// queue event.
+  @internal
+  Future<void> runProbeBatch(String batch, ProbeCollector collector, Duration deadline) async {
+    _probeCollector = collector;
+    try {
+      write(batch);
+      await collector.done.timeout(deadline, onTimeout: () {});
+    } finally {
+      _probeCollector = null;
+    }
   }
 
   /// Seeds [_modes] from a fresh [TermInfo].
@@ -538,6 +561,11 @@ final class InteractiveTerm extends Term {
   }
 
   void _onEventParsed(Event event) {
+    final collector = _probeCollector;
+    if (collector != null && collector.offer(event)) {
+      _eventBroadcastController?.add(event); // parity: probe replies still broadcast
+      return; // consumed by the probe tap: do not enqueue
+    }
     _eventQueue!.enqueue(event);
     _eventBroadcastController?.add(event);
   }

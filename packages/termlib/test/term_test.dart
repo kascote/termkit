@@ -159,6 +159,21 @@ void main() {
       });
     });
 
+    test('querySecondaryDeviceAttributes', () async {
+      await mockedTest(
+        (term, out, tos) async {
+          final event = await term.querySecondaryDeviceAttributes();
+          expect(out.output, equals('\x1B[>c'));
+          expect(event, isA<SecondaryDeviceAttributesEvent>());
+          expect(event!.type, 0);
+          expect(event.version, 276);
+          expect(event.cartridge, 0);
+          expect(tos.callStack, containsAllInOrder(['enableRawMode', 'disableRawMode']));
+        },
+        stdin: streamString('\x1B[>0;276;0c'),
+      );
+    });
+
     test('queryWindowSizeInPixels', () async {
       await mockedTest(
         (term, out, tos) async {

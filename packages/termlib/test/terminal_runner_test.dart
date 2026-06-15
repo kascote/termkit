@@ -36,8 +36,7 @@ void main() {
 
       test('enables alternate screen', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, alternateScreen: true);
+          final setup = TermRunner(backend: backend, probe: false, alternateScreen: true);
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?1049h'));
@@ -48,8 +47,7 @@ void main() {
 
       test('enables raw mode', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, rawMode: true);
+          final setup = TermRunner(backend: backend, probe: false, rawMode: true);
           final term = await setup.build();
 
           expect(termOs.callStack, contains('enableRawMode'));
@@ -60,8 +58,7 @@ void main() {
 
       test('hides cursor', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, hideCursor: true);
+          final setup = TermRunner(backend: backend, probe: false, hideCursor: true);
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?25l'));
@@ -72,8 +69,7 @@ void main() {
 
       test('enables mouse events', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, mouseEvents: true);
+          final setup = TermRunner(backend: backend, probe: false, mouseEvents: true);
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?1000;1003;1006h'));
@@ -84,8 +80,7 @@ void main() {
 
       test('sets terminal title', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, title: 'Test App');
+          final setup = TermRunner(backend: backend, probe: false, title: 'Test App');
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B]0;Test App\x07'));
@@ -96,8 +91,7 @@ void main() {
 
       test('enables keyboard enhancement', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, keyboardEnhancement: true);
+          final setup = TermRunner(backend: backend, probe: false, keyboardEnhancement: true);
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[='));
@@ -109,8 +103,7 @@ void main() {
 
       test('enables bracketed paste', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, bracketedPaste: true);
+          final setup = TermRunner(backend: backend, probe: false, bracketedPaste: true);
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?2004h'));
@@ -121,8 +114,7 @@ void main() {
 
       test('enables in-band resize', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, inBandResize: true);
+          final setup = TermRunner(backend: backend, probe: false, inBandResize: true);
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?2048h'));
@@ -133,8 +125,7 @@ void main() {
 
       test('disables line wrapping', () async {
         await withFakeBackend((backend, stdout, termOs) async {
-          final setup = TermRunner(backend: backend,
-            probe: false, lineWrapping: true);
+          final setup = TermRunner(backend: backend, probe: false, lineWrapping: true);
           final term = await setup.build();
 
           expect(stdout.output, contains('\x1B[?7l'));
@@ -393,7 +384,7 @@ void main() {
             await withFakeBackend((backend, stdout, termOs) async {
               final setup = TermRunner(
                 backend: backend,
-            probe: false,
+                probe: false,
                 exitCallback: (term, code) async {},
               );
 
@@ -517,7 +508,7 @@ void main() {
           backend: backend,
           bracketedPaste: true, // managed
           probeQueries: {ProbeQuery.bracketedPaste},
-          probeTimeout: 50,
+          probeDeadline: 50,
           exitCallback: (term, code) async {},
         );
 

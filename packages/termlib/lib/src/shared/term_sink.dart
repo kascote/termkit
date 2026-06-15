@@ -60,12 +60,10 @@ class _IoSink implements TermSink {
 class BufferTermSink implements TermSink {
   /// Build an in-memory sink with the given terminal dimensions and tty flag.
   BufferTermSink({
-    int columns = 80,
-    int rows = 24,
-    bool hasTerminal = true,
-  }) : _columns = columns,
-       _rows = rows,
-       _hasTerminal = hasTerminal;
+    this._columns = 80,
+    this._rows = 24,
+    this._hasTerminal = true,
+  });
 
   final StringBuffer _buf = StringBuffer();
   int _columns;

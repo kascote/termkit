@@ -1,20 +1,25 @@
+import 'package:termansi/termansi.dart' as ansi;
 import 'package:termparser/termparser_events.dart';
 
 import '../colors.dart';
 import '../termlib_base.dart';
+import 'probe_collector.dart';
 import 'query_result.dart';
-import 'raw_queries.dart';
 import 'term_info.dart';
 
 /// Probe terminal capabilities.
 ///
-/// Runs sequential queries to detect terminal capabilities. Returns a [TermInfo]
-/// with detected capabilities.
+/// Fires **all** wanted query escapes in a single batch (with DA1 last as the
+/// fence), then collects replies until the DA1 reply lands (early-exit) or the
+/// batch [deadline] elapses.
 ///
 /// Parameters:
 /// - [term]: The terminal to probe
-/// - [skip]: Queries to skip (default: none)
-/// - [timeout]: Timeout in milliseconds for each query (default: 500)
+/// - [skip]: Queries to skip (default: none). DA1 is still sent for fencing even
+///   when [ProbeQuery.deviceAttrs] is skipped, but its result is discarded.
+/// - [deadline]: Whole-batch deadline in milliseconds (default: 500). The silent
+///   path now costs ~one deadline rather than `N × timeout`, so it can be
+///   generous.
 ///
 /// Example:
 /// ```dart
@@ -28,141 +33,92 @@ import 'term_info.dart';
 Future<TermInfo> probeTerminal(
   InteractiveTerm term, {
   Set<ProbeQuery> skip = const {},
-  int timeout = 500,
+  int deadline = 500,
 }) async {
-  final builder = TermInfoBuilder();
-
-  // Mark skipped queries with proper typed Unavailable
-  void markSkipped(ProbeQuery q) {
-    switch (q) {
-      case ProbeQuery.deviceAttrs:
-        builder.set(q, const Unavailable<DeviceAttributes>(UnavailableReason.skipped));
-      case ProbeQuery.terminalVersion:
-        builder.set(q, const Unavailable<String>(UnavailableReason.skipped));
-      case ProbeQuery.foregroundColor:
-        builder.set(q, const Unavailable<Color>(UnavailableReason.skipped));
-      case ProbeQuery.backgroundColor:
-        builder.set(q, const Unavailable<Color>(UnavailableReason.skipped));
-      case ProbeQuery.syncUpdate:
-        builder.set(q, const Unavailable<SyncUpdateStatus>(UnavailableReason.skipped));
-      case ProbeQuery.keyboardCapabilities:
-        builder.set(q, const Unavailable<KeyboardFlags>(UnavailableReason.skipped));
-      case ProbeQuery.windowSizePixels:
-        builder.set(q, const Unavailable<WindowSize>(UnavailableReason.skipped));
-      case ProbeQuery.unicodeCore:
-        builder.set(q, const Unavailable<UnicodeCoreStatus>(UnavailableReason.skipped));
-      case ProbeQuery.colorScheme:
-        builder.set(q, const Unavailable<ColorSchemeMode>(UnavailableReason.skipped));
-      case ProbeQuery.inBandResize:
-        builder.set(q, const Unavailable<InBandResizeStatus>(UnavailableReason.skipped));
-      case ProbeQuery.bracketedPaste:
-        builder.set(q, const Unavailable<BracketedPasteStatus>(UnavailableReason.skipped));
-    }
-  }
-
-  skip.forEach(markSkipped);
+  // DA1 is always wanted: it is both a probe target and the fence (§3).
+  final wanted = ProbeQuery.values.toSet()
+    ..removeAll(skip)
+    ..add(ProbeQuery.deviceAttrs);
+  final collector = ProbeCollector(wanted);
 
   await term.withModes(rawMode: true, () async {
-    if (!skip.contains(ProbeQuery.deviceAttrs)) {
-      final e = await term.rawQueryDeviceAttrs(timeout);
-      builder.set(
-        ProbeQuery.deviceAttrs,
-        e != null
-            ? Supported(DeviceAttributes.fromEvent(e))
-            : const Unavailable<DeviceAttributes>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.terminalVersion)) {
-      final e = await term.rawQueryTerminalVersion(timeout);
-      builder.set(
-        ProbeQuery.terminalVersion,
-        e != null ? Supported(e.value) : const Unavailable<String>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.foregroundColor)) {
-      final e = await term.rawQueryColor(10, timeout);
-      builder.set(
-        ProbeQuery.foregroundColor,
-        e != null
-            ? Supported(Color.fromRGBComponent(e.r, e.g, e.b))
-            : const Unavailable<Color>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.backgroundColor)) {
-      final e = await term.rawQueryColor(11, timeout);
-      builder.set(
-        ProbeQuery.backgroundColor,
-        e != null
-            ? Supported(Color.fromRGBComponent(e.r, e.g, e.b))
-            : const Unavailable<Color>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.syncUpdate)) {
-      final e = await term.rawQuerySyncUpdateStatus(timeout);
-      builder.set(
-        ProbeQuery.syncUpdate,
-        e != null ? Supported(_mapSyncStatus(e)) : const Unavailable<SyncUpdateStatus>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.keyboardCapabilities)) {
-      final e = await term.rawQueryKeyboardFlags(timeout);
-      builder.set(
-        ProbeQuery.keyboardCapabilities,
-        e != null ? Supported(KeyboardFlags.fromEvent(e)) : const Unavailable<KeyboardFlags>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.windowSizePixels)) {
-      final e = await term.rawQueryWindowSizePixels(timeout);
-      builder.set(
-        ProbeQuery.windowSizePixels,
-        e != null ? Supported(WindowSize.fromEvent(e)) : const Unavailable<WindowSize>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.unicodeCore)) {
-      final e = await term.rawQueryUnicodeCoreStatus(timeout);
-      builder.set(
-        ProbeQuery.unicodeCore,
-        e != null ? Supported(_mapUnicodeStatus(e)) : const Unavailable<UnicodeCoreStatus>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.colorScheme)) {
-      final e = await term.rawQueryColorScheme(timeout);
-      builder.set(
-        ProbeQuery.colorScheme,
-        e != null ? Supported(e.mode) : const Unavailable<ColorSchemeMode>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.inBandResize)) {
-      final e = await term.rawQueryInBandResize(timeout);
-      builder.set(
-        ProbeQuery.inBandResize,
-        e != null
-            ? Supported(_mapInBandResizeStatus(e))
-            : const Unavailable<InBandResizeStatus>(UnavailableReason.timeout),
-      );
-    }
-
-    if (!skip.contains(ProbeQuery.bracketedPaste)) {
-      final e = await term.rawQueryBracketedPaste(timeout);
-      builder.set(
-        ProbeQuery.bracketedPaste,
-        e != null
-            ? Supported(_mapBracketedPasteStatus(e))
-            : const Unavailable<BracketedPasteStatus>(UnavailableReason.timeout),
-      );
-    }
+    await term.runProbeBatch(_buildBatch(wanted), collector, Duration(milliseconds: deadline));
   });
 
+  final builder = TermInfoBuilder();
+  for (final q in ProbeQuery.values) {
+    _mapResult(builder, q, skip, collector.results);
+  }
   return builder.build();
+}
+
+/// Concatenates the escape for every wanted query except DA1, then appends DA1
+/// (`CSI c`) **last** so it fences the batch (§3).
+String _buildBatch(Set<ProbeQuery> wanted) {
+  final buffer = StringBuffer();
+  for (final q in ProbeQuery.values) {
+    if (q == ProbeQuery.deviceAttrs || !wanted.contains(q)) continue;
+    buffer.write(_escapeFor(q));
+  }
+  buffer.write(ansi.Term.queryPrimaryDeviceAttributes);
+  return buffer.toString();
+}
+
+/// The query escape sequence for [q].
+String _escapeFor(ProbeQuery q) => switch (q) {
+  ProbeQuery.deviceAttrs => ansi.Term.queryPrimaryDeviceAttributes,
+  ProbeQuery.terminalVersion => ansi.Term.requestTermVersion,
+  ProbeQuery.foregroundColor => ansi.Term.queryOSCColors(10),
+  ProbeQuery.backgroundColor => ansi.Term.queryOSCColors(11),
+  ProbeQuery.syncUpdate => ansi.Term.querySyncUpdate,
+  ProbeQuery.keyboardCapabilities => ansi.Term.requestKeyboardCapabilities,
+  ProbeQuery.windowSizePixels => ansi.Term.queryWindowSizePixels,
+  ProbeQuery.unicodeCore => ansi.Term.queryUnicodeCore,
+  ProbeQuery.colorScheme => ansi.Term.queryColorScheme,
+  ProbeQuery.inBandResize => ansi.Term.queryInBandResize,
+  ProbeQuery.bracketedPaste => ansi.Term.queryBracketedPaste,
+};
+
+/// Maps a collected reply (or its absence) into a typed [QueryResult] and stores
+/// it on [builder]. Three outcomes: skipped → `Unavailable(skipped)`; reply
+/// present → `Supported(mapped)`; no reply → `Unavailable(timeout)`.
+void _mapResult(
+  TermInfoBuilder builder,
+  ProbeQuery q,
+  Set<ProbeQuery> skip,
+  Map<ProbeQuery, ResponseEvent> results,
+) {
+  QueryResult<T> outcome<T extends Object, E extends ResponseEvent>(T Function(E) map) {
+    if (skip.contains(q)) return const Unavailable(UnavailableReason.skipped);
+    final e = results[q];
+    if (e == null) return const Unavailable(UnavailableReason.timeout);
+    return Supported(map(e as E));
+  }
+
+  switch (q) {
+    case ProbeQuery.deviceAttrs:
+      builder.set(q, outcome<DeviceAttributes, PrimaryDeviceAttributesEvent>(DeviceAttributes.fromEvent));
+    case ProbeQuery.terminalVersion:
+      builder.set(q, outcome<String, NameAndVersionEvent>((e) => e.value));
+    case ProbeQuery.foregroundColor:
+      builder.set(q, outcome<Color, ColorQueryEvent>((e) => Color.fromRGBComponent(e.r, e.g, e.b)));
+    case ProbeQuery.backgroundColor:
+      builder.set(q, outcome<Color, ColorQueryEvent>((e) => Color.fromRGBComponent(e.r, e.g, e.b)));
+    case ProbeQuery.syncUpdate:
+      builder.set(q, outcome<SyncUpdateStatus, QuerySyncUpdateEvent>(_mapSyncStatus));
+    case ProbeQuery.keyboardCapabilities:
+      builder.set(q, outcome<KeyboardFlags, KeyboardEnhancementFlagsEvent>(KeyboardFlags.fromEvent));
+    case ProbeQuery.windowSizePixels:
+      builder.set(q, outcome<WindowSize, QueryTerminalWindowSizeEvent>(WindowSize.fromEvent));
+    case ProbeQuery.unicodeCore:
+      builder.set(q, outcome<UnicodeCoreStatus, UnicodeCoreEvent>(_mapUnicodeStatus));
+    case ProbeQuery.colorScheme:
+      builder.set(q, outcome<ColorSchemeMode, ColorSchemeEvent>((e) => e.mode));
+    case ProbeQuery.inBandResize:
+      builder.set(q, outcome<InBandResizeStatus, QueryWindowResizeEvent>(_mapInBandResizeStatus));
+    case ProbeQuery.bracketedPaste:
+      builder.set(q, outcome<BracketedPasteStatus, QueryBracketedPasteEvent>(_mapBracketedPasteStatus));
+  }
 }
 
 SyncUpdateStatus _mapSyncStatus(QuerySyncUpdateEvent e) {

@@ -377,7 +377,7 @@ void main() {
               ProbeQuery.colorScheme,
               ProbeQuery.inBandResize,
             },
-            timeout: 50,
+            deadline: 50,
           );
           await probeFuture;
           expect(term.termInfo?.bracketedPaste, isA<Supported<BracketedPasteStatus>>());
