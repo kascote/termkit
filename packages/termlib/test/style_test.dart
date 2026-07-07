@@ -146,9 +146,27 @@ void main() {
   });
 
   group('Style with Profile >', () {
-    test('renders no codes and no reset in the noColor profile', () {
+    test('renders no codes and no reset for a color-only style in noColor', () {
       final s = Style(fg: Color.ansi(7), bg: Color.ansi(4), profile: ProfileEnum.noColor);
       expect(s('Hello World'), equals('Hello World'));
+    });
+
+    test('keeps text attributes but drops colors in the noColor profile', () {
+      // NO_COLOR forbids color, not styling: reverse/bold survive so a
+      // selection whose only color identity was its background stays visible.
+      final s = Style(
+        fg: Color.ansi(7),
+        bg: Color.ansi(4),
+        bold: true,
+        reverse: true,
+        profile: ProfileEnum.noColor,
+      );
+      expect(s('Hello World', reset: false), equals('\x1B[1;7mHello World'));
+    });
+
+    test('reverse alone renders in the noColor profile', () {
+      const s = Style(reverse: true, profile: ProfileEnum.noColor);
+      expect(s('sel', reset: false), equals('\x1B[7msel'));
     });
 
     test('uses rgb colors', () {

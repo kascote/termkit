@@ -221,10 +221,13 @@ class Style {
   /// whenever styling was emitted) so it does not bleed into following output.
   /// Pass `reset: false` to leave it open for composition.
   ///
-  /// In the [ProfileEnum.noColor] profile, or when the style emits no
-  /// sequences, [text] is returned unchanged with no reset.
+  /// In the [ProfileEnum.noColor] profile the colors are dropped but the text
+  /// attributes (bold, faint, reverse, …) still render — NO_COLOR forbids
+  /// color, not styling. When the style emits no sequences at all (e.g. a
+  /// color-only style under noColor), [text] is returned unchanged with no
+  /// reset.
   String render(String text, {bool reset = true}) {
-    if (text.isEmpty || profile == ProfileEnum.noColor) return text;
+    if (text.isEmpty) return text;
 
     final seqs = _sequences();
     if (seqs.isEmpty) return text;
@@ -235,16 +238,21 @@ class Style {
   }
 
   /// Builds the ordered list of SGR parameters for this style.
+  ///
+  /// In the [ProfileEnum.noColor] profile the color parameters (foreground,
+  /// background, underline color) are skipped, but the text-attribute
+  /// parameters still emit — NO_COLOR strips color, not styling.
   List<String> _sequences() {
     final kind = colorKindFromProfile(profile);
+    final withColor = profile != ProfileEnum.noColor;
     final seqs = <String>[];
 
     final fgColor = fg;
-    if (fgColor != null) {
+    if (withColor && fgColor != null) {
       seqs.add(fgColor == Color.reset ? fgColor.sequence() : fgColor.convert(kind).sequence());
     }
     final bgColor = bg;
-    if (bgColor != null) {
+    if (withColor && bgColor != null) {
       seqs.add(
         bgColor == Color.reset ? bgColor.sequence(background: true) : bgColor.convert(kind).sequence(background: true),
       );
@@ -254,7 +262,7 @@ class Style {
     if (italic) seqs.add(_italicSeq);
 
     final uColor = underlineColor;
-    if (uColor != null) {
+    if (withColor && uColor != null) {
       var colorSeq = uColor.convert(kind).sequence();
       if (colorSeq.isNotEmpty) colorSeq = '5${colorSeq.substring(1)}';
       if (colorSeq.isNotEmpty) seqs.add(colorSeq);
