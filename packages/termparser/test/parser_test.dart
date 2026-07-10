@@ -173,7 +173,7 @@ void main() {
       );
     });
 
-    test('ESC [< 35 ; 86 ; 18 M', () {
+    test('ESC [< 35 ; 86 ; 18 M (move, no button held)', () {
       final parser = Parser()..advance(keySequence('π[<35;86;18M'));
       expect(parser.hasEvents, true);
       expect(
@@ -182,13 +182,55 @@ void main() {
       );
     });
 
-    test('ESC [< 32 ; 86 ; 18 M (drag)', () {
+    test('ESC [< 32 ; 86 ; 18 M (drag, left held)', () {
       final parser = Parser()..advance(keySequence('π[<32;86;18M'));
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        MouseEvent(86, 18, MouseButton.moved(MouseButtonKind.left)),
+        MouseEvent(86, 18, MouseButton.drag(MouseButtonKind.left)),
       );
+    });
+
+    test('ESC [< 33 ; 86 ; 18 M (drag, middle held)', () {
+      final parser = Parser()..advance(keySequence('π[<33;86;18M'));
+      expect(parser.hasEvents, true);
+      expect(
+        parser.nextEvent(),
+        MouseEvent(86, 18, MouseButton.drag(MouseButtonKind.middle)),
+      );
+    });
+
+    test('ESC [< 34 ; 86 ; 18 M (drag, right held)', () {
+      final parser = Parser()..advance(keySequence('π[<34;86;18M'));
+      expect(parser.hasEvents, true);
+      expect(
+        parser.nextEvent(),
+        MouseEvent(86, 18, MouseButton.drag(MouseButtonKind.right)),
+      );
+    });
+
+    test('ESC [< 36 ; 86 ; 18 M (shift+drag: the modifier is not a button)', () {
+      final parser = Parser()..advance(keySequence('π[<36;86;18M'));
+      expect(parser.hasEvents, true);
+      expect(
+        parser.nextEvent(),
+        MouseEvent(86, 18, MouseButton.drag(MouseButtonKind.left), modifiers: KeyModifiers.shift),
+      );
+    });
+
+    test('ESC [< 39 ; 86 ; 18 M (shift+move: still no button held)', () {
+      final parser = Parser()..advance(keySequence('π[<39;86;18M'));
+      expect(parser.hasEvents, true);
+      expect(
+        parser.nextEvent(),
+        MouseEvent(86, 18, MouseButton.moved(MouseButtonKind.none), modifiers: KeyModifiers.shift),
+      );
+    });
+
+    test('ESC [< 96 ; 86 ; 18 M (wheel with the motion bit set stays a wheel)', () {
+      final parser = Parser()..advance(keySequence('π[<96;86;18M'));
+      expect(parser.hasEvents, true);
+      expect(parser.nextEvent(), MouseEvent(86, 18, MouseButton.wheelUp()));
     });
 
     test('ESC [< 24 ; 86 ; 18 M', () {

@@ -48,6 +48,7 @@ KeyEventType eventKindParser(int? eventKindType) {
 
 const _motion = 0x20; // 0010_0000;
 const _buttonBits = 0xC3; // 1100_0011;
+const _noButton = 0x03; // 0000_0011;
 const _mouseModShift = 0x04; // 0000_0100;
 const _mouseModAlt = 0x08; // 0000_1000;
 const _mouseModCtrl = 0x10; // 0001_0000;
@@ -73,7 +74,12 @@ Event? sgrMouseParser(Parameters params, String charFinal) {
   final btn = p1 & _buttonBits;
   var modifiers = KeyModifiers.none;
 
-  if (p1.isSet(_motion)) action = MouseButtonAction.moved;
+  // The motion bit says the pointer travelled; the button bits say whether one
+  // was held while it did. Held is a drag, none is a bare move. A wheel notch
+  // also sets the motion bit on some terminals, so the wheel cases below win.
+  if (p1.isSet(_motion)) {
+    action = btn == _noButton ? MouseButtonAction.moved : MouseButtonAction.drag;
+  }
   if (p1.isSet(_mouseWheelUp)) action = MouseButtonAction.wheelUp;
   if (p1.isSet(_mouseWheelDown)) action = MouseButtonAction.wheelDown;
   if (p1.isSet(_mouseWheelLeft)) action = MouseButtonAction.wheelLeft;
