@@ -7,6 +7,7 @@ import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
 import './shared.dart';
+import './termlib_mock.dart';
 
 void main() {
   group('Term tests >', () {
@@ -162,6 +163,38 @@ void main() {
           ..writeln('hello world');
         expect(out.output, 'hello world\r\n');
       });
+    });
+
+    test('flush forwards to the backend sink without closing or writing', () async {
+      final sink = FlushTrackingBufferSink();
+      await mockedTest((term, out, _) async {
+        term.write('pending');
+        await term.flush();
+        expect(sink.flushCount, 1);
+        expect(out.output, 'pending');
+      }, stdout: sink);
+    });
+
+    test('flush is a no-op on BufferTermSink', () async {
+      await mockedTest((term, out, _) async {
+        await term.flush();
+        expect(out.output, isEmpty);
+      });
+    });
+
+    test('flush does not close the sink; write remains legal afterwards', () async {
+      await mockedTest((term, out, _) async {
+        await term.flush();
+        term.write('after flush');
+        expect(out.output, 'after flush');
+      });
+    });
+
+    test('TermSink.io forwards flush to the underlying Stdout', () async {
+      final stdout = FlushTrackingStdout();
+      final sink = TermSink.io(stdout);
+      await sink.flush();
+      expect(stdout.flushCount, 1);
     });
 
     test('writeAt must write the text at the expected position', () async {

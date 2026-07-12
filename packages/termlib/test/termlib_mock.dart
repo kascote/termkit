@@ -1,6 +1,7 @@
 import 'dart:io' show Stdout;
 
 import 'package:termlib/src/ffi/termos.dart';
+import 'package:termlib/termlib.dart';
 
 /// Captures raw-mode FFI calls for test assertions.
 class TermOsMock implements TermOs {
@@ -48,4 +49,28 @@ class MockStderr implements Stdout {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+/// `Stdout` mock that records `flush()` calls; used to verify `_IoSink.flush`
+/// forwards to the real `Stdout.flush` rather than closing or exiting.
+class FlushTrackingStdout implements Stdout {
+  int flushCount = 0;
+
+  @override
+  Future<void> flush() async => flushCount++;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+/// `BufferTermSink` that records `flush()` calls alongside the no-op buffer
+/// behavior, so tests can assert `Term.flush` forwards to the backend sink.
+class FlushTrackingBufferSink extends BufferTermSink {
+  int flushCount = 0;
+
+  @override
+  Future<void> flush() async {
+    flushCount++;
+    await super.flush();
+  }
 }

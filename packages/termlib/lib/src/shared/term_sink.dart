@@ -22,6 +22,9 @@ abstract class TermSink {
   /// Write object's string representation.
   void write(Object s);
 
+  /// Flush pending output. No-op for buffers. Does not close the sink.
+  Future<void> flush();
+
   /// Close underlying sink. No-op for buffers.
   Future<void> close();
 
@@ -42,6 +45,9 @@ class _IoSink implements TermSink {
 
   @override
   void write(Object s) => _out.write(s);
+
+  @override
+  Future<void> flush() => _out.flush();
 
   @override
   Future<void> close() => _out.close();
@@ -90,6 +96,9 @@ class BufferTermSink implements TermSink {
 
   @override
   void write(Object s) => _buf.write(s);
+
+  @override
+  Future<void> flush() async {}
 
   @override
   Future<void> close() async {}

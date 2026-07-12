@@ -177,6 +177,9 @@ sealed class Term {
     return Future.wait<void>([_b.stdout.close(), stderr.close()]).then<void>((_) => exit(status));
   }
 
+  /// Flush pending stdout without closing it or exiting the process.
+  Future<void> flush() => _b.stdout.flush();
+
   /// Dispose resources. Subclasses override to cancel event plumbing.
   Future<void> dispose() async {}
 
