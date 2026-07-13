@@ -85,6 +85,16 @@ void main() {
       expect(ev?.widthChars, 50);
     });
 
+    test('two consecutive WindowResizeEvents collapse to one', () {
+      final queue = EventQueue()
+        ..enqueue(const WindowResizeEvent(24, 80))
+        ..enqueue(const WindowResizeEvent(30, 100));
+      expect(queue.length, 1);
+      final ev = queue.dequeue<WindowResizeEvent>();
+      expect(ev?.heightChars, 30);
+      expect(ev?.widthChars, 100);
+    });
+
     test('coalesce only collapses against the immediate tail', () {
       final queue = EventQueue()
         ..enqueue(const MouseEvent(1, 1, _moved))

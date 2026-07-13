@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show exit, stderr;
+import 'dart:io' show Platform, ProcessSignal, exit, stderr;
 
 import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
@@ -273,6 +273,11 @@ final class InteractiveTerm extends Term {
   EventQueue? _eventQueue;
   StreamSubscription<Event>? _eventSubscription;
   StreamController<Event>? _eventBroadcastController;
+
+  /// SIGWINCH watcher installed by [enableResizeEvents] as a fallback for
+  /// terminals not known to support in-band resize reporting. Null when no
+  /// watcher is installed.
+  StreamSubscription<ProcessSignal>? _resizeSignalSubscription;
 
   /// Active batch-probe tap, installed only for the duration of a probe by
   /// [runProbeBatch]. When set, [_onEventParsed] offers each parsed event to it
@@ -553,13 +558,19 @@ final class InteractiveTerm extends Term {
 
   /// Dispose event plumbing. Pending [awaitEvent]/[nextEvent] futures
   /// complete with [TermDisposed].
+  ///
+  /// Also cancels the SIGWINCH watcher installed by [enableResizeEvents], if
+  /// any — a backstop for callers that tear down via [dispose] without first
+  /// calling [disableResizeEvents].
   @override
   Future<void> dispose() async {
     await _eventSubscription?.cancel();
+    await _resizeSignalSubscription?.cancel();
     await _eventQueue?.dispose();
     await _eventBroadcastController?.close();
     _eventQueue = null;
     _eventSubscription = null;
+    _resizeSignalSubscription = null;
     _eventBroadcastController = null;
   }
 

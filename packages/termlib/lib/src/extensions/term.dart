@@ -255,6 +255,54 @@ extension TermUtils on InteractiveTerm {
     _modes = _modes.copyWith(inBandResize: false);
   }
 
+  /// Enables resize event delivery, using in-band reporting where possible
+  /// and a signal-based fallback everywhere else.
+  ///
+  /// Always turns on in-band resize reporting (mode 2048) via
+  /// [enableInBandResize]. Additionally, when the terminal is not already
+  /// known — from a prior [InteractiveTerm.probe] — to support that mode,
+  /// this also watches `SIGWINCH` and synthesizes a [WindowResizeEvent] on
+  /// each signal, so resize events still arrive on terminals that ignore mode
+  /// 2048. Call [InteractiveTerm.probe] first if you want to skip installing
+  /// a redundant watcher on a terminal that has already answered the in-band
+  /// resize query one way or the other.
+  ///
+  /// The synthesized event carries the current [InteractiveTerm.terminalLines]
+  /// and [InteractiveTerm.terminalColumns] with pixel dimensions left at 0
+  /// (unsupported, matching [WindowResizeEvent]'s own convention). It is fed
+  /// through the same pipeline as every other parsed event, so on terminals
+  /// where both the in-band report and the signal fire for the same resize,
+  /// the resulting consecutive [WindowResizeEvent]s coalesce to one in the
+  /// event queue.
+  ///
+  /// No `SIGWINCH` watcher is installed on Windows, which has no such signal.
+  /// Calling this more than once installs at most one watcher.
+  void enableResizeEvents() {
+    enableInBandResize();
+
+    final inBandDefinite = switch (termInfo?.inBandResize) {
+      Supported(value: InBandResizeStatus.enabled) => true,
+      Supported(value: InBandResizeStatus.disabled) => true,
+      _ => false,
+    };
+    if (inBandDefinite) return;
+    if (Platform.isWindows) return;
+
+    _resizeSignalSubscription ??= ProcessSignal.sigwinch.watch().listen((_) {
+      _onEventParsed(WindowResizeEvent(terminalLines, terminalColumns));
+    });
+  }
+
+  /// Disables resize event delivery.
+  ///
+  /// Cancels the `SIGWINCH` watcher installed by [enableResizeEvents], if
+  /// any, then disables in-band resize reporting via [disableInBandResize].
+  void disableResizeEvents() {
+    unawaited(_resizeSignalSubscription?.cancel());
+    _resizeSignalSubscription = null;
+    disableInBandResize();
+  }
+
   /// Query in-band window resize reporting status.
   ///
   /// ref: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
