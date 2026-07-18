@@ -28,18 +28,16 @@ import 'schedule.dart';
 /// Fails on the first crash. No-op when the directory is missing.
 void replayCrashes(Directory crashesDir) {
   if (!crashesDir.existsSync()) return;
-  final bins = crashesDir
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.bin'))
-      .toList()
+  final bins = crashesDir.listSync().whereType<File>().where((f) => f.path.endsWith('.bin')).toList()
     ..sort((a, b) => a.path.compareTo(b.path));
   for (final f in bins) {
     final bytes = Uint8List.fromList(f.readAsBytesSync());
     final outcome = runOnce(bytes, FuzzSchedule.single(bytes.length));
     if (outcome is FuzzCrash) {
-      fail('replay ${f.uri.pathSegments.last}: '
-          'inv=${outcome.invariant} err=${outcome.error}');
+      fail(
+        'replay ${f.uri.pathSegments.last}: '
+        'inv=${outcome.invariant} err=${outcome.error}',
+      );
     }
   }
 }
@@ -57,8 +55,10 @@ void assertNoCrash(
 }) {
   if (outcome is! FuzzCrash) return;
   final key = dumpCrash(crashesDir, bytes, schedule, outcome);
-  fail('$tag @ iter $iter seed=$seed key=$key '
-      'inv=${outcome.invariant} err=${outcome.error}');
+  fail(
+    '$tag @ iter $iter seed=$seed key=$key '
+    'inv=${outcome.invariant} err=${outcome.error}',
+  );
 }
 
 /// Determinism oracle (Phase 7): two fresh parsers fed identical bytes under

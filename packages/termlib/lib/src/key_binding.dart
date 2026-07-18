@@ -37,7 +37,8 @@ class KeyBinding<A> {
   /// Maps one or more key specs to an action.
   ///
   /// Specs are canonicalized on insertion (e.g. `'Enter'` → `'enter'`,
-  /// `'shift+ctrl+a'` → `'ctrl+shift+A'`) so lookup is order- and
+  /// `'shift+ctrl+a'` → `'ctrl+A'` — shift folds into the letter's case
+  /// rather than staying a separate modifier) so lookup is order- and
   /// case-independent.
   ///
   /// Silently overrides existing bindings (enables user overrides).

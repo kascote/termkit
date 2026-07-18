@@ -21,8 +21,7 @@ void main() {
       expect((outcome as FuzzOk).eventCount, 2);
     });
 
-    test('runOnce on complete CSI cursor-position returns event + ground state',
-        () {
+    test('runOnce on complete CSI cursor-position returns event + ground state', () {
       // ESC [ 20 ; 10 R
       final bytes = Uint8List.fromList(
         [0x1B, 0x5B, 0x32, 0x30, 0x3B, 0x31, 0x30, 0x52],

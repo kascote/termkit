@@ -316,12 +316,26 @@ class KeyCode {
   /// base layout key as 99 corresponding to the c key.
   final int baseLayoutKey;
 
+  /// True when [char] is already known to be the character the keystroke
+  /// produced under shift, rather than merely the base key held down while
+  /// shift is also held.
+  ///
+  /// Kitty's keyboard protocol can report an alternate "shifted key" code
+  /// point alongside the base one; when a parser substitutes that shifted
+  /// key into [char], it sets this flag. It stays false whenever [char] came
+  /// from the base code point with shift inferred only from the modifier
+  /// bits — the case where the actual produced character (a symbol on a
+  /// non-US layout, for instance) is unknowable. Only meaningful for
+  /// [KeyCodeKind.char]; unused for named keys.
+  final bool shiftProduced;
+
   /// Private constructor
   const KeyCode._({
     required this.kind,
     this.name = KeyCodeName.none,
     this.char = '',
     this.baseLayoutKey = 0,
+    this.shiftProduced = false,
   });
 
   /// Constructs a named key (F1-F35, Enter, Escape, arrows, etc.)
@@ -333,11 +347,12 @@ class KeyCode {
       );
 
   /// Constructs a character key
-  const KeyCode.char(String char, {int baseLayoutKey = 0})
+  const KeyCode.char(String char, {int baseLayoutKey = 0, bool shiftProduced = false})
     : this._(
         kind: KeyCodeKind.char,
         char: char,
         baseLayoutKey: baseLayoutKey,
+        shiftProduced: shiftProduced,
       );
 
   @override
@@ -348,10 +363,11 @@ class KeyCode {
           kind == other.kind &&
           name == other.name &&
           char == other.char &&
-          baseLayoutKey == other.baseLayoutKey;
+          baseLayoutKey == other.baseLayoutKey &&
+          shiftProduced == other.shiftProduced;
 
   @override
-  int get hashCode => Object.hash(kind, name, char, baseLayoutKey);
+  int get hashCode => Object.hash(kind, name, char, baseLayoutKey, shiftProduced);
 
   /// Create a new instance of [KeyCode] with the given parameters.
   KeyCode copyWith({
@@ -359,18 +375,20 @@ class KeyCode {
     KeyCodeName? name,
     String? char,
     int? baseLayoutKey,
+    bool? shiftProduced,
   }) {
     return KeyCode._(
       kind: kind ?? this.kind,
       name: name ?? this.name,
       char: char ?? this.char,
       baseLayoutKey: baseLayoutKey ?? this.baseLayoutKey,
+      shiftProduced: shiftProduced ?? this.shiftProduced,
     );
   }
 
   @override
   String toString() {
-    return 'KeyCode{kind: $kind, name: $name, char: $char, baseLayoutKey: $baseLayoutKey}';
+    return 'KeyCode{kind: $kind, name: $name, char: $char, baseLayoutKey: $baseLayoutKey, shiftProduced: $shiftProduced}';
   }
 }
 
@@ -386,11 +404,16 @@ final class KeyEvent extends InputEvent {
   /// The type of the event.
   final KeyEventType eventType;
 
+  /// The literal text this keystroke typed, as reported by the terminal's
+  /// text-as-codepoints field. Null when the terminal did not report it.
+  final String? text;
+
   /// Constructs a new instance of [KeyEvent].
   const KeyEvent(
     this.code, {
     this.modifiers = KeyModifiers.none,
     this.eventType = KeyEventType.keyPress,
+    this.text,
   });
 
   /// Parses a key specification string into a [KeyEvent].
@@ -456,21 +479,24 @@ final class KeyEvent extends InputEvent {
           runtimeType == other.runtimeType &&
           code == other.code &&
           modifiers == other.modifiers &&
-          eventType == other.eventType;
+          eventType == other.eventType &&
+          text == other.text;
 
   @override
-  int get hashCode => Object.hash(code, modifiers, eventType);
+  int get hashCode => Object.hash(code, modifiers, eventType, text);
 
   /// Creates a copy of this [KeyEvent] with the given fields replaced.
   KeyEvent copyWith({
     KeyCode? code,
     KeyModifiers? modifiers,
     KeyEventType? eventType,
+    String? text,
   }) {
     return KeyEvent(
       code ?? this.code,
       modifiers: modifiers ?? this.modifiers,
       eventType: eventType ?? this.eventType,
+      text: text ?? this.text,
     );
   }
 
@@ -479,40 +505,53 @@ final class KeyEvent extends InputEvent {
   /// This is the inverse of [KeyEvent.fromString].
   /// Outputs generic modifier names in canonical order: ctrl+alt+shift+super+hyper+meta
   ///
-  /// Does not encode: eventType, baseLayoutKey, keyPad, capsLock
+  /// A keystroke has one identity, so shift is folded into the character it
+  /// produces rather than kept as a separate modifier: Shift+A is `'A'`,
+  /// Shift+1 is `'!'` — never `'shift+a'` or `'shift+1'`. Named keys are the
+  /// exception: they keep shift explicit, so Shift+Tab is `'shift+tab'`.
+  ///
+  /// Folding a cased letter is always safe — `'a'` becomes `'A'` regardless
+  /// of layout. Folding a symbol is only safe when the parser actually knows
+  /// what shift produced (the terminal reported Kitty's alternate "shifted
+  /// key"). On a terminal that disambiguates escape codes but doesn't report
+  /// alternate keys, Shift+1 arrives as the base character `'1'` plus a
+  /// shift modifier with no way to know the produced symbol (`'!'` on a US
+  /// layout, something else elsewhere) — folding would guess, so the spec
+  /// keeps the explicit modifier and stays `'shift+1'`.
+  ///
+  /// Does not encode: eventType, baseLayoutKey, keyPad, capsLock, text. Use
+  /// [toBaseLayoutSpec] for a projection onto the base (US) layout key.
   ///
   /// Examples:
   /// - `KeyEvent.fromString('backSpace').toSpec()` → `'backSpace'`
   /// - `KeyEvent.fromString('ctrl+a').toSpec()` → `'ctrl+a'`
   /// - `KeyEvent(KeyCode.named(KeyCodeName.leftCtrl)).toSpec()` → `'ctrl'`
-  String toSpec() {
-    final parts = <String>[];
-    var keySpec = _keyToSpec(code);
+  String toSpec() => _buildSpec(code, modifiers, charIsProduced: code.shiftProduced);
 
-    for (final (modifier, name) in _modifierSpec) {
-      // Skip modifier if it matches the key (e.g., leftCtrl key → 'ctrl')
-      if (name == keySpec) continue;
-      if (modifiers.has(modifier)) {
-        parts.add(name);
-      }
-    }
+  /// Converts this [KeyEvent] to a specification string projected onto the
+  /// base (standard US PC-101) layout key, substituting Kitty's
+  /// alternate-key "base layout key" field for the character that was
+  /// actually typed.
+  ///
+  /// This lets an app match key bindings by physical key position rather
+  /// than by the character a non-US layout produces: Ctrl+Я on a Cyrillic
+  /// layout, reported with a base layout key of `'z'`, projects to
+  /// `'ctrl+z'`. The same shift-folding rule as [toSpec] applies to the
+  /// substituted character, so Ctrl+Shift+Я (base `'z'`) projects to
+  /// `'ctrl+Z'`.
+  ///
+  /// Returns null for named keys and for any event where the terminal did
+  /// not report a base layout key.
+  String? toBaseLayoutSpec() {
+    if (code.kind != KeyCodeKind.char || code.baseLayoutKey == 0) return null;
 
-    // Lowercase single uppercase letters when shift is present
-    if (modifiers.has(KeyModifiers.shift) && keySpec.length == 1) {
-      final code = keySpec.codeUnitAt(0);
-      // Check if it's an uppercase letter (A-Z)
-      if (code >= 0x41 && code <= 0x5A) {
-        keySpec = keySpec.toLowerCase();
-      }
-    }
-
-    parts.add(keySpec);
-    return parts.join('+');
+    final baseCode = KeyCode.char(String.fromCharCode(code.baseLayoutKey));
+    return _buildSpec(baseCode, modifiers, charIsProduced: false);
   }
 
   @override
   String toString() {
-    return 'KeyEvent{code: $code, modifiers: ${modifiers.debugInfo()}, eventType: $eventType';
+    return 'KeyEvent{code: $code, modifiers: ${modifiers.debugInfo()}, eventType: $eventType, text: $text';
   }
 }
 
@@ -609,6 +648,43 @@ String _keyToSpec(KeyCode code) {
       if (generic != null) return generic;
       return code.name.name;
   }
+}
+
+/// Builds a spec string for [code] under [modifiers], applying the
+/// shift-folding rule shared by [KeyEvent.toSpec] and
+/// [KeyEvent.toBaseLayoutSpec]: a cased letter always folds by case (`'a'`
+/// + shift → `'A'`); any other single character folds only when
+/// [charIsProduced] says the parser already knows it is the shift-produced
+/// character, otherwise shift stays an explicit modifier. Named keys never
+/// fold.
+String _buildSpec(KeyCode code, KeyModifiers modifiers, {required bool charIsProduced}) {
+  var keySpec = _keyToSpec(code);
+  var dropShift = false;
+
+  if (modifiers.has(KeyModifiers.shift) && code.kind == KeyCodeKind.char && keySpec.length == 1) {
+    final upper = keySpec.toUpperCase();
+    if (upper != keySpec.toLowerCase()) {
+      // Cased letter: folding by case is always correct, layout or not.
+      keySpec = upper;
+      dropShift = true;
+    } else if (charIsProduced) {
+      // Non-letter, but the parser confirmed keySpec is what shift produced.
+      dropShift = true;
+    }
+  }
+
+  final parts = <String>[];
+  for (final (modifier, name) in _modifierSpec) {
+    // Skip modifier if it matches the key (e.g., leftCtrl key → 'ctrl')
+    if (name == keySpec) continue;
+    if (modifier == KeyModifiers.shift && dropShift) continue;
+    if (modifiers.has(modifier)) {
+      parts.add(name);
+    }
+  }
+
+  parts.add(keySpec);
+  return parts.join('+');
 }
 
 /// Parses a named key string

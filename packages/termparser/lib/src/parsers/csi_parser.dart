@@ -85,7 +85,6 @@ Event? _parseKeyboardEnhancedMode(Parameters params, String char) {
   final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
   var modifiers = modifierMask == null ? KeyModifiers.none : modifierParser(modifierMask);
   final kind = eventKindParser(eventKind);
-  // final stateFromModifiers = modifiersToStateParser(modifierMask);
   var (keyCode, baseModifier) = functionalKeyCodeParser(codePoint);
   modifiers = modifiers | baseModifier;
 
@@ -105,19 +104,44 @@ Event? _parseKeyboardEnhancedMode(Parameters params, String char) {
     };
   }
 
-  if (modifiers.has(KeyModifiers.shift)) {
-    if (shiftedKey != null) {
-      keyCode = KeyCode.char(String.fromCharCode(shiftedKey));
-      modifiers = modifiers | KeyModifiers.shift;
-    }
+  if (modifiers.has(KeyModifiers.shift) && shiftedKey != null) {
+    // The terminal reported what shift actually produces at this key, e.g.
+    // the '!' in Shift+1, or the '1' an AZERTY layout produces under
+    // Shift+& — carry that knowledge forward so toSpec() can fold shift
+    // into the character instead of guessing.
+    keyCode = KeyCode.char(String.fromCharCode(shiftedKey), shiftProduced: true);
   }
   if (baseLayout != null) keyCode = keyCode.copyWith(baseLayoutKey: baseLayout);
+
+  // Kitty attaches text-as-codepoints only to press and repeat events, never
+  // releases; a terminal that sends it on a release is ignored defensively.
+  final text = params.values.length > 2 && kind != KeyEventType.keyRelease
+      ? _parseTextCodepoints(params.values[2])
+      : null;
 
   return KeyEvent(
     keyCode,
     modifiers: modifiers,
     eventType: kind,
+    text: text,
   );
+}
+
+// Parses the third `CSI u` parameter (text-as-codepoints): a colon-separated
+// list of Unicode code points giving the literal text the keystroke typed.
+// Returns null when the parameter is empty or malformed.
+String? _parseTextCodepoints(String value) {
+  if (value.isEmpty) return null;
+
+  final codePoints = <int>[];
+  for (final part in value.split(':')) {
+    final codePoint = int.tryParse(part);
+    if (codePoint == null) return null;
+    codePoints.add(codePoint);
+  }
+  if (codePoints.isEmpty) return null;
+
+  return String.fromCharCodes(codePoints);
 }
 
 // Routes the `c` final byte: `?` marker → DA1 (primary), `>` marker → DA2
@@ -174,7 +198,6 @@ Event? _parseSpecialKeyCode(Parameters params, String char) {
   final (modifierMask, eventKind) = params.values.length == 1 ? (null, null) : modifierAndKindParse(params.values[1]);
   final modifier = modifierMask == null ? KeyModifiers.none : modifierParser(modifierMask);
   final eventType = eventKindParser(eventKind);
-  // final state = modifiersToStateParser(modifierMask);
   final keyCode = int.tryParse(params.values.first);
   if (keyCode == null) return null;
 
@@ -214,7 +237,6 @@ Event? _parseSpecialKeyCode(Parameters params, String char) {
     KeyCode.named(key),
     modifiers: modifier,
     eventType: eventType,
-    // eventState: state,
   );
 }
 

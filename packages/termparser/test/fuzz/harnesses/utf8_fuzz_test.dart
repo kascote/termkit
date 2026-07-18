@@ -35,18 +35,15 @@ import '../_support/invariants.dart';
 import '../_support/schedule.dart';
 
 final String _fuzzMode = Platform.environment['FUZZ_MODE'] ?? '';
-final int _fuzzIter =
-    int.tryParse(Platform.environment['FUZZ_ITER'] ?? '') ?? 10000;
+final int _fuzzIter = int.tryParse(Platform.environment['FUZZ_ITER'] ?? '') ?? 10000;
 final int _fuzzSecs = int.tryParse(Platform.environment['FUZZ_SECS'] ?? '') ?? 0;
 
 /// The heavy generative loop is opt-in: a plain `dart test` / `make test` skips
 /// it (kept fast — `replay crashes/` + explicit seeds remain as regression
 /// guards). It runs only when a fuzz knob is set, i.e. via `make fuzz` / `make fuzz-time`.
 final bool _fuzzEnabled =
-    Platform.environment.containsKey('FUZZ_ITER') ||
-    Platform.environment.containsKey('FUZZ_SECS');
-final int _fuzzSeed =
-    int.tryParse(Platform.environment['FUZZ_SEED'] ?? '') ?? 0xC0FFEE;
+    Platform.environment.containsKey('FUZZ_ITER') || Platform.environment.containsKey('FUZZ_SECS');
+final int _fuzzSeed = int.tryParse(Platform.environment['FUZZ_SEED'] ?? '') ?? 0xC0FFEE;
 
 const int _maxBytes = 4096;
 
@@ -91,9 +88,7 @@ Future<void> main() async {
       () {
         final rng = Random(_fuzzSeed);
         final timeBudget = _fuzzSecs > 0;
-        final deadline = timeBudget
-            ? DateTime.now().add(Duration(seconds: _fuzzSecs))
-            : null;
+        final deadline = timeBudget ? DateTime.now().add(Duration(seconds: _fuzzSecs)) : null;
         final iterCap = timeBudget ? 1 << 30 : _fuzzIter;
 
         var iters = 0;
@@ -173,22 +168,18 @@ const List<_Seed> _utf8Seeds = [
   _Seed('F0 90 80 then ASCII (F0 90 80 41)', [0xf0, 0x90, 0x80, 0x41]),
   _Seed('lone continuation (80)', [0x80]),
   _Seed('lone continuation (BF)', [0xbf]),
-  _Seed('5-byte lead (FB BF BF BF BF)',
-      [0xfb, 0xbf, 0xbf, 0xbf, 0xbf]),
+  _Seed('5-byte lead (FB BF BF BF BF)', [0xfb, 0xbf, 0xbf, 0xbf, 0xbf]),
   _Seed('FE/FF (FE FF)', [0xfe, 0xff]),
 
   // ---- surrogate halves -----------------------------------------------
   _Seed('high surrogate (ED A0 80 = U+D800)', [0xed, 0xa0, 0x80]),
   _Seed('low surrogate (ED B0 80 = U+DC00)', [0xed, 0xb0, 0x80]),
-  _Seed('high surrogate max (ED AF BF = U+DBFF)',
-      [0xed, 0xaf, 0xbf]),
-  _Seed('low surrogate max (ED BF BF = U+DFFF)',
-      [0xed, 0xbf, 0xbf]),
+  _Seed('high surrogate max (ED AF BF = U+DBFF)', [0xed, 0xaf, 0xbf]),
+  _Seed('low surrogate max (ED BF BF = U+DFFF)', [0xed, 0xbf, 0xbf]),
 
   // ---- near U+10FFFF ---------------------------------------------------
   _Seed('U+10FFFF (F4 8F BF BF)', [0xf4, 0x8f, 0xbf, 0xbf]),
-  _Seed('just over U+10FFFF (F4 90 80 80)',
-      [0xf4, 0x90, 0x80, 0x80]),
+  _Seed('just over U+10FFFF (F4 90 80 80)', [0xf4, 0x90, 0x80, 0x80]),
   _Seed('F5 prefix (F5 80 80 80)', [0xf5, 0x80, 0x80, 0x80]),
 
   // ---- ESC/CSI interrupting multibyte ---------------------------------
@@ -200,8 +191,7 @@ const List<_Seed> _utf8Seeds = [
   _Seed('ESC after E0 A0', [0xe0, 0xa0, 0x1b]),
   _Seed('ESC + [ A after F0 90 80', [0xf0, 0x90, 0x80, 0x1b, 0x5b, 0x41]),
   _Seed('CSI then 2-byte UTF-8 lead', [0x1b, 0x5b, 0x41, 0xc3]),
-  _Seed('mid-multibyte CSI splice',
-      [0xe4, 0xb8, 0x1b, 0x5b, 0x41, 0xad]),
+  _Seed('mid-multibyte CSI splice', [0xe4, 0xb8, 0x1b, 0x5b, 0x41, 0xad]),
 
   // ---- BOM (F6 regression) --------------------------------------------
   _Seed('BOM only (EF BB BF)', [0xef, 0xbb, 0xbf]),
@@ -287,9 +277,7 @@ List<int> _mutate(Random rng, List<int> seed) {
         buf.insert(idx, _utf8FlavoredByte(rng));
       case 4: // splice ESC or CSI
         final idx = rng.nextInt(buf.length + 1);
-        final splice = rng.nextBool()
-            ? const [0x1b]
-            : const [0x1b, 0x5b, 0x41];
+        final splice = rng.nextBool() ? const [0x1b] : const [0x1b, 0x5b, 0x41];
         buf.insertAll(idx, splice);
       case 5: // duplicate a slice
         if (buf.isEmpty) break;

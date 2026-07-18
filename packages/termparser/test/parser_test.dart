@@ -306,8 +306,27 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('A'), modifiers: KeyModifiers.shift)),
+        equals(const KeyEvent(KeyCode.char('A', shiftProduced: true), modifiers: KeyModifiers.shift)),
       );
+    });
+
+    test('ESC [ 97 : 65 ; 2 u - toSpec folds shift into the produced letter', () {
+      final parser = Parser()..advance(keySequence('π[97:65;2u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.toSpec(), 'A');
+    });
+
+    test('ESC [ 1103 :: 122 ; 5 u (ctrl+я, base layout key z)', () {
+      // Cyrillic я (U+044F = 1103 decimal) with no shifted-key field and a
+      // base layout key of 122 ('z'), modifiers param 5 = ctrl.
+      final parser = Parser()..advance(keySequence('π[1103::122;5u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code.char, 'я');
+      expect(event.code.baseLayoutKey, 0x7A);
+      expect(event.modifiers, KeyModifiers.ctrl);
+      expect(event.toBaseLayoutSpec(), 'ctrl+z');
     });
 
     test('.[97;7u', () {
@@ -547,21 +566,38 @@ void main() {
       );
     });
 
-    test('.[97;65u', () {
+    // Modifier bit 64 is CapsLock *state*, not a held modifier. The lock
+    // state is dropped entirely: modifier param 65 (mod = 65 - 1 = 64, the
+    // CapsLock bit alone) must surface no modifiers at all.
+    test('.[97;65u - caps lock bit is dropped, not surfaced as a modifier', () {
       final parser = Parser()..advance(keySequence('π[97;65u'));
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers.capsLock)),
+        equals(const KeyEvent(KeyCode.char('a'))),
       );
     });
 
-    test('.[49;129u', () {
+    // Modifier param 66 (mod = 66 - 1 = 65 = 64 | 1, CapsLock + shift bits)
+    // must yield shift only: the CapsLock bit is dropped, shift survives.
+    test('.[97;66u - caps lock plus shift yields shift only', () {
+      final parser = Parser()..advance(keySequence('π[97;66u'));
+      expect(parser.hasEvents, true);
+      expect(
+        parser.nextEvent(),
+        equals(const KeyEvent(KeyCode.char('a'), modifiers: KeyModifiers.shift)),
+      );
+    });
+
+    // Modifier bit 128 is NumLock *state*, not a held modifier. The lock
+    // state is dropped entirely: modifier param 129 (mod = 129 - 1 = 128,
+    // the NumLock bit alone) must surface no modifiers at all.
+    test('.[49;129u - num lock bit is dropped, not surfaced as a modifier', () {
       final parser = Parser()..advance(keySequence('π[49;129u'));
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('1'), modifiers: KeyModifiers.keyPad)),
+        equals(const KeyEvent(KeyCode.char('1'))),
       );
     });
 
@@ -570,7 +606,9 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(KeyEvent(const KeyCode.char('('), modifiers: KeyModifiers.alt | KeyModifiers.shift)),
+        equals(
+          KeyEvent(const KeyCode.char('(', shiftProduced: true), modifiers: KeyModifiers.alt | KeyModifiers.shift),
+        ),
       );
     });
 
@@ -579,7 +617,8 @@ void main() {
       expect(parser.hasEvents, true);
       expect(
         parser.nextEvent(),
-        equals(const KeyEvent(KeyCode.char('!'), modifiers: KeyModifiers.shift)),
+        // The third param (33 -> '!') is the text-as-codepoints field.
+        equals(const KeyEvent(KeyCode.char('!', shiftProduced: true), modifiers: KeyModifiers.shift, text: '!')),
       );
     });
 
@@ -684,6 +723,72 @@ void main() {
         parser.nextEvent(),
         equals(QuerySyncUpdateEvent(2)),
       );
+    });
+  });
+
+  group('CSI u text-as-codepoints >', () {
+    test('single-codepoint text - ESC [ 97 ; 1 ; 97 u', () {
+      final parser = Parser()..advance(keySequence('π[97;1;97u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.char('a'));
+      expect(event.text, 'a');
+    });
+
+    test('multi-codepoint text - ESC [ 97 ; 1 ; 97:98:99 u', () {
+      final parser = Parser()..advance(keySequence('π[97;1;97:98:99u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.char('a'));
+      expect(event.text, 'abc');
+    });
+
+    test('shifted key with text - ESC [ 97:65 ; 2 ; 65 u', () {
+      final parser = Parser()..advance(keySequence('π[97:65;2;65u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.char('A', shiftProduced: true));
+      expect(event.modifiers, KeyModifiers.shift);
+      expect(event.text, 'A');
+    });
+
+    test('no text parameter - text is null', () {
+      final parser = Parser()..advance(keySequence('π[97;1u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.text, isNull);
+    });
+
+    test('malformed text parameter (bare colon) - text is null, event still parses', () {
+      final parser = Parser()..advance(keySequence('π[97;1;:u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.char('a'));
+      expect(event.text, isNull);
+    });
+
+    test('malformed text parameter (trailing colon) - text is null, event still parses', () {
+      final parser = Parser()..advance(keySequence('π[97;1;97:u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.code, const KeyCode.char('a'));
+      expect(event.text, isNull);
+    });
+
+    test('release event never carries text even when present - ESC [ 97 ; 1:3 ; 97 u', () {
+      final parser = Parser()..advance(keySequence('π[97;1:3;97u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.eventType, KeyEventType.keyRelease);
+      expect(event.text, isNull);
+    });
+
+    test('repeat event carries text - ESC [ 97 ; 1:2 ; 97 u', () {
+      final parser = Parser()..advance(keySequence('π[97;1:2;97u'));
+      expect(parser.hasEvents, true);
+      final event = parser.nextEvent()! as KeyEvent;
+      expect(event.eventType, KeyEventType.keyRepeat);
+      expect(event.text, 'a');
     });
   });
 

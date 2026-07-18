@@ -27,19 +27,16 @@ import '../_support/invariants.dart';
 import '../_support/schedule.dart';
 
 final String _fuzzMode = Platform.environment['FUZZ_MODE'] ?? '';
-final int _fuzzIter =
-    int.tryParse(Platform.environment['FUZZ_ITER'] ?? '') ?? 10000;
+final int _fuzzIter = int.tryParse(Platform.environment['FUZZ_ITER'] ?? '') ?? 10000;
 final int _fuzzSecs = int.tryParse(Platform.environment['FUZZ_SECS'] ?? '') ?? 0;
 
 /// The heavy generative loop is opt-in: a plain `dart test` / `make test` skips
 /// it (kept fast — `replay crashes/` + corpus remain as regression guards). It
 /// runs only when a fuzz knob is set, i.e. via `make fuzz` / `make fuzz-time`.
 final bool _fuzzEnabled =
-    Platform.environment.containsKey('FUZZ_ITER') ||
-    Platform.environment.containsKey('FUZZ_SECS');
+    Platform.environment.containsKey('FUZZ_ITER') || Platform.environment.containsKey('FUZZ_SECS');
 
-final int _fuzzSeed =
-    int.tryParse(Platform.environment['FUZZ_SEED'] ?? '') ?? 0xC0FFEE;
+final int _fuzzSeed = int.tryParse(Platform.environment['FUZZ_SEED'] ?? '') ?? 0xC0FFEE;
 
 const _maxBytes = 4096;
 
@@ -67,9 +64,7 @@ Future<void> main() async {
       () {
         final rng = Random(_fuzzSeed);
         final timeBudget = _fuzzSecs > 0;
-        final deadline = timeBudget
-            ? DateTime.now().add(Duration(seconds: _fuzzSecs))
-            : null;
+        final deadline = timeBudget ? DateTime.now().add(Duration(seconds: _fuzzSecs)) : null;
         final iterCap = timeBudget ? 1 << 30 : _fuzzIter;
 
         var iters = 0;

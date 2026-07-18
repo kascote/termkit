@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:termparser/src/parsers/key_parser.dart';
 import 'package:termparser/termparser.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
@@ -415,6 +416,41 @@ void main() {
       expect(event.has(KeyboardEnhancementFlagsEvent.reportEventTypes), isTrue);
       expect(event.has(KeyboardEnhancementFlagsEvent.reportAlternateKeys), isTrue);
       expect(event.has(KeyboardEnhancementFlagsEvent.reportAllKeysAsEscapeCodes), isTrue);
+    });
+
+    // Bits 64 and 128 report CapsLock/NumLock *state*, not held modifiers.
+    // modifierParser must drop them from the returned mask entirely.
+    test('modifierParser drops the CapsLock bit (64)', () {
+      // wire value = 1 + bitmask, so a bare CapsLock bit is wire value 65.
+      expect(modifierParser(65), KeyModifiers.none);
+    });
+
+    test('modifierParser drops the NumLock bit (128)', () {
+      // wire value = 1 + bitmask, so a bare NumLock bit is wire value 129.
+      expect(modifierParser(129), KeyModifiers.none);
+    });
+
+    test('modifierParser keeps shift when CapsLock bit is also set', () {
+      // wire value = 1 + (64 | 1) = 66.
+      expect(modifierParser(66), KeyModifiers.shift);
+    });
+
+    test('modifierParser keeps ctrl+alt when NumLock bit is also set', () {
+      // wire value = 1 + (128 | 4 | 2) = 135.
+      expect(modifierParser(135), KeyModifiers.ctrl | KeyModifiers.alt);
+    });
+
+    test('modifierParser still parses all non-lock bits', () {
+      // wire value = 1 + (1 | 2 | 4 | 8 | 16 | 32) = 64.
+      expect(
+        modifierParser(64),
+        KeyModifiers.shift |
+            KeyModifiers.alt |
+            KeyModifiers.ctrl |
+            KeyModifiers.superKey |
+            KeyModifiers.hyper |
+            KeyModifiers.meta,
+      );
     });
   });
 

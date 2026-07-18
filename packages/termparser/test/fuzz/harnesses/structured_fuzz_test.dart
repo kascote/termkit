@@ -35,18 +35,15 @@ import '../_support/invariants.dart';
 import '../_support/schedule.dart';
 
 final String _fuzzMode = Platform.environment['FUZZ_MODE'] ?? '';
-final int _fuzzIter =
-    int.tryParse(Platform.environment['FUZZ_ITER'] ?? '') ?? 10000;
+final int _fuzzIter = int.tryParse(Platform.environment['FUZZ_ITER'] ?? '') ?? 10000;
 final int _fuzzSecs = int.tryParse(Platform.environment['FUZZ_SECS'] ?? '') ?? 0;
 
 /// The heavy generative loop is opt-in: a plain `dart test` / `make test` skips
 /// it (kept fast — `replay crashes/` + corpus remain as regression guards). It
 /// runs only when a fuzz knob is set, i.e. via `make fuzz` / `make fuzz-time`.
 final bool _fuzzEnabled =
-    Platform.environment.containsKey('FUZZ_ITER') ||
-    Platform.environment.containsKey('FUZZ_SECS');
-final int _fuzzSeed =
-    int.tryParse(Platform.environment['FUZZ_SEED'] ?? '') ?? 0xC0FFEE;
+    Platform.environment.containsKey('FUZZ_ITER') || Platform.environment.containsKey('FUZZ_SECS');
+final int _fuzzSeed = int.tryParse(Platform.environment['FUZZ_SEED'] ?? '') ?? 0xC0FFEE;
 
 const int _maxBytesPerProgram = 4096;
 const int _maxSeqsPerProgram = 8;
@@ -65,8 +62,7 @@ Future<void> main() async {
       () {
         final rng = Random(_fuzzSeed);
         final timeBudget = _fuzzSecs > 0;
-        final deadline =
-            timeBudget ? DateTime.now().add(Duration(seconds: _fuzzSecs)) : null;
+        final deadline = timeBudget ? DateTime.now().add(Duration(seconds: _fuzzSecs)) : null;
         final iterCap = timeBudget ? 1 << 30 : _fuzzIter;
 
         var iters = 0;
@@ -247,8 +243,7 @@ _Seq _genOsc(Random rng) {
       buf.add(0x20 + rng.nextInt(95));
     }
   } else if (pKind < 70) {
-    const alpha =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+    const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     final n = rng.nextInt(64);
     for (var i = 0; i < n; i++) {
       buf.add(alpha.codeUnitAt(rng.nextInt(alpha.length)));
@@ -273,7 +268,9 @@ _Seq _genOsc(Random rng) {
   final tKind = rng.nextInt(100);
   if (tKind < 70) {
     // ST: ESC \
-    buf..add(0x1b)..add(0x5c);
+    buf
+      ..add(0x1b)
+      ..add(0x5c);
     return _Seq(buf, wellFormed: true);
   } else if (tKind < 85) {
     // BEL — engine treats as payload byte; OSC stays open
@@ -281,7 +278,9 @@ _Seq _genOsc(Random rng) {
     return _Seq(buf, wellFormed: false);
   } else if (tKind < 95) {
     // wrong terminator: ESC + non-'\'
-    buf..add(0x1b)..add(0x58);
+    buf
+      ..add(0x1b)
+      ..add(0x58);
     // _advanceOscFinalState drops to ground silently, no event → clean state.
     return _Seq(buf, wellFormed: true);
   } else {
@@ -395,9 +394,7 @@ _Seq _genTextBlock(Random rng) {
 /// `ESC O <char>` — targeted F1..F4 (P/Q/R/S) plus some other printable follows.
 _Seq _genEscO(Random rng) {
   final r = rng.nextInt(100);
-  final fin = r < 70
-      ? 'PQRS'.codeUnitAt(rng.nextInt(4))
-      : 0x20 + rng.nextInt(95);
+  final fin = r < 70 ? 'PQRS'.codeUnitAt(rng.nextInt(4)) : 0x20 + rng.nextInt(95);
   return _Seq([0x1b, 0x4f, fin], wellFormed: true);
 }
 

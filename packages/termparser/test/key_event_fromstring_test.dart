@@ -563,15 +563,18 @@ void main() {
       });
 
       test('multiple modifiers in canonical order', () {
-        expect(KeyEvent.fromString('ctrl+shift+a').toSpec(), 'ctrl+shift+a');
-        expect(KeyEvent.fromString('shift+ctrl+a').toSpec(), 'ctrl+shift+a');
+        // shift folds into the letter's case rather than staying a separate
+        // modifier, so ctrl+shift+a canonicalizes to ctrl+A.
+        expect(KeyEvent.fromString('ctrl+shift+a').toSpec(), 'ctrl+A');
+        expect(KeyEvent.fromString('shift+ctrl+a').toSpec(), 'ctrl+A');
         expect(KeyEvent.fromString('alt+ctrl+a').toSpec(), 'ctrl+alt+a');
-        expect(KeyEvent.fromString('meta+hyper+super+shift+alt+ctrl+a').toSpec(), 'ctrl+alt+shift+super+hyper+meta+a');
+        expect(KeyEvent.fromString('meta+hyper+super+shift+alt+ctrl+a').toSpec(), 'ctrl+alt+super+hyper+meta+A');
       });
 
       test('specific modifiers normalize in output', () {
         expect(KeyEvent.fromString('leftCtrl+a').toSpec(), 'ctrl+a');
-        expect(KeyEvent.fromString('rightShift+b').toSpec(), 'shift+b');
+        // shift folds into the letter's case: rightShift+b canonicalizes to B.
+        expect(KeyEvent.fromString('rightShift+b').toSpec(), 'B');
       });
 
       test('modifier + space', () {
@@ -598,16 +601,30 @@ void main() {
         }
       });
 
-      test('shift+letter round trips correctly', () {
-        // shift+a → KeyCode.char('A') internally → toSpec → 'shift+a'
-        expect(KeyEvent.fromString('shift+a').toSpec(), 'shift+a');
-        expect(KeyEvent.fromString('shift+z').toSpec(), 'shift+z');
-        expect(KeyEvent.fromString('ctrl+shift+x').toSpec(), 'ctrl+shift+x');
+      test('shift+letter folds to the uppercase letter', () {
+        // shift+a → KeyCode.char('A') internally → toSpec → 'A': shift is
+        // folded into the produced character, not kept as a modifier.
+        expect(KeyEvent.fromString('shift+a').toSpec(), 'A');
+        expect(KeyEvent.fromString('shift+z').toSpec(), 'Z');
+        expect(KeyEvent.fromString('ctrl+shift+x').toSpec(), 'ctrl+X');
       });
 
       test('shift+digit keeps digit unchanged', () {
         expect(KeyEvent.fromString('shift+1').toSpec(), 'shift+1');
         expect(KeyEvent.fromString('shift+9').toSpec(), 'shift+9');
+      });
+
+      test('canonicalization: both spellings of shift+a converge on A', () {
+        // fromString(spec).toSpec() is the canonicalizer a KeyBinding relies
+        // on: whichever way a shifted letter is spelled, it converges on
+        // one spec string.
+        expect(KeyEvent.fromString('shift+a').toSpec(), 'A');
+        expect(KeyEvent.fromString('A').toSpec(), 'A');
+      });
+
+      test('canonicalization: named keys keep shift, digits keep shift', () {
+        expect(KeyEvent.fromString('shift+tab').toSpec(), 'shift+tab');
+        expect(KeyEvent.fromString('shift+1').toSpec(), 'shift+1');
       });
 
       test('plus and minus roundtrip', () {

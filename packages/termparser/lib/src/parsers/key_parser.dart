@@ -21,6 +21,11 @@ import '../extensions/int_extension.dart';
 }
 
 /// Parse the modifier keys
+///
+/// Bits 64 and 128 report CapsLock and NumLock *state*, not held modifiers.
+/// The lock state is intentionally dropped here: it never contributes to
+/// the returned modifier mask. Its effect on typed characters is already
+/// reflected in the text the terminal reports for the keystroke.
 KeyModifiers modifierParser(int modifier) {
   final mod = modifier.saturatingSub(1);
   var modifiers = KeyModifiers.none;
@@ -30,8 +35,6 @@ KeyModifiers modifierParser(int modifier) {
   if (mod & 8 != 0) modifiers = modifiers | KeyModifiers.superKey;
   if (mod & 16 != 0) modifiers = modifiers | KeyModifiers.hyper;
   if (mod & 32 != 0) modifiers = modifiers | KeyModifiers.meta;
-  if (mod & 64 != 0) modifiers = modifiers | KeyModifiers.capsLock;
-  if (mod & 128 != 0) modifiers = modifiers | KeyModifiers.keyPad;
 
   return modifiers;
 }
@@ -132,15 +135,6 @@ KeyboardEnhancementFlagsEvent keyboardEnhancedCodeParser(String mode) {
   // if there is no even type, by default is keyPress
   return (modifier, eventType ?? 1);
 }
-
-/// Parse the modifier keys to state
-// KeyEventState modifiersToStateParser(int? modifierMask) {
-//   final mod = (modifierMask ?? 0).saturatingSub(1);
-//   var state = KeyEventState.none();
-//   if (mod & 64 != 0) state = state.add(KeyEventState.capsLock());
-//   if (mod & 128 != 0) state = state.add(KeyEventState.numLock());
-//   return state;
-// }
 
 /// Translate the enhanced keyboard code to a functional key code
 (KeyCode, KeyModifiers) functionalKeyCodeParser(int codePoint) {

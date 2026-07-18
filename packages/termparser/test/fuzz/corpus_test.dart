@@ -25,8 +25,7 @@ const _malformedMarkers = {
   'truncated',
 };
 
-bool _isMalformed(String basename) =>
-    _malformedMarkers.any(basename.contains);
+bool _isMalformed(String basename) => _malformedMarkers.any(basename.contains);
 
 /// Seeds skipped pending Phase 3.5 fixes. Key = path relative to corpus root.
 /// Value = finding ID to look up in PLAN.md.
@@ -39,10 +38,7 @@ Future<void> main() async {
     throw StateError('corpus dir missing: ${corpusDir.path}');
   }
 
-  final files = corpusDir
-      .listSync(recursive: true)
-      .whereType<File>()
-      .toList()
+  final files = corpusDir.listSync(recursive: true).whereType<File>().toList()
     ..sort((a, b) => a.path.compareTo(b.path));
 
   group('corpus seeds', () {

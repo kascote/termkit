@@ -25,8 +25,8 @@ FuzzSchedule randomSchedule(Random rng, Uint8List bytes) {
     var size = r < 60
         ? 1
         : r < 90
-            ? 2 + rng.nextInt(7)
-            : 9 + rng.nextInt(504);
+        ? 2 + rng.nextInt(7)
+        : 9 + rng.nextInt(504);
     if (size > remaining) size = remaining;
 
     // ESC-at-boundary flip: truncate chunk just before an ESC inside it, so

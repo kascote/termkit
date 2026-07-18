@@ -36,8 +36,7 @@ class FuzzSchedule {
   const FuzzSchedule(this.chunkSizes, this.hasMore);
 
   /// Whole-buffer, single-shot, hasMore=false — baseline determinism case.
-  factory FuzzSchedule.single(int totalBytes) =>
-      FuzzSchedule([totalBytes], const [false]);
+  factory FuzzSchedule.single(int totalBytes) => FuzzSchedule([totalBytes], const [false]);
 
   Map<String, dynamic> toJson() => {'chunks': chunkSizes, 'hasMore': hasMore};
 }
@@ -173,11 +172,13 @@ Future<FuzzOutcome> runOnceIsolated(
   final hang = Timer(timeout, () {
     if (!completer.isCompleted) {
       isolate.kill(priority: Isolate.immediate);
-      completer.complete(FuzzCrash(
-        TimeoutException('fuzz iter exceeded $timeout'),
-        StackTrace.current,
-        'hang_timeout',
-      ));
+      completer.complete(
+        FuzzCrash(
+          TimeoutException('fuzz iter exceeded $timeout'),
+          StackTrace.current,
+          'hang_timeout',
+        ),
+      );
     }
   });
 
@@ -207,19 +208,19 @@ void _isolateEntry(_IsoArgs a) {
 // FuzzOutcome isn't directly sendable across isolates (contains StackTrace), so
 // we encode as a plain list and decode on the main side.
 List<Object?> _encodeMsg(FuzzOutcome o) => switch (o) {
-      FuzzOk(:final eventCount, :final errorEventCount, :final finalState) => [
-          'ok',
-          eventCount,
-          errorEventCount,
-          finalState.index,
-        ],
-      FuzzCrash(:final error, :final stack, :final invariant) => [
-          'crash',
-          error.toString(),
-          stack.toString(),
-          invariant,
-        ],
-    };
+  FuzzOk(:final eventCount, :final errorEventCount, :final finalState) => [
+    'ok',
+    eventCount,
+    errorEventCount,
+    finalState.index,
+  ],
+  FuzzCrash(:final error, :final stack, :final invariant) => [
+    'crash',
+    error.toString(),
+    stack.toString(),
+    invariant,
+  ],
+};
 
 FuzzOutcome _decodeMsg(Object? msg) {
   final list = msg! as List;
