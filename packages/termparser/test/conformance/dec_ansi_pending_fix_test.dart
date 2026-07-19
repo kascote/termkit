@@ -1,14 +1,14 @@
 /// Acceptance tests for known Engine bugs, written against the DESIRED
 /// behaviour and skipped until the fix lands.
 ///
-/// Each skip marker names the mikos task tracking the bug. The workflow when
+/// Each skip marker names the tracked task for the bug. The workflow when
 /// fixing one:
 ///
 ///  1. Fix the engine. The conformance sweep (dec_ansi_conformance_test.dart)
 ///     will fail on the affected cells, because its `deviations` registry pins
 ///     the OLD behaviour — update/remove those entries consciously.
 ///  2. Remove the `skip:` here; the test must go green.
-///  3. Close the mikos task.
+///  3. Close the tracked task.
 ///
 /// While iterating, `dart test --run-skipped test/conformance/` runs these
 /// without editing the file.
@@ -36,9 +36,6 @@ void main() {
   group('pending engine fixes', () {
     test(
       'DCS header: digits accumulate as parameters until a 0x40-0x7E final hooks',
-      skip:
-          'mikos 0001: _advanceDcsEntryState `>= 40` is decimal (0x28); '
-          'digits hook the passthrough instead of accumulating params',
       () {
         // DCS 12;3 q data ST — the DEC machine collects params 12 and 3 in the
         // header and hooks passthrough at the final 'q' (0x71).
@@ -86,12 +83,12 @@ void main() {
     test(
       'CAN cancels an in-flight CSI and is delivered; CAN also cancels OSC strings',
       skip:
-          'mikos 0004: CAN/SUB are swallowed when cancelling (stored as a '
+          'CAN/SUB are swallowed when cancelling (stored as a '
           'param in csiEntry) and ignored inside DCS/OSC strings',
       () {
         // DEC: CAN cancels the sequence AND executes (the app sees Ctrl+X).
-        // If task 0246 decides against delivery, weaken the CharData(0x18)
-        // expectations here deliberately.
+        // If the tracked task decides against delivery, weaken the
+        // CharData(0x18) expectations here deliberately.
         expect(
           feed(Engine(), [0x1B, 0x5B, 0x33, 0x18, 0x41], trailingHasMore: false),
           [const CharData('\x18', escO: false), const CharData('A', escO: false)],

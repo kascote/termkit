@@ -44,6 +44,13 @@ class ParameterAccumulator {
     }
   }
 
+  /// Whether a byte has been added since the last [store] or [clear].
+  ///
+  /// Lets callers skip a [store] that would otherwise turn "nothing typed
+  /// here" into a spurious default `'0'` parameter (e.g. a DCS header hook
+  /// or intermediate immediately following a stored private marker).
+  bool get hasPendingParameter => _parameterLength > 0;
+
   /// Get stored parameters
   List<String> getParameters() => _parameters.sublist(0, _parametersCount);
 

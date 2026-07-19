@@ -58,14 +58,11 @@ enum Why {
   /// sequence with final '['.
   extraCsiTransition,
 
-  /// The DCS header states (dcs_param/dcs_intermediate/dcs_ignore) are
-  /// flattened: header bytes accumulate as parameters in dcsEntry.
+  /// The DCS header states (dcs_param/dcs_intermediate) are flattened:
+  /// header bytes (intermediates, digits, ';', private markers) all
+  /// accumulate into params while the engine stays in dcsEntry, instead of
+  /// DEC's separate dcs_param/dcs_intermediate states.
   dcsHeaderFlattened,
-
-  /// Bytes 0x28-0x3B hook the passthrough immediately (the `>= 40` decimal
-  /// literal in _advanceDcsEntryState); DEC collects them as parameters or
-  /// intermediates first.
-  dcsEarlyHook,
 
   /// The string dispatches at the ESC \ pair, so ESC moves to a *Final
   /// state; DEC ends the string at the ESC itself (exit action fires there).
@@ -96,6 +93,7 @@ const stateMap = <String, Set<State>>{
   'csi_intermediate': {State.csiIntermediate},
   'csi_ignore': {State.csiIgnore},
   'dcs_entry': {State.dcsEntry},
+  'dcs_ignore': {State.dcsIgnore},
   'dcs_passthrough': {State.textBlock, State.textBlockFinal},
   'osc_string': {State.oscEntry, State.oscParameter, State.oscFinal},
 };
@@ -167,9 +165,13 @@ final deviations = <String, Map<int, Deviation>>{
   },
   'dcs_entry': {
     ..._bytes([0x18, 0x1A], const Deviation(State.dcsEntry, null, Why.cancelIgnoredInString)),
-    ..._range(0x20, 0x27, const Deviation(State.dcsEntry, null, Why.dcsHeaderFlattened)),
-    ..._range(0x28, 0x39, const Deviation(State.textBlock, null, Why.dcsEarlyHook)),
-    ..._bytes([0x3A, 0x3B], const Deviation(State.textBlock, null, Why.dcsEarlyHook)),
+    // Intermediates (DEC: dcs_intermediate) and digits/';' (DEC: dcs_param)
+    // all stay flattened in dcsEntry rather than moving to their own DEC
+    // state. Byte 0x3A (colon) is NOT here: it lands in a real dcsIgnore
+    // state matching DEC's dcs_ignore exactly, so it needs no deviation.
+    ..._range(0x20, 0x2F, const Deviation(State.dcsEntry, null, Why.dcsHeaderFlattened)),
+    ..._range(0x30, 0x39, const Deviation(State.dcsEntry, null, Why.dcsHeaderFlattened)),
+    0x3B: const Deviation(State.dcsEntry, null, Why.dcsHeaderFlattened),
     ..._range(0x3C, 0x3F, const Deviation(State.dcsEntry, null, Why.dcsHeaderFlattened)),
   },
   'dcs_passthrough': {
@@ -375,7 +377,10 @@ void main() {
       final results = feed(Engine(), bytes);
       expect(results, hasLength(1));
       final dcs = results.single as DcsSequenceData;
-      expect(dcs.params, const Parameters(['1']));
+      // '1' accumulates as a parameter; '$' flushes it and starts a fresh
+      // pending value as its own entry; 'r' (the hook byte) is the dispatch
+      // selector and never lands in params.
+      expect(dcs.params, const Parameters(['1', r'$']));
       // Content is the raw sequence bytes; the parser layer slices by offset.
       expect(dcs.contentBytes, isNotEmpty);
     });

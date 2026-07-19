@@ -68,6 +68,12 @@ enum State {
   /// DCS entry state
   dcsEntry,
 
+  /// DCS header abandoned (colon, per DEC's dcs_ignore).
+  ///
+  /// Bytes are dropped until an anywhere-rule (ESC) exits; no hook, no
+  /// dispatch.
+  dcsIgnore,
+
   /// Possible UTF-8 sequence and we're collecting UTF-8 code points.
   utf8,
 }
@@ -678,16 +684,33 @@ class Engine {
           ..add(byte)
           ..store();
 
-      case >= 40 && <= 0x7E:
-        _params
-          ..add(byte)
-          ..store();
+      // '0' ..= '9' = parameter value; extend the pending parameter.
+      case >= 0x30 && <= 0x39:
+        _params.add(byte);
+
+      // ';' = parameter delimiter.
+      case 0x3B:
+        _params.store();
+
+      // ':' - DEC abandons the header here (dcs_ignore): no hook, no dispatch.
+      case 0x3A:
+        _setState(State.dcsIgnore);
+
+      // DCS sequence final character (0x40-0x7E) -> hook the passthrough.
+      // The final byte is the dispatch selector, not a parameter value
+      // (mirrors CSI, whose final char never lands in params); only flush
+      // a parameter that was actually accumulating.
+      case >= 0x40 && <= 0x7E:
+        if (_params.hasPendingParameter) _params.store();
         _setState(State.textBlock);
 
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         {}
 
+      // Intermediates: flush a pending parameter as its own entry, then
+      // collect the intermediate bytes as a fresh pending value.
       case (>= 0x20 && <= 0x2F):
+        if (_params.hasPendingParameter) _params.store();
         _params.add(byte);
 
       // Does it mean we should ignore the whole sequence?
@@ -696,6 +719,15 @@ class Engine {
         {}
 
       // Other bytes are considered as invalid -> cancel whatever we have
+      default:
+        {}
+    }
+  }
+
+  void _advanceDcsIgnoreState(int byte) {
+    switch (byte) {
+      // DEC dcs_ignore: every byte 0x00-0x7F is dropped; the only way out is
+      // the generic ESC anywhere-rule handled in _handlePossibleEsc.
       default:
         {}
     }
@@ -750,6 +782,7 @@ class Engine {
       State.oscParameter => _advanceOscParameterState(byteValue),
       State.oscFinal => _advanceOscFinalState(byteValue),
       State.dcsEntry => _advanceDcsEntryState(byteValue),
+      State.dcsIgnore => _advanceDcsIgnoreState(byteValue),
       State.utf8 => _advanceUtf8State(byteValue),
     };
 
