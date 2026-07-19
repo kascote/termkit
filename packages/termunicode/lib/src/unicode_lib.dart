@@ -65,13 +65,24 @@ int widthString(String value, {bool cjk = false}) {
 /// context, on that case `ambiguous` characters are treated as `wide`.
 ///
 /// Uses Characters to handle grapheme clusters. If VS16 (U+FE0F) is present,
-/// the character has emoji presentation and width 2. Otherwise, decodes the
+/// the character has emoji presentation and width 2; if VS15 (U+FE0E) is
+/// present, it has text presentation and width 1. Otherwise, decodes the
 /// first codepoint (handling UTF-16 surrogate pairs) for table lookup.
+///
+/// Some terminals ignore VS15 and draw the glyph wide anyway; the measured
+/// width stays 1, matching the terminals that honor the selector.
 int widthChars(Characters value, {bool cjk = false}) {
   if (value.isEmpty) return 0;
   return value.fold(0, (width, char) {
-    // VS16 (FE0F) forces emoji presentation → width 2
-    if (char.contains('\uFE0F')) return width + 2;
+    // The selector checks need a base character in the cluster — a lone
+    // selector is a single code unit and occupies no cells. VS16 is checked
+    // first so a malformed cluster carrying both selectors answers 2.
+    if (char.length > 1) {
+      // VS16 (FE0F) forces emoji presentation → width 2
+      if (char.contains('\uFE0F')) return width + 2;
+      // VS15 (FE0E) forces text presentation → width 1
+      if (char.contains('\uFE0E')) return width + 1;
+    }
 
     // Decode first codepoint from UTF-16 code units (handles surrogate pairs)
     final cu = char.codeUnitAt(0);

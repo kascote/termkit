@@ -50,7 +50,41 @@ void main() {
   });
 
   test('unicode 12', () {
-    expect(widthString('\u{1F971}'), 2);
+    expect(widthString('\u{1F971}'), 2); // yawning face, new in Unicode 12
+  });
+
+  test('unicode 17', () {
+    expect(widthString('\u{1FAEA}'), 2); // distorted face, new in Unicode 17
+    expect(isEmojiCp(0x1FAEA), true);
+  });
+
+  test('presentation selectors', () {
+    // U+2602 umbrella defaults to text presentation: narrow unless VS16 asks
+    // for emoji presentation.
+    expect(widthString('\u2602'), 1);
+    expect(widthString('\u2602\uFE0E'), 1);
+    expect(widthString('\u2602\uFE0F'), 2);
+
+    // U+231A watch defaults to emoji presentation: wide unless VS15 asks for
+    // text presentation.
+    expect(widthString('\u231A'), 2);
+    expect(widthString('\u231A\uFE0E'), 1);
+    expect(widthString('\u231A\uFE0F'), 2);
+
+    // A lone selector has no base character and occupies no cells.
+    expect(widthString('\uFE0E'), 0);
+    expect(widthString('\uFE0F'), 0);
+
+    // VS16 wins a malformed cluster carrying both selectors.
+    expect(widthString('\u2602\uFE0F\uFE0E'), 2);
+
+    // Keycap sequence: digit + VS16 + combining enclosing keycap.
+    expect(widthString('1️⃣'), 2);
+  });
+
+  test('flags stay wide', () {
+    expect(widthString('🇦🇷'), 2); // regional indicator pair, one cluster
+    expect(widthString('\u{1F1E6}'), 2); // lone regional indicator
   });
 
   test('default ignorable', () {
@@ -208,6 +242,13 @@ void main() {
     // Common emojis
     expect(isEmojiCp(0x1F600), true); // Grinning face
     expect(isEmojiCp(0x1F44D), true); // Thumbs up
+
+    // Codepoints inside overlapping emoji-data ranges, once missed by the
+    // flat-list lookup the generator used
+    expect(isEmojiCp(0x1F484), true); // Lipstick
+    expect(isEmojiCp(0x1F48B), true); // Kiss mark
+    expect(isEmojiCp(0x1F493), true); // Beating heart
+    expect(isEmojiCp(0x1F497), true); // Growing heart
     expect(isEmojiCp(0x2764), true); // Heavy black heart (❤)
 
     // ZWJ is marked as emoji (used in emoji sequences)
@@ -248,10 +289,11 @@ void main() {
     expect(widthString('\u2606', cjk: true), 2);
     expect(isEmojiCp(0x2606), false);
 
-    // ★ (U+2605) BLACK STAR - ambiguous AND emoji
+    // ★ (U+2605) BLACK STAR - ambiguous; dropped from
+    // Extended_Pictographic in Unicode 17, so no longer an emoji
     expect(widthString('\u2605'), 1);
     expect(widthString('\u2605', cjk: true), 2);
-    expect(isEmojiCp(0x2605), true);
+    expect(isEmojiCp(0x2605), false);
 
     // → (U+2192) RIGHTWARDS ARROW - ambiguous but NOT emoji
     expect(widthString('\u2192'), 1);

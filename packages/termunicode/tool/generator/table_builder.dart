@@ -7,8 +7,6 @@ import 'package:termunicode/term_ucd.dart';
 import 'constants.dart';
 import 'downloader.dart';
 
-const emojiData = ['Emoji', 'Emoji_Presentation', 'Extended_Pictographic'];
-
 ///
 class Tables {
   /// EastAsianWidth UCD file
@@ -137,6 +135,27 @@ class Tables {
       throw Exception('U+1F600 emoji: expected width 2, got ${emojiData & widthMask}');
     }
 
+    // U+2602 umbrella - text-presentation-default emoji, width 1, emoji bit set
+    final umbrellaData = getCPData(0x2602);
+    if ((umbrellaData & widthMask) != 1) {
+      throw Exception('U+2602 umbrella: expected width 1, got ${umbrellaData & widthMask}');
+    }
+    if ((umbrellaData & emojiMask) == 0) {
+      throw Exception('U+2602 umbrella: expected emoji bit set');
+    }
+
+    // U+231A watch - emoji-presentation-default, width 2
+    final watchData = getCPData(0x231A);
+    if ((watchData & widthMask) != 2) {
+      throw Exception('U+231A watch: expected width 2, got ${watchData & widthMask}');
+    }
+
+    // U+1F1E6 regional indicator A - width 2 so flag pairs stay wide
+    final risData = getCPData(0x1F1E6);
+    if ((risData & widthMask) != 2) {
+      throw Exception('U+1F1E6 regional indicator: expected width 2, got ${risData & widthMask}');
+    }
+
     // U+E000 - private use area, private bit set
     final privateData = getCPData(0xE000);
     if ((privateData & privateMask) == 0) {
@@ -168,17 +187,19 @@ class Tables {
 
     // Emoji UCD has definitions for some lower code points, they are excluded
     if (cp >= 0x40) {
-      final emo = emoji.find(cp);
-      if (emo != null) {
-        isEmoji = true;
-        // Regional Indicator Symbols are Narrow in EAW table, but they are
-        // Wide. There are more cases that EAW table doesn't matches Emoji
-        // if (emo.start >= 0x1F1E6 && emo.end <= 0x1F1FF) charWidth = 2;
-        // all RIS (Regional Indicator Symbols) have Emoji property set and
-        // there are a couple more Emojis that are Narrow in EAW table
-        // Don't override ambiguous chars (charWidth == 3) - they default to
-        // text presentation and terminals render them as symbols, not emoji.
-        if (emojiData.contains(emo.property) && charWidth != 3) charWidth = 2;
+      // The emoji bit means "carries any emoji-data property", selectors and
+      // other components included.
+      if (emoji.find(cp) != null) isEmoji = true;
+
+      // Only Emoji_Presentation codepoints render as emoji without a
+      // variation selector, so only they get width 2 forced. Text-default
+      // symbols keep their East Asian width; VS16 is handled per cluster at
+      // runtime. Regional Indicator Symbols carry Emoji_Presentation, which
+      // keeps flags wide despite being Narrow in the EAW table. Ambiguous
+      // chars (charWidth == 3) are never overridden - they default to text
+      // presentation and terminals render them as symbols, not emoji.
+      if (emoji.findProp('Emoji_Presentation', cp) != null && charWidth != 3) {
+        charWidth = 2;
       }
     }
 

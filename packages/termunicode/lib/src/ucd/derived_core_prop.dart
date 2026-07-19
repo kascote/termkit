@@ -19,9 +19,6 @@ class DeriveCodePropsItem extends UcdItemBase {
   String toString() => '0x${start.toRadixString(16)}..0x${end.toRadixString(16)}: $property ($category) $breaker';
 }
 
-// Derived Properties
-final _derivedProps = <String, List<DeriveCodePropsItem>>{};
-
 /// A class that provides information about the Derived Code Properties of a character
 class DerivedCodePropsUCD extends UcdBase<DeriveCodePropsItem> {
   /// The filename of the UCD file
@@ -29,6 +26,8 @@ class DerivedCodePropsUCD extends UcdBase<DeriveCodePropsItem> {
 
   /// Creates a new instance of [DerivedCodePropsUCD] from a file
   DerivedCodePropsUCD(super.filename);
+
+  final _derivedProps = <String, List<DeriveCodePropsItem>>{};
 
   /// Initiates the parsing of the UCD file
   @override
