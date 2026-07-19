@@ -639,8 +639,8 @@ class Engine {
       case 0x3B:
         _params.store();
 
-      // '/' || ':' => '~'
-      case 0x2F || (>= 0x3A && <= 0x7E):
+      // SP ..= '/' || ':' => '~'
+      case (>= 0x20 && <= 0x2F) || (>= 0x3A && <= 0x7E):
         _params.add(byte);
 
       // default:

@@ -57,9 +57,6 @@ void main() {
 
     test(
       'OSC parameters keep bytes 0x20-0x2E (base64 plus sign in OSC 52 reply)',
-      skip:
-          'mikos 0002: _advanceOscParameterState has no arm for 0x20-0x2E; '
-          "'+' (0x2B) is dropped from OSC 52 base64 payloads",
       () {
         // OSC 52 clipboard read reply: ESC ] 52 ; c ; a+b= ESC \
         final bytes = [
