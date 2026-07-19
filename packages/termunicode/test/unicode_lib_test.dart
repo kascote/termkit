@@ -1,3 +1,4 @@
+import 'package:characters/characters.dart';
 import 'package:termunicode/termunicode.dart';
 import 'package:test/test.dart';
 
@@ -304,6 +305,72 @@ void main() {
     expect(widthString('\u25CB'), 1);
     expect(widthString('\u25CB', cjk: true), 2);
     expect(isEmojiCp(0x25CB), false);
+  });
+
+  test('cluster sequences', () {
+    // ZWJ joins four person emoji into a single family cluster.
+    expect(widthString('👨‍👩‍👧‍👦'), 2);
+    // Thumbs up followed by a skin tone modifier is one cluster.
+    expect(widthString('👍🏽'), 2);
+    // Decomposed Hangul syllable: choseong, jungseong, and jongseong jamo
+    // form one grapheme cluster, same width as the precomposed syllable.
+    expect(widthString('한'), 2);
+    // Decomposed e plus a combining acute accent form one grapheme cluster.
+    expect(widthString('é'), 1);
+    // A lone combining acute has no base character and occupies no cells.
+    expect(widthString('́'), 0);
+  });
+
+  test('vs16 symbol run', () {
+    // Five ambiguous symbols, each forced to emoji presentation by its own
+    // VS16, are five wide clusters in a row.
+    expect(
+      widthString(
+        '▶️◀️↔️♠️♥️',
+      ),
+      10,
+    );
+    expect(widthString('▶️'), 2);
+  });
+
+  test('prepend cluster divergence', () {
+    // The fast path sums per codepoint: the prepend sign counts on its
+    // own, then each of the three digits counts on its own.
+    expect(widthString('\u{0600}123'), 4);
+    // The cluster path groups the prepend sign with the character it
+    // attaches to and counts only the cluster's first codepoint, so the
+    // sign+'1' cluster contributes 1, followed by '2' and '3'.
+    expect(widthChars('\u{0600}123'.characters), 3);
+    // A trailing combining mark is zero-width, so the fast path bails and
+    // the whole string is measured on the cluster path instead, landing
+    // on the cluster-path answer rather than the summed one.
+    expect(widthString('\u{0600}123́'), 3);
+  });
+
+  test('fast path agrees with cluster path', () {
+    const probes = <String>[
+      'a',
+      'Hello World',
+      '你好',
+      'ｈｅｌｌｏ',
+      '\xA1',
+      '▶️◀️↔️♠️♥️',
+      '👨‍👩‍👧‍👦',
+      '🇦🇷',
+      'Ada 田中太郎 ✅ Active 🚀 warp-drive engine',
+      '☂︎',
+      '⌚️',
+      'é',
+      '한',
+      '',
+    ];
+    for (final probe in probes) {
+      expect(widthString(probe), widthChars(probe.characters));
+      expect(
+        widthString(probe, cjk: true),
+        widthChars(probe.characters, cjk: true),
+      );
+    }
   });
 
   test('emoji string detection', () {

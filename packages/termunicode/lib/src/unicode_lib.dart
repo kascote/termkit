@@ -51,12 +51,35 @@ int widthCp(int codePoint, {bool cjk = false}) {
 /// If [cjk] is true, means that is working in a Chinese, Japanese, Korean
 /// context, on that case `ambiguous` characters are treated as `wide`.
 ///
+/// Scans the code units summing table widths for as long as every unit is a
+/// BMP scalar of non-zero standalone width, with printable ASCII answering 1
+/// without a lookup. The first surrogate or zero-width unit — combining
+/// marks, ZWJ, variation selectors, controls — restarts the string on the
+/// grapheme-cluster path ([widthChars]), since zero-width codepoints are
+/// exactly the ones that can extend a cluster.
+///
+/// One divergence from the cluster path: a prepend-class cluster (e.g.
+/// Arabic number sign U+0600 followed by a digit) is summed per codepoint
+/// here, while the cluster path counts only the first codepoint. Terminals
+/// generally draw both glyphs, so the summed answer matches the screen.
+///
 /// For string literals or variables, use this function.
 /// If you're already working with [Characters], use [widthChars]
 /// to avoid an unnecessary conversion.
 int widthString(String value, {bool cjk = false}) {
-  if (value.isEmpty) return 0;
-  return widthChars(value.characters, cjk: cjk);
+  var width = 0;
+  for (var i = 0; i < value.length; i++) {
+    final cu = value.codeUnitAt(i);
+    if (cu >= _asciiPrintableStart && cu < _asciiPrintableEnd) {
+      width += 1;
+      continue;
+    }
+    if (cu >= 0xD800 && cu <= 0xDFFF) return widthChars(value.characters, cjk: cjk);
+    final w = _getValue(cu, cjk: cjk);
+    if (w == 0) return widthChars(value.characters, cjk: cjk);
+    width += w;
+  }
+  return width;
 }
 
 /// Returns the display width of a given character.
@@ -72,16 +95,22 @@ int widthString(String value, {bool cjk = false}) {
 /// Some terminals ignore VS15 and draw the glyph wide anyway; the measured
 /// width stays 1, matching the terminals that honor the selector.
 int widthChars(Characters value, {bool cjk = false}) {
-  if (value.isEmpty) return 0;
-  return value.fold(0, (width, char) {
+  var width = 0;
+  for (final char in value) {
     // The selector checks need a base character in the cluster — a lone
     // selector is a single code unit and occupies no cells. VS16 is checked
     // first so a malformed cluster carrying both selectors answers 2.
     if (char.length > 1) {
       // VS16 (FE0F) forces emoji presentation → width 2
-      if (char.contains('\uFE0F')) return width + 2;
+      if (char.contains('\uFE0F')) {
+        width += 2;
+        continue;
+      }
       // VS15 (FE0E) forces text presentation → width 1
-      if (char.contains('\uFE0E')) return width + 1;
+      if (char.contains('\uFE0E')) {
+        width += 1;
+        continue;
+      }
     }
 
     // Decode first codepoint from UTF-16 code units (handles surrogate pairs)
@@ -90,8 +119,9 @@ int widthChars(Characters value, {bool cjk = false}) {
         ? 0x10000 + ((cu - 0xD800) << 10) + (char.codeUnitAt(1) - 0xDC00)
         : cu;
 
-    return width + widthCp(cp, cjk: cjk);
-  });
+    width += widthCp(cp, cjk: cjk);
+  }
+  return width;
 }
 
 /// Check if a given code point is an emoji.
