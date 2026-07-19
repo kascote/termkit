@@ -34,14 +34,6 @@ enum Why {
   /// SOS/PM/APC strings are not supported; ESC X, ESC ^, ESC _ are dropped.
   noSosPmApc,
 
-  /// CAN/SUB cancel the sequence but the control byte itself is swallowed
-  /// (DEC executes it, e.g. SUB displays the error character).
-  cancelSwallowed,
-
-  /// CAN/SUB inside a DCS/OSC string are ignored entirely instead of
-  /// cancelling the string (DEC: unhook/osc_end + execute + ground).
-  cancelIgnoredInString,
-
   /// ESC while CSI is empty is reported as a structural error
   /// (ErrorSequenceData) instead of silently restarting the escape.
   csiEntryEscError,
@@ -108,6 +100,7 @@ const statePrefix = <String, List<int>>{
   'csi_intermediate': [0x1B, 0x5B, 0x31, 0x20],
   'csi_ignore': [0x1B, 0x5B, 0x3A],
   'dcs_entry': [0x1B, 0x50],
+  'dcs_ignore': [0x1B, 0x50, 0x3A],
   'dcs_passthrough': [0x1B, 0x50, 0x71],
   'osc_string': [0x1B, 0x5D, 0x30],
 };
@@ -122,6 +115,7 @@ const prefixLandsIn = <String, State>{
   'csi_intermediate': State.csiIntermediate,
   'csi_ignore': State.csiIgnore,
   'dcs_entry': State.dcsEntry,
+  'dcs_ignore': State.dcsIgnore,
   'dcs_passthrough': State.textBlock,
   'osc_string': State.oscParameter,
 };
@@ -137,34 +131,25 @@ Map<int, Deviation> _range(int lo, int hi, Deviation d) => {for (var b = lo; b <
 final deviations = <String, Map<int, Deviation>>{
   'ground': {},
   'escape': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.ground, null, Why.cancelSwallowed)),
     0x1B: const Deviation(State.escape, CharData, Why.escKeyDisambiguation),
     0x4F: const Deviation(State.ground, null, Why.ss3KeyPrefix),
     ..._bytes([0x58, 0x5E, 0x5F], const Deviation(State.ground, null, Why.noSosPmApc)),
   },
   'escape_intermediate': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.ground, null, Why.cancelSwallowed)),
     0x4F: const Deviation(State.ground, null, Why.ss3KeyPrefix),
     0x5B: const Deviation(State.csiEntry, null, Why.extraCsiTransition),
   },
   'csi_entry': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.csiEntry, null, Why.storedAsParam)),
     0x1B: const Deviation(State.ground, ErrorSequenceData, Why.csiEntryEscError),
     ..._range(0x20, 0x2F, const Deviation(State.csiEntry, null, Why.storedAsParam)),
     ..._range(0x3C, 0x3F, const Deviation(State.csiEntry, null, Why.storedAsParam)),
   },
   'csi_param': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.ground, null, Why.cancelSwallowed)),
     0x3A: const Deviation(State.csiParameter, null, Why.colonSubparam),
   },
-  'csi_intermediate': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.ground, null, Why.cancelSwallowed)),
-  },
-  'csi_ignore': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.ground, null, Why.cancelSwallowed)),
-  },
+  'csi_intermediate': {},
+  'csi_ignore': {},
   'dcs_entry': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.dcsEntry, null, Why.cancelIgnoredInString)),
     // Intermediates (DEC: dcs_intermediate) and digits/';' (DEC: dcs_param)
     // all stay flattened in dcsEntry rather than moving to their own DEC
     // state. Byte 0x3A (colon) is NOT here: it lands in a real dcsIgnore
@@ -174,12 +159,11 @@ final deviations = <String, Map<int, Deviation>>{
     0x3B: const Deviation(State.dcsEntry, null, Why.dcsHeaderFlattened),
     ..._range(0x3C, 0x3F, const Deviation(State.dcsEntry, null, Why.dcsHeaderFlattened)),
   },
+  'dcs_ignore': {},
   'dcs_passthrough': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.textBlock, null, Why.cancelIgnoredInString)),
     0x1B: const Deviation(State.textBlockFinal, null, Why.stPairDeferred),
   },
   'osc_string': {
-    ..._bytes([0x18, 0x1A], const Deviation(State.oscParameter, null, Why.cancelIgnoredInString)),
     0x1B: const Deviation(State.oscFinal, null, Why.stPairDeferred),
   },
 };
@@ -403,10 +387,51 @@ void main() {
       expect(engine.currentState, State.ground);
     });
 
-    test('CAN inside CSI cancels but is swallowed (DEC would execute it)', () {
+    test('CAN inside CSI cancels and executes, matching DEC', () {
       final results = feed(Engine(), [0x1B, 0x5B, 0x33, 0x18, 0x41], trailingHasMore: false);
-      // DEC: execute(0x18) then print('A'); engine: only the 'A' survives.
-      expect(results, [const CharData('A', escO: false)]);
+      // DEC: execute(0x18) then print('A'); the engine now matches exactly:
+      // no CsiSequenceData, both bytes delivered as character data.
+      expect(results, [const CharData('\x18', escO: false), const CharData('A', escO: false)]);
+    });
+
+    test('SUB cancels a DCS header before the hook byte, matching DEC', () {
+      // ESC P 1 SUB A — SUB fires before any final (0x40-0x7E) hooks the
+      // passthrough, so there is nothing to unhook; DEC still executes SUB
+      // and returns to ground with no dispatch.
+      final results = feed(Engine(), [0x1B, 0x50, 0x31, 0x1A, 0x41], trailingHasMore: false);
+      expect(results.whereType<DcsSequenceData>(), isEmpty);
+      expect(results, [const CharData('\x1a', escO: false), const CharData('A', escO: false)]);
+    });
+
+    test('CAN cancels DCS passthrough content, matching DEC', () {
+      // ESC P q a b CAN A — 'q' hooks the passthrough, 'a'/'b' are put()
+      // bytes for the (nonexistent) handler and never surface as input; CAN
+      // unhooks with no dispatch and executes.
+      final results = feed(Engine(), [0x1B, 0x50, 0x71, 0x61, 0x62, 0x18, 0x41], trailingHasMore: false);
+      expect(results.whereType<DcsSequenceData>(), isEmpty);
+      expect(results, [const CharData('\x18', escO: false), const CharData('A', escO: false)]);
+    });
+
+    test('SUB cancels an abandoned dcs_ignore header, matching DEC', () {
+      // ESC P : SUB A — the colon abandons the header into dcs_ignore (no
+      // hook, no dispatch); SUB still executes and returns to ground.
+      final results = feed(Engine(), [0x1B, 0x50, 0x3A, 0x1A, 0x41], trailingHasMore: false);
+      expect(results, [const CharData('\x1a', escO: false), const CharData('A', escO: false)]);
+    });
+
+    test('CAN cancels an OSC string before any parameter byte, matching DEC', () {
+      // ESC ] CAN A — cancels before a digit/';' is even seen.
+      final results = feed(Engine(), [0x1B, 0x5D, 0x18, 0x41], trailingHasMore: false);
+      expect(results.whereType<OscSequenceData>(), isEmpty);
+      expect(results, [const CharData('\x18', escO: false), const CharData('A', escO: false)]);
+    });
+
+    test('SUB cancels an OSC string deferred at ESC (ST pair), matching DEC', () {
+      // ESC ] 0 ; h ESC SUB A — the ESC defers the ST dispatch (stPairDeferred);
+      // SUB arriving there still cancels with no dispatch and executes.
+      final results = feed(Engine(), [0x1B, 0x5D, 0x30, 0x3B, 0x68, 0x1B, 0x1A, 0x41], trailingHasMore: false);
+      expect(results.whereType<OscSequenceData>(), isEmpty);
+      expect(results, [const CharData('\x1a', escO: false), const CharData('A', escO: false)]);
     });
 
     test('SS3 key: ESC O P arrives as CharData P with escO', () {

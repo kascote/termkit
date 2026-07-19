@@ -239,6 +239,15 @@ class Engine {
     _escO = false;
   }
 
+  /// DEC's anywhere rule for CAN (0x18) and SUB (0x1A): abandon whatever
+  /// sequence or string is in flight — no dispatch, no error — and execute
+  /// the control byte, which for this input-side engine means delivering it
+  /// as character data exactly like a lone CAN/SUB in ground state.
+  void _cancelAndDeliver(int byte) {
+    _provideChar(String.fromCharCode(byte));
+    _setState(State.ground);
+  }
+
   void _provideESCSequence(String char) {
     if (char == 'O') {
       // Exception: Esc O is followed by single character (P-S) representing F1-F4 keys
@@ -326,6 +335,11 @@ class Engine {
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         _provideChar(String.fromCharCode(byte));
 
+      // CAN/SUB: anywhere rule. Cancel the escape sequence and deliver the
+      // control byte, same as ground.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
       // Does it mean we should ignore the whole sequence?
       // Ignore
       case 0x7F:
@@ -359,6 +373,11 @@ class Engine {
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         _provideChar(String.fromCharCode(byte));
+
+      // CAN/SUB: anywhere rule. Cancel the escape sequence and deliver the
+      // control byte, same as ground.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -405,6 +424,11 @@ class Engine {
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         _provideChar(String.fromCharCode(byte));
 
+      // CAN/SUB: anywhere rule. Cancel the CSI sequence and deliver the
+      // control byte instead of storing it as a parameter.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
       // Does it mean we should ignore the whole sequence?
       // Ignore
       case 0x7F:
@@ -426,6 +450,11 @@ class Engine {
       // Execute
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         _provideChar(String.fromCharCode(byte));
+
+      // CAN/SUB: anywhere rule. Cancel the consumed sequence and deliver the
+      // control byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
 
       // Does it mean we should ignore the whole sequence?
       // Ignore
@@ -526,6 +555,12 @@ class Engine {
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         _provideChar(String.fromCharCode(byte));
 
+      // CAN/SUB: anywhere rule. Cancel the CSI sequence (including an
+      // in-progress bracketed-paste close marker) and deliver the control
+      // byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
       // Does it mean we should ignore the whole sequence?
       // Ignore
       case 0x7F:
@@ -564,6 +599,11 @@ class Engine {
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         _provideChar(String.fromCharCode(byte));
 
+      // CAN/SUB: anywhere rule. Cancel the CSI sequence and deliver the
+      // control byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
       // Does it mean we should ignore the whole sequence?
       // Ignore
       case 0x7F:
@@ -580,6 +620,15 @@ class Engine {
       // block finish with a escape sequence
       case 0x1b:
         _setState(State.textBlockFinal);
+
+      // CAN/SUB: anywhere rule for DCS passthrough (DEC: unhook + execute +
+      // ground, no dispatch of the abandoned string). Bracketed paste is a
+      // non-DEC extension whose only terminator is CSI 201~, and pasted
+      // content may legitimately contain these bytes, so leave paste
+      // accumulation alone: fall through to the default arm, same as any
+      // other content byte.
+      case 0x18 || 0x1A when !_inTextBlock:
+        _cancelAndDeliver(byte);
 
       // Content bytes accumulate in _sequenceBytes (via advance() method)
       // This state handles opaque content for:
@@ -629,6 +678,11 @@ class Engine {
         _params.add(byte);
         _setState(State.oscParameter);
 
+      // CAN/SUB: anywhere rule. Cancel the OSC string and deliver the
+      // control byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
         _setState(State.ground);
@@ -649,6 +703,11 @@ class Engine {
       case (>= 0x20 && <= 0x2F) || (>= 0x3A && <= 0x7E):
         _params.add(byte);
 
+      // CAN/SUB: anywhere rule. Cancel the OSC string (no dispatch) and
+      // deliver the control byte, same as ground.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
       // default:
       //   _setState(State.oscBlock);
     }
@@ -666,6 +725,11 @@ class Engine {
         _provideOscSequence(Parameters.from(_params));
 
         _setState(State.ground);
+
+      // CAN/SUB: anywhere rule. Cancel the OSC string and deliver the
+      // control byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
 
       // Other bytes are considered as invalid -> cancel whatever we have
       default:
@@ -707,6 +771,11 @@ class Engine {
       case (>= 0x00 && <= 0x17) || 0x19 || (>= 0x1C && <= 0x1F):
         {}
 
+      // CAN/SUB: anywhere rule. Cancel the DCS header (no hook, no dispatch)
+      // and deliver the control byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
       // Intermediates: flush a pending parameter as its own entry, then
       // collect the intermediate bytes as a fresh pending value.
       case (>= 0x20 && <= 0x2F):
@@ -726,8 +795,14 @@ class Engine {
 
   void _advanceDcsIgnoreState(int byte) {
     switch (byte) {
-      // DEC dcs_ignore: every byte 0x00-0x7F is dropped; the only way out is
-      // the generic ESC anywhere-rule handled in _handlePossibleEsc.
+      // CAN/SUB: anywhere rule, even from the abandoned dcs_ignore header.
+      // Cancel and deliver the control byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
+      // DEC dcs_ignore: every other byte 0x00-0x7F is dropped; the only
+      // other way out is the generic ESC anywhere-rule handled in
+      // _handlePossibleEsc.
       default:
         {}
     }

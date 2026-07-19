@@ -301,6 +301,23 @@ void main() {
 
       expect(eng.currentSequenceBytes.length, bytesBeforePaste + pasteContent.length);
     });
+
+    test('CAN/SUB bytes inside pasted content survive intact (not treated as cancel)', () {
+      final eng = Engine();
+
+      // Outside a text block CAN (0x18) and SUB (0x1A) cancel the in-flight
+      // sequence and execute; bracketed paste is a non-DEC extension whose
+      // only terminator is CSI 201~, so pasted content carrying those bytes
+      // must pass through untouched instead of aborting the block.
+      const startPasteSeq = [0x1b, 0x5b, 0x32, 0x30, 0x30, 0x7E]; // ESC [ 2 0 0 ~
+      const pasteContent = [0x61, 0x18, 0x62, 0x1A, 0x63]; // 'a' CAN 'b' SUB 'c'
+      const endPasteSeq = [0x1b, 0x5b, 0x32, 0x30, 0x31, 0x7E]; // ESC [ 2 0 1 ~
+
+      final results = listAdvance(eng, [...startPasteSeq, ...pasteContent, ...endPasteSeq]);
+      expect(results, hasLength(1));
+      final textBlock = results.single as TextBlockSequenceData;
+      expect(textBlock.contentBytes, pasteContent);
+    });
   });
 
   group('Engine CSI Mouse >', () {

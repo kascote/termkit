@@ -82,13 +82,8 @@ void main() {
 
     test(
       'CAN cancels an in-flight CSI and is delivered; CAN also cancels OSC strings',
-      skip:
-          'CAN/SUB are swallowed when cancelling (stored as a '
-          'param in csiEntry) and ignored inside DCS/OSC strings',
       () {
         // DEC: CAN cancels the sequence AND executes (the app sees Ctrl+X).
-        // If the tracked task decides against delivery, weaken the
-        // CharData(0x18) expectations here deliberately.
         expect(
           feed(Engine(), [0x1B, 0x5B, 0x33, 0x18, 0x41], trailingHasMore: false),
           [const CharData('\x18', escO: false), const CharData('A', escO: false)],
