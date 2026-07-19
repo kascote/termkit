@@ -76,6 +76,16 @@ Similar pattern but in `lib/src/parsers/osc_parser.dart`. OSC sequences use `π]
 keySequence('πOR')  // Means ESC O R
 ```
 
+### DEC ANSI conformance
+
+`test/conformance/dec_ansi_conformance_test.dart` checks the Engine cell-by-cell
+against the canonical DEC parser state machine (vt100.net/emu/dec_ansi_parser),
+extracted to `specs/dec_ansi/` (JSON spec, human-readable doc, Python oracle).
+Input-side departures from DEC (ESC-key disambiguation, colon subparameters,
+flattened DCS header, no SOS/PM/APC, …) are pinned in the test's `deviations`
+registry, each tagged with a reason. When Engine behaviour changes on purpose,
+update the registry entry — an unexplained mismatch on either side is a failure.
+
 ### Fuzzing
 
 The generative fuzz harnesses (`test/fuzz/harnesses/`) are **opt-in**: their heavy

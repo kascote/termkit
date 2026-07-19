@@ -1,0 +1,218 @@
+{
+  "meta": {
+    "title": "A parser for DEC's ANSI-compatible video terminals",
+    "author": "Paul Flo Williams",
+    "source": "https://vt100.net/emu/dec_ansi_parser",
+    "published": "2002-03-11",
+    "modified": "2017-08-25",
+    "license": "CC BY 4.0",
+    "extracted": "2026-07-19",
+    "extraction_method": "Parsed from the page's inline SVG state diagram (semantic element ids: state-*, legend-<src>-to-<dst>) plus the State/Action Definitions prose; cross-checked against haberman/vtparse tables.",
+    "scope": "Terminal-side parser (host-to-terminal byte stream) for DEC's 8-bit ANSI-compatible terminals, VT220 through VT525. Single-byte character encodings only; no UTF-8."
+  },
+
+  "semantics": {
+    "events": "Events are raw input bytes, written in hex. Comma-separated sets; N-M is an inclusive range.",
+    "initial_state": "ground",
+    "internal_events": "An event listed under a state's 'on' happens without leaving the state; no entry/exit actions fire.",
+    "transition_order": [
+      "exit action of the old state (if any)",
+      "transition action (if any)",
+      "entry action of the new state (if any)"
+    ],
+    "anywhere_rule": "Transitions listed under 'anywhere' apply from every state and take precedence over the state's own rules. The diagram never overlaps them with state-local rules.",
+    "self_transition": "An anywhere transition that lands on the current state still fires its exit action and then its entry action (e.g. 1B received while in escape re-runs clear).",
+    "gr_gl_rule": "Bytes A0-FF (GR) are treated identically to bytes 20-7F (GL): resolve A0-FF by looking up (byte - 0x80), but hand the ORIGINAL byte to the action. This symmetry does NOT extend to the C0 (00-1F) and C1 (80-9F) areas. Source: X3.64 Appendix H, restated on the diagram."
+  },
+
+  "actions": {
+    "ignore": "The byte has no effect; drop it.",
+    "print": "Ground only. Map the byte to a glyph via current character-set mappings and shift states, and display it. 20 (SP) and 7F (DEL) print or are ignored depending on whether a 94- or 96-character set is mapped in.",
+    "execute": "Execute the C0 or C1 control function of this byte immediately. No parameters.",
+    "clear": "Forget the current private marker, intermediate characters, final character and parameters. Entry action of escape, csi_entry and dcs_entry.",
+    "collect": "Store the private marker (3C-3F) or intermediate character (20-2F) for the eventual dispatch. If more than two intermediates arrive, set an overflow flag so the dispatch becomes a no-op.",
+    "param": "Accumulate a parameter string: digits 30-39 append to the current parameter, 3B starts the next one. At most 16 parameters are stored; extras are silently discarded. Values must range at least to 16383; larger values clamp. Empty or 0 both mean 'use the control function's default'.",
+    "esc_dispatch": "Final byte of an escape sequence arrived: choose the control function from collected intermediates plus this final byte, and execute it.",
+    "csi_dispatch": "Final byte of a control sequence arrived: choose the control function from private marker, intermediates and this final byte, and execute it with the parameter list.",
+    "hook": "Final byte of the first part of a device control string arrived: choose the DCS function from private marker, intermediates and final, execute it, and select a handler to receive the data string that follows.",
+    "put": "Pass this data-string byte to the handler selected by hook. C0 controls are passed too.",
+    "unhook": "The device control string ended (via ST, CAN, SUB or ESC): tell the handler 'end of data' so it can finish cleanly. Exit action of dcs_passthrough.",
+    "osc_start": "OSC recognised: initialise the OSC string handler. Entry action of osc_string.",
+    "osc_put": "Pass this byte of the OSC string to the OSC handler as it arrives.",
+    "osc_end": "The OSC string ended (via ST, CAN, SUB or ESC): let the OSC handler finish cleanly. Exit action of osc_string."
+  },
+
+  "anywhere": [
+    { "on": "18,1A", "action": "execute", "to": "ground" },
+    { "on": "80-8F,91-97,99,9A", "action": "execute", "to": "ground" },
+    { "on": "9C", "to": "ground" },
+    { "on": "1B", "to": "escape" },
+    { "on": "90", "to": "dcs_entry" },
+    { "on": "98,9E,9F", "to": "sos_pm_apc_string" },
+    { "on": "9B", "to": "csi_entry" },
+    { "on": "9D", "to": "osc_string" }
+  ],
+
+  "states": {
+    "ground": {
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "execute" },
+        { "on": "20-7F", "action": "print" }
+      ],
+      "transitions": []
+    },
+    "escape": {
+      "entry": "clear",
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "execute" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "20-2F", "action": "collect", "to": "escape_intermediate" },
+        { "on": "30-4F,51-57,59,5A,5C,60-7E", "action": "esc_dispatch", "to": "ground" },
+        { "on": "50", "to": "dcs_entry" },
+        { "on": "58,5E,5F", "to": "sos_pm_apc_string" },
+        { "on": "5B", "to": "csi_entry" },
+        { "on": "5D", "to": "osc_string" }
+      ]
+    },
+    "escape_intermediate": {
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "execute" },
+        { "on": "20-2F", "action": "collect" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "30-7E", "action": "esc_dispatch", "to": "ground" }
+      ]
+    },
+    "csi_entry": {
+      "entry": "clear",
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "execute" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "20-2F", "action": "collect", "to": "csi_intermediate" },
+        { "on": "30-39,3B", "action": "param", "to": "csi_param" },
+        { "on": "3C-3F", "action": "collect", "to": "csi_param" },
+        { "on": "3A", "to": "csi_ignore" },
+        { "on": "40-7E", "action": "csi_dispatch", "to": "ground" }
+      ]
+    },
+    "csi_param": {
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "execute" },
+        { "on": "30-39,3B", "action": "param" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "20-2F", "action": "collect", "to": "csi_intermediate" },
+        { "on": "3A,3C-3F", "to": "csi_ignore" },
+        { "on": "40-7E", "action": "csi_dispatch", "to": "ground" }
+      ]
+    },
+    "csi_intermediate": {
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "execute" },
+        { "on": "20-2F", "action": "collect" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "30-3F", "to": "csi_ignore" },
+        { "on": "40-7E", "action": "csi_dispatch", "to": "ground" }
+      ]
+    },
+    "csi_ignore": {
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "execute" },
+        { "on": "20-3F,7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "40-7E", "to": "ground" }
+      ]
+    },
+    "dcs_entry": {
+      "entry": "clear",
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "ignore" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "20-2F", "action": "collect", "to": "dcs_intermediate" },
+        { "on": "30-39,3B", "action": "param", "to": "dcs_param" },
+        { "on": "3C-3F", "action": "collect", "to": "dcs_param" },
+        { "on": "3A", "to": "dcs_ignore" },
+        { "on": "40-7E", "to": "dcs_passthrough" }
+      ]
+    },
+    "dcs_param": {
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "ignore" },
+        { "on": "30-39,3B", "action": "param" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "20-2F", "action": "collect", "to": "dcs_intermediate" },
+        { "on": "3A,3C-3F", "to": "dcs_ignore" },
+        { "on": "40-7E", "to": "dcs_passthrough" }
+      ]
+    },
+    "dcs_intermediate": {
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "ignore" },
+        { "on": "20-2F", "action": "collect" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": [
+        { "on": "30-3F", "to": "dcs_ignore" },
+        { "on": "40-7E", "to": "dcs_passthrough" }
+      ]
+    },
+    "dcs_passthrough": {
+      "entry": "hook",
+      "exit": "unhook",
+      "on": [
+        { "on": "00-17,19,1C-1F,20-7E", "action": "put" },
+        { "on": "7F", "action": "ignore" }
+      ],
+      "transitions": []
+    },
+    "dcs_ignore": {
+      "on": [
+        { "on": "00-17,19,1C-1F,20-7F", "action": "ignore" }
+      ],
+      "transitions": []
+    },
+    "osc_string": {
+      "entry": "osc_start",
+      "exit": "osc_end",
+      "on": [
+        { "on": "00-17,19,1C-1F", "action": "ignore" },
+        { "on": "20-7F", "action": "osc_put" }
+      ],
+      "transitions": []
+    },
+    "sos_pm_apc_string": {
+      "on": [
+        { "on": "00-17,19,1C-1F,20-7F", "action": "ignore" }
+      ],
+      "transitions": []
+    }
+  },
+
+  "notes": [
+    "dcs_passthrough, dcs_ignore, osc_string and sos_pm_apc_string have no state-local exit transitions: they are left only via the anywhere rules (ST 9C, its 7-bit form ESC \\ via 1B, CAN 18, SUB 1A, or any C1). That is why unhook and osc_end are exit actions.",
+    "ESC cancels any sequence in progress. A control string terminated by 7-bit ST (1B 5C) actually ends at the 1B (exit action fires there); the following 5C dispatches the ST control function, which is a no-op.",
+    "C0 controls are EXECUTED immediately inside escape sequences and control sequences (interleaving is legal: CSI 2 LF C moves the cursor right twice and down once), but are IGNORED in the first part of a device control string (dcs_entry/dcs_param/dcs_intermediate) and inside OSC strings. In the DCS data string they are passed through via put.",
+    "CAN and SUB cancel the sequence in progress; SUB additionally displays the error character (reversed question mark). This is VT220/VT420/VT500 behaviour; the VT320 documented CAN/SUB as no longer cancelling.",
+    "On terminals before the VT500, NUL (00) was discarded before parsing as a time-fill character. The VT500 processes NUL like any other C0 because of DECNULM (Null Mode).",
+    "3A (colon) anywhere in a CSI parameter string makes the whole sequence ignored (collected but never dispatched); it has no standardised meaning in X3.64 / on DEC terminals.",
+    "Private markers 3C-3F are only valid as the first byte after CSI/DCS; DEC used only 3D, 3E, 3F. A private marker later in the parameter string sends the sequence to the ignore state.",
+    "Parameter limits (VT500): unlimited parameter-string length, at most 16 parameters kept, values supported at least to 16383 (clamp above). Later parameters override earlier ones on conflict (CSI 7;0 m ends up with attributes off).",
+    "Parameter defaults: an empty parameter and the value 0 both select the control function's default (which is often 1, sometimes 100, sometimes absent — 0 is NOT 'the default value' itself). ECMA-48 distinguishes empty from 0, so implementations should keep them distinct internally.",
+    "In ground, 20 (SP) and 7F (DEL) depend on the mapped character set: 94-set GL prints space for 20 and ignores 7F; 96-set GL may print both. VT220-only emulation may always ignore 7F; VT320+ (ISO Latin-1) must be able to print it.",
+    "OSC strings only ever invoked DECSIN (Set Icon Name) and DECSWT (Set Window Title) on the VT520/VT525; earlier terminals ignored OSC content like PM/APC.",
+    "The VT420/VT500 can SEND APC strings (key press reports) to the host, but no DEC terminal assigns meaning to RECEIVED SOS/PM/APC strings; they are consumed and discarded."
+  ]
+}
