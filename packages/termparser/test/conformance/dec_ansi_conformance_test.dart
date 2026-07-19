@@ -54,10 +54,6 @@ enum Why {
   /// kitty keyboard protocol). DEC sends the sequence to csi_ignore.
   colonSubparam,
 
-  /// Parameter byte after an intermediate cancels to ground; DEC consumes
-  /// the rest of the sequence in csi_ignore.
-  paramAfterIntermediate,
-
   /// ESC intermediate then '[' re-enters CSI; DEC dispatches the escape
   /// sequence with final '['.
   extraCsiTransition,
@@ -165,7 +161,6 @@ final deviations = <String, Map<int, Deviation>>{
   },
   'csi_intermediate': {
     ..._bytes([0x18, 0x1A], const Deviation(State.ground, null, Why.cancelSwallowed)),
-    ..._range(0x30, 0x3F, const Deviation(State.ground, null, Why.paramAfterIntermediate)),
   },
   'csi_ignore': {
     ..._bytes([0x18, 0x1A], const Deviation(State.ground, null, Why.cancelSwallowed)),

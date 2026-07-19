@@ -76,9 +76,6 @@ void main() {
 
     test(
       'parameter byte after CSI intermediate consumes the sequence, no phantom key',
-      skip:
-          'mikos 0003: _advanceCsiIntermediateState sends 0x30-0x3F to ground; '
-          'the trailing final byte replays as a keypress',
       () {
         // ESC [ 1 SP 2 m is malformed (parameter after intermediate). DEC
         // consumes it through the final 'm' in csi_ignore; nothing may surface

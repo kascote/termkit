@@ -540,6 +540,11 @@ class Engine {
       case (>= 0x20 && <= 0x2F):
         {}
 
+      // Parameter byte after an intermediate: malformed. DEC consumes the
+      // remainder of the sequence in csi_ignore rather than dispatching it.
+      case (>= 0x30 && <= 0x3F):
+        _setState(State.csiIgnore);
+
       // CSI sequence final character
       //   -> dispatch CSI sequence
       case (>= 0x40 && <= 0x7E):
