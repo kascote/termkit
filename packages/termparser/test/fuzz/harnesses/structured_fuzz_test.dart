@@ -13,6 +13,11 @@
 ///   * well-formed → ground (single-chunk schedule only — random schedule
 ///     legitimately splits on ESC+hasMore=false, which is not the oracle we
 ///     want here)
+///   * DCS shape oracle: each generated hook/abandon DCS sub-sequence is
+///     replayed in isolation through a fresh `Engine` (bypassing `Parser`)
+///     to check whether it produced a `DcsSequenceData` — see
+///     `_assertDcsShapeOutcome` for why the Parser/Event level can't observe
+///     this
 ///
 /// The generative loop is OPT-IN: skipped under a plain `dart test` / `make test`.
 /// It runs only when FUZZ_ITER or FUZZ_SECS is set, i.e. via `make fuzz` / `make fuzz-time`.
@@ -28,6 +33,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:termparser/src/engine/engine.dart' show Engine, State;
+import 'package:termparser/src/engine/sequence_data.dart' show DcsSequenceData;
 import 'package:test/test.dart';
 
 import '../_support/harness.dart';
@@ -95,6 +102,18 @@ Future<void> main() async {
             );
           }
 
+          // Per-shape DCS dispatch oracle: each hook/abandon sub-sequence
+          // generated this iteration is replayed in isolation and checked
+          // against its expected DcsSequenceData outcome.
+          for (final check in prog.dcsChecks) {
+            _assertDcsShapeOutcome(
+              check,
+              crashesDir: crashesDir,
+              iter: iters,
+              seed: _fuzzSeed,
+            );
+          }
+
           assertDeterminism(
             bytes,
             schedule,
@@ -112,22 +131,47 @@ Future<void> main() async {
 
 // ---- program assembly ----------------------------------------------------
 
+/// Which DEC DCS header shape a generated `_Seq` took, for sequences
+/// produced by [_genDcs]. `null` (the default on [_Seq]) means "not a DCS
+/// sequence with a known shape to assert on" (e.g. CSI/OSC/textBlock/ESC-O,
+/// or a deliberately-unterminated DCS malformed variant).
+enum _DcsShape {
+  /// Header ends in a real hook byte (0x40-0x7E): must dispatch exactly one
+  /// `DcsSequenceData` at ST.
+  hook,
+
+  /// Header is abandoned by a ':' before any hook byte, landing in
+  /// `dcsIgnore`: must dispatch zero `DcsSequenceData`.
+  abandon,
+}
+
 class _Seq {
   final List<int> bytes;
   final bool wellFormed;
-  const _Seq(this.bytes, {required this.wellFormed});
+  final _DcsShape? dcsShape;
+  const _Seq(this.bytes, {required this.wellFormed, this.dcsShape});
+}
+
+/// A DCS sub-sequence pulled out of a generated program, paired with the
+/// shape it was generated as, for the per-shape dispatch oracle.
+class _DcsCheck {
+  final Uint8List bytes;
+  final _DcsShape shape;
+  const _DcsCheck(this.bytes, this.shape);
 }
 
 class _Program {
   final Uint8List bytes;
   final bool allWellFormed;
-  const _Program(this.bytes, {required this.allWellFormed});
+  final List<_DcsCheck> dcsChecks;
+  const _Program(this.bytes, {required this.allWellFormed, this.dcsChecks = const []});
 }
 
 _Program _genProgram(Random rng) {
   final count = 1 + rng.nextInt(_maxSeqsPerProgram);
   final buf = <int>[];
   var allWellFormed = true;
+  final dcsChecks = <_DcsCheck>[];
   for (var i = 0; i < count; i++) {
     final r = rng.nextInt(100);
     final seq = switch (r) {
@@ -140,8 +184,12 @@ _Program _genProgram(Random rng) {
     if (buf.length + seq.bytes.length > _maxBytesPerProgram) break;
     buf.addAll(seq.bytes);
     if (!seq.wellFormed) allWellFormed = false;
+    final shape = seq.dcsShape;
+    if (shape != null) {
+      dcsChecks.add(_DcsCheck(Uint8List.fromList(seq.bytes), shape));
+    }
   }
-  return _Program(Uint8List.fromList(buf), allWellFormed: allWellFormed);
+  return _Program(Uint8List.fromList(buf), allWellFormed: allWellFormed, dcsChecks: dcsChecks);
 }
 
 // ---- grammars ------------------------------------------------------------
@@ -292,66 +340,161 @@ _Seq _genOsc(Random rng) {
   }
 }
 
-/// DCS narrow shape (what the engine accepts without erroring):
-///   `ESC P <private>? <final 0x28..0x7e> <data> ESC \`
+/// DCS: `ESC P <header> <hook 0x40..0x7e> <content> ESC \`, where
+/// `<header>` is zero or more tokens drawn from digit runs (multi-digit
+/// parameters), `;` delimiters, private markers (0x3C-0x3F), and
+/// intermediates (0x20-0x2F), in any combination — matching dcsEntry's
+/// current DEC-shaped grammar: digits extend a pending parameter, `;`
+/// stores it, private markers store immediately, intermediates flush the
+/// pending parameter then start collecting themselves, and only a byte in
+/// 0x40-0x7E hooks the opaque passthrough (dispatching `DcsSequenceData` at
+/// ST). A `:` anywhere in the header instead abandons it into `dcsIgnore` —
+/// no hook, no dispatch, every following byte dropped until ST/anywhere-rule.
 ///
-/// dcsEntry accepts `<=>?` as private markers, then any byte in 0x28..0x7e
-/// transitions to textBlock (engine has a decimal-vs-hex quirk: the case
-/// `>= 40 && <= 0x7E` is 0x28..0x7e, *not* 0x40..0x7e). It does NOT accept
-/// numeric params or `;` separators. Broader shapes are still fuzzed but
-/// tagged malformed so the ground/no-error oracle doesn't fire on them.
+/// Three shapes are generated:
+///   * `hook`    (55%) — well-formed header, then a real hook byte, then
+///     opaque content, then ST. Tagged [_DcsShape.hook]: must dispatch
+///     exactly one `DcsSequenceData`.
+///   * `abandon` (30%) — well-formed header, then `:` (abandoning into
+///     `dcsIgnore`), then inert filler, then ST. Tagged [_DcsShape.abandon]:
+///     the header never hooks, so this must dispatch zero
+///     `DcsSequenceData` even though it's well-formed input worth fuzzing.
+///   * unterminated (15%) — header, optional `:`, optional hook + content,
+///     but no ST: left open for the concatenation-level crash-only oracle.
+///     Untagged (`dcsShape: null`): it never reaches ST, so there's no
+///     dispatch outcome to assert.
 _Seq _genDcs(Random rng) {
   final buf = <int>[0x1b, 0x50]; // ESC P
-  final narrow = rng.nextInt(100) < 50;
+  final r = rng.nextInt(100);
 
-  if (narrow) {
-    if (rng.nextBool()) {
-      buf.add(const [0x3c, 0x3d, 0x3e, 0x3f][rng.nextInt(4)]);
-    }
-    buf.add(0x28 + rng.nextInt(0x7e - 0x28 + 1));
-    final n = rng.nextInt(256);
+  if (r < 55) {
+    _appendDcsHeader(rng, buf);
+    buf.add(0x40 + rng.nextInt(0x7e - 0x40 + 1)); // hook byte
+    _appendDcsContent(rng, buf);
+    buf
+      ..add(0x1b)
+      ..add(0x5c);
+    return _Seq(buf, wellFormed: true, dcsShape: _DcsShape.hook);
+  }
+
+  if (r < 85) {
+    _appendDcsHeader(rng, buf);
+    buf.add(0x3a); // ':' abandons the header into dcsIgnore
+    // dcsIgnore drops every byte 0x00-0x7F outright — except ESC/CAN/SUB,
+    // which are anywhere-rule bytes that exit it early. A stray ESC here
+    // would hand the *rest* of this filler (plus the deliberate ST appended
+    // below) to a fresh top-level escape sequence instead, which can easily
+    // reassemble into an unrelated real DCS hook — a false dispatch for
+    // this shape. Keep the filler clear of all three so dcsIgnore is the
+    // only thing consuming it, all the way to the ST below.
+    final n = rng.nextInt(64);
     for (var i = 0; i < n; i++) {
-      var b = rng.nextInt(256);
-      // ESC/CAN/SUB are anywhere-rule bytes; unlike bracketed paste (whose
-      // _inTextBlock guard lets it swallow them as content), plain DCS
-      // passthrough treats CAN/SUB as an unhook-and-cancel. Any of them
-      // mid-content would end the string early while this loop keeps
-      // appending bytes meant to land inside it.
+      var b = rng.nextInt(0x80);
       if (b == 0x1b || b == 0x18 || b == 0x1a) b = 0x20;
       buf.add(b);
     }
     buf
       ..add(0x1b)
       ..add(0x5c);
-    return _Seq(buf, wellFormed: true);
+    return _Seq(buf, wellFormed: true, dcsShape: _DcsShape.abandon);
   }
 
-  // broad: numeric params + intermediates + mixed bytes. crash-only oracle.
+  // unterminated: header, maybe an abandon ':', maybe a hook + content, but
+  // deliberately no ST — crash-only oracle (no ground/dispatch assertion).
+  _appendDcsHeader(rng, buf);
+  if (rng.nextBool()) buf.add(0x3a);
   if (rng.nextBool()) {
-    buf.add(const [0x3c, 0x3d, 0x3e, 0x3f][rng.nextInt(4)]);
+    buf.add(0x40 + rng.nextInt(0x7e - 0x40 + 1));
+    _appendDcsContent(rng, buf);
   }
-  final nParams = rng.nextInt(5);
-  for (var i = 0; i < nParams; i++) {
-    if (i > 0) buf.add(0x3b);
-    _appendInt(buf, rng.nextInt(256));
+  return _Seq(buf, wellFormed: false);
+}
+
+/// Appends a DCS header: 0-7 tokens, each a digit run (extends/starts a
+/// parameter), `;` (stores it), a private marker (0x3C-0x3F, stored
+/// immediately), or an intermediate (0x20-0x2F, flush-then-collect). All
+/// token bytes are < 0x40, so none of them can accidentally land on a hook
+/// byte or the anywhere-rule bytes (ESC/CAN/SUB).
+void _appendDcsHeader(Random rng, List<int> buf) {
+  final nTokens = rng.nextInt(8);
+  for (var i = 0; i < nTokens; i++) {
+    switch (rng.nextInt(4)) {
+      case 0: // digit run
+        final len = 1 + rng.nextInt(4);
+        for (var k = 0; k < len; k++) {
+          buf.add(0x30 + rng.nextInt(10));
+        }
+      case 1: // ';' delimiter
+        buf.add(0x3b);
+      case 2: // private marker
+        buf.add(const [0x3c, 0x3d, 0x3e, 0x3f][rng.nextInt(4)]);
+      case 3: // intermediate
+        buf.add(0x20 + rng.nextInt(0x30 - 0x20));
+    }
   }
-  final nInter = rng.nextInt(3);
-  for (var i = 0; i < nInter; i++) {
-    buf.add(0x20 + rng.nextInt(0x30 - 0x20));
-  }
-  buf.add(0x40 + rng.nextInt(0x7e - 0x40 + 1));
+}
+
+/// Appends opaque DCS passthrough content, filtered the same way as the
+/// header: ESC/CAN/SUB are anywhere-rule bytes (ESC ends the string via ST
+/// or cancels it; CAN/SUB unhook-and-cancel outright, since plain DCS
+/// passthrough — unlike bracketed paste's `_inTextBlock`-guarded swallow —
+/// has no exemption for them), so any of them mid-content would end the
+/// string early while this loop keeps appending bytes meant to land inside
+/// it.
+void _appendDcsContent(Random rng, List<int> buf) {
   final n = rng.nextInt(256);
   for (var i = 0; i < n; i++) {
     var b = rng.nextInt(256);
-    if (b == 0x1b) b = 0x20;
+    if (b == 0x1b || b == 0x18 || b == 0x1a) b = 0x20;
     buf.add(b);
   }
-  if (rng.nextInt(100) < 85) {
-    buf
-      ..add(0x1b)
-      ..add(0x5c);
+}
+
+/// Drives `check.bytes` through a fresh [Engine] directly — not through
+/// `Parser` — and asserts the dispatch outcome matches `check.shape`.
+///
+/// `Parser`'s DCS translator (`parseDcsSequence`) only turns a
+/// `DcsSequenceData` into a consumer-facing `Event` for the one shape it
+/// recognises (XTVERSION replies); every other well-formed DCS hook
+/// translates to no `Event` at all. That means the shared `FuzzOutcome`
+/// (`eventCount`/`errorEventCount`/`finalState`, all read off `Parser`)
+/// genuinely cannot see whether the engine hooked — the signal is dropped
+/// a layer below where `runOnce` observes. Reading `Engine.advance()`'s
+/// per-byte return value directly, replicating `Parser.advance()`'s own
+/// `hasMore` bookkeeping for a single full-buffer chunk, is the only way to
+/// observe it; hence this bypasses `harness.dart`'s `runOnce`/`FuzzOutcome`
+/// machinery for this one check instead of extending it.
+void _assertDcsShapeOutcome(
+  _DcsCheck check, {
+  required Directory crashesDir,
+  required int iter,
+  required int seed,
+}) {
+  final engine = Engine();
+  var dispatches = 0;
+  for (var i = 0; i < check.bytes.length; i++) {
+    final data = engine.advance(check.bytes[i], hasMore: i < check.bytes.length - 1);
+    if (data is DcsSequenceData) dispatches++;
   }
-  return _Seq(buf, wellFormed: false);
+
+  final expectDispatch = check.shape == _DcsShape.hook;
+  final actualDispatch = expectDispatch ? dispatches == 1 : dispatches == 0;
+  if (actualDispatch && engine.currentState == State.ground) return;
+
+  final schedule = FuzzSchedule.single(check.bytes.length);
+  final crash = FuzzCrash(
+    StateError(
+      'dcs ${check.shape.name}: expected dispatch=$expectDispatch (1 DcsSequenceData) '
+      'got dispatches=$dispatches finalState=${engine.currentState}',
+    ),
+    StackTrace.current,
+    'dcs_shape_${check.shape.name}',
+  );
+  final key = dumpCrash(crashesDir, check.bytes, schedule, crash);
+  fail(
+    'dcs ${check.shape.name} @ iter $iter seed=$seed key=$key '
+    'dispatches=$dispatches state=${engine.currentState}',
+  );
 }
 
 /// TextBlock (bracketed paste): `ESC [ 200 ~ <payload> ESC [ 201 ~`
