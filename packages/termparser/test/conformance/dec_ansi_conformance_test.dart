@@ -31,9 +31,6 @@ enum Why {
   /// flags it instead of dispatching an escape sequence.
   ss3KeyPrefix,
 
-  /// SOS/PM/APC strings are not supported; ESC X, ESC ^, ESC _ are dropped.
-  noSosPmApc,
-
   /// ESC while CSI is empty is reported as a structural error
   /// (ErrorSequenceData) instead of silently restarting the escape.
   csiEntryEscError,
@@ -88,6 +85,7 @@ const stateMap = <String, Set<State>>{
   'dcs_ignore': {State.dcsIgnore},
   'dcs_passthrough': {State.textBlock, State.textBlockFinal},
   'osc_string': {State.oscEntry, State.oscParameter, State.oscFinal},
+  'sos_pm_apc_string': {State.sosPmApcString, State.sosPmApcStringFinal},
 };
 
 /// Byte prefix that drives a fresh Engine into each DEC state.
@@ -103,6 +101,7 @@ const statePrefix = <String, List<int>>{
   'dcs_ignore': [0x1B, 0x50, 0x3A],
   'dcs_passthrough': [0x1B, 0x50, 0x71],
   'osc_string': [0x1B, 0x5D, 0x30],
+  'sos_pm_apc_string': [0x1B, 0x5F],
 };
 
 /// Engine state each prefix must land in (sanity check of the harness).
@@ -118,9 +117,8 @@ const prefixLandsIn = <String, State>{
   'dcs_ignore': State.dcsIgnore,
   'dcs_passthrough': State.textBlock,
   'osc_string': State.oscParameter,
+  'sos_pm_apc_string': State.sosPmApcString,
 };
-
-Map<int, Deviation> _bytes(List<int> bytes, Deviation d) => {for (final b in bytes) b: d};
 
 Map<int, Deviation> _range(int lo, int hi, Deviation d) => {for (var b = lo; b <= hi; b++) b: d};
 
@@ -133,7 +131,6 @@ final deviations = <String, Map<int, Deviation>>{
   'escape': {
     0x1B: const Deviation(State.escape, CharData, Why.escKeyDisambiguation),
     0x4F: const Deviation(State.ground, null, Why.ss3KeyPrefix),
-    ..._bytes([0x58, 0x5E, 0x5F], const Deviation(State.ground, null, Why.noSosPmApc)),
   },
   'escape_intermediate': {
     0x4F: const Deviation(State.ground, null, Why.ss3KeyPrefix),
@@ -165,6 +162,9 @@ final deviations = <String, Map<int, Deviation>>{
   },
   'osc_string': {
     0x1B: const Deviation(State.oscFinal, null, Why.stPairDeferred),
+  },
+  'sos_pm_apc_string': {
+    0x1B: const Deviation(State.sosPmApcStringFinal, null, Why.stPairDeferred),
   },
 };
 
@@ -437,6 +437,38 @@ void main() {
     test('SS3 key: ESC O P arrives as CharData P with escO', () {
       final results = feed(Engine(), [0x1B, 0x4F, 0x50], trailingHasMore: false);
       expect(results, [const CharData('P', escO: true)]);
+    });
+
+    test('APC (kitty graphics reply) is swallowed; only the byte after ST surfaces', () {
+      // ESC _ G i=31;OK ESC \ x — the whole APC body is dropped at the string
+      // introducer; nothing but the trailing byte comes through.
+      final bytes = [
+        0x1B, 0x5F, // ESC _
+        ...'Gi=31;OK'.codeUnits,
+        0x1B, 0x5C, // ST
+        0x78, // 'x'
+      ];
+      final results = feed(Engine(), bytes, trailingHasMore: false);
+      expect(results, [const CharData('x', escO: false)]);
+    });
+
+    test('SOS (ESC X) swallows its body the same way', () {
+      final bytes = [0x1B, 0x58, ...'hello'.codeUnits, 0x1B, 0x5C, 0x78];
+      final results = feed(Engine(), bytes, trailingHasMore: false);
+      expect(results, [const CharData('x', escO: false)]);
+    });
+
+    test('PM (ESC ^) swallows its body the same way', () {
+      final bytes = [0x1B, 0x5E, ...'hello'.codeUnits, 0x1B, 0x5C, 0x78];
+      final results = feed(Engine(), bytes, trailingHasMore: false);
+      expect(results, [const CharData('x', escO: false)]);
+    });
+
+    test('CAN inside an APC string cancels it and delivers CharData, matching DEC', () {
+      // ESC _ G CAN A — CAN fires mid-string; DEC executes it and returns to
+      // ground with no dispatch (there was nothing to dispatch anyway).
+      final results = feed(Engine(), [0x1B, 0x5F, 0x47, 0x18, 0x41], trailingHasMore: false);
+      expect(results, [const CharData('\x18', escO: false), const CharData('A', escO: false)]);
     });
   });
 }

@@ -74,6 +74,19 @@ enum State {
   /// dispatch.
   dcsIgnore,
 
+  /// SOS/PM/APC string body (DEC's `sos_pm_apc_string`).
+  ///
+  /// `Esc` followed by `X`, `^`, or `_`. Every byte of the string is swallowed
+  /// — no accumulation, no dispatch — until an anywhere-rule exit.
+  sosPmApcString,
+
+  /// SOS/PM/APC string final sequence.
+  ///
+  /// Mirrors [oscFinal]/[textBlockFinal]: reached after `Esc` inside
+  /// [sosPmApcString], waiting to see whether the next byte is `\` (ST,
+  /// terminates with no emission) or something else (cancel).
+  sosPmApcStringFinal,
+
   /// Possible UTF-8 sequence and we're collecting UTF-8 code points.
   utf8,
 }
@@ -216,6 +229,10 @@ class Engine {
         _setState(State.textBlockFinal);
         return false;
 
+      case (State.sosPmApcString, true):
+        _setState(State.sosPmApcStringFinal);
+        return false;
+
       // CSI states should handle ESC themselves
       case (State.csiEntry, _):
         return false;
@@ -317,6 +334,10 @@ class Engine {
       // DCS
       case 0x50:
         _setState(State.dcsEntry);
+
+      // SOS/PM/APC string introducer (X, ^, _) -> swallow the string body.
+      case 0x58 || 0x5E || 0x5F:
+        _setState(State.sosPmApcString);
 
       // Escape followed by '[' (0x5B) -> CSI sequence start
       case 0x5B:
@@ -808,6 +829,46 @@ class Engine {
     }
   }
 
+  void _advanceSosPmApcStringState(int byte) {
+    switch (byte) {
+      // CAN/SUB: anywhere rule. Cancel the string and deliver the control
+      // byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
+      // DEC's sos_pm_apc_string row drops every other byte outright — C0
+      // executes (00-17,19,1C-1F) included, unlike ground/escape/CSI where
+      // those bytes execute. Printables and 7F are ignored too. Nothing is
+      // accumulated: this state is a pure swallow, upgradeable later to
+      // capture content (e.g. kitty graphics) without changing the shape of
+      // the ignore path.
+      default:
+        {}
+    }
+  }
+
+  void _advanceSosPmApcStringFinalState(int byte) {
+    switch (byte) {
+      // ignore this ESC, is the final sequence ESC \
+      case 0x1b:
+        {}
+
+      // '\' final ST sequence: terminate with no emission (the string body
+      // was never captured).
+      case 0x5c:
+        _setState(State.ground);
+
+      // CAN/SUB: anywhere rule. Cancel the string and deliver the control
+      // byte.
+      case 0x18 || 0x1A:
+        _cancelAndDeliver(byte);
+
+      // Other bytes are considered as invalid -> cancel whatever we have
+      default:
+        _setState(State.ground);
+    }
+  }
+
   void _advanceUtf8State(int byte) {
     if (byte & 0xC0 != 0x80) {
       _setState(State.ground);
@@ -832,8 +893,11 @@ class Engine {
   /// which helps distinguish between ESC key press and ESC sequence start.
   SequenceData? advance(int byte, {bool hasMore = false}) {
     final byteValue = byte & 0xFF;
-    // Accumulate bytes when not in ground state (building a sequence)
-    if (_state != State.ground) {
+    // Accumulate bytes when not in ground state (building a sequence).
+    // SOS/PM/APC string states are excluded: the string body is swallowed,
+    // never captured, so accumulating here would just be unbounded growth
+    // from a hostile unterminated stream for no benefit.
+    if (_state != State.ground && _state != State.sosPmApcString && _state != State.sosPmApcStringFinal) {
       _sequenceBytes.add(byteValue);
     }
 
@@ -858,6 +922,8 @@ class Engine {
       State.oscFinal => _advanceOscFinalState(byteValue),
       State.dcsEntry => _advanceDcsEntryState(byteValue),
       State.dcsIgnore => _advanceDcsIgnoreState(byteValue),
+      State.sosPmApcString => _advanceSosPmApcStringState(byteValue),
+      State.sosPmApcStringFinal => _advanceSosPmApcStringFinalState(byteValue),
       State.utf8 => _advanceUtf8State(byteValue),
     };
 

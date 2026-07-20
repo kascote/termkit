@@ -10,7 +10,7 @@ Flow: `Bytes → Engine → SequenceData → Parser → Events → EventQueue`
 
 ### Key Concepts
 
-VT500-series state machine (`lib/src/engine/engine.dart`) with states: `ground`, `escape`, `escapeIntermediate`, `csiEntry`, `csiIgnore`, `csiParameter`, `csiIntermediate`, `textBlock`, `textBlockFinal`, `oscEntry`, `oscParameter`, `oscFinal`, `dcsEntry`, `dcsIgnore`, `utf8`.
+VT500-series state machine (`lib/src/engine/engine.dart`) with states: `ground`, `escape`, `escapeIntermediate`, `csiEntry`, `csiIgnore`, `csiParameter`, `csiIntermediate`, `textBlock`, `textBlockFinal`, `oscEntry`, `oscParameter`, `oscFinal`, `dcsEntry`, `dcsIgnore`, `sosPmApcString`, `sosPmApcStringFinal`, `utf8`.
 
 **SequenceData** (`lib/src/engine/sequence_data.dart`):
 Intermediate representation between Engine and Parser. Types: CharData, CsiSequenceData, OscSequenceData, DcsSequenceData, TextBlockSequenceData, ErrorSequenceData.

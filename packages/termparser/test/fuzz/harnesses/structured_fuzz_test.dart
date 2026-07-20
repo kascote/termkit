@@ -257,9 +257,12 @@ _Seq _genOsc(Random rng) {
     final n = rng.nextInt(64);
     for (var i = 0; i < n; i++) {
       var b = rng.nextInt(256);
-      // 0x1b in payload would transition oscParameter → oscFinal early;
-      // allowed but treat as unterminated unless followed by '\'.
-      if (b == 0x1b) b = 0x20;
+      // 0x1b/0x18/0x1a in payload are anywhere-rule bytes (ESC starts a new
+      // top-level sequence early; CAN/SUB cancel the OSC outright via
+      // _cancelAndDeliver) — any of them mid-payload snaps the engine back to
+      // ground while this loop keeps appending bytes meant to be OSC
+      // content, corrupting the well-formed assumption for everything after.
+      if (b == 0x1b || b == 0x18 || b == 0x1a) b = 0x20;
       buf.add(b);
     }
   }
@@ -309,7 +312,12 @@ _Seq _genDcs(Random rng) {
     final n = rng.nextInt(256);
     for (var i = 0; i < n; i++) {
       var b = rng.nextInt(256);
-      if (b == 0x1b) b = 0x20;
+      // ESC/CAN/SUB are anywhere-rule bytes; unlike bracketed paste (whose
+      // _inTextBlock guard lets it swallow them as content), plain DCS
+      // passthrough treats CAN/SUB as an unhook-and-cancel. Any of them
+      // mid-content would end the string early while this loop keeps
+      // appending bytes meant to land inside it.
+      if (b == 0x1b || b == 0x18 || b == 0x1a) b = 0x20;
       buf.add(b);
     }
     buf
@@ -409,7 +417,12 @@ void _appendInt(List<int> buf, int n) {
 
 void _appendUtf8(List<int> buf, int cp) {
   if (cp < 0x80) {
-    buf.add(cp);
+    // ESC/CAN/SUB embedded raw are anywhere-rule bytes: ESC opens a fresh
+    // top-level sequence, CAN/SUB cancel whatever's open via
+    // _cancelAndDeliver. Either snaps the engine back to ground mid-payload,
+    // corrupting the well-formed assumption for every byte appended after —
+    // see the matching substitution in the raw-bytes payload branch above.
+    buf.add(cp == 0x1b || cp == 0x18 || cp == 0x1a ? 0x20 : cp);
   } else if (cp < 0x800) {
     buf
       ..add(0xc0 | (cp >> 6))
