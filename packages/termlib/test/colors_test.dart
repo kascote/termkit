@@ -123,9 +123,9 @@ void main() {
     test('indexedToAnsi on graycale should return the correct value', () {
       expect(Color.indexed(232).convert(ColorKind.ansi), Color.black);
       expect(Color.indexed(236).convert(ColorKind.ansi), Color.black);
-      expect(Color.indexed(237).convert(ColorKind.ansi), Color.gray);
+      expect(Color.indexed(237).convert(ColorKind.ansi), Color.black);
       expect(Color.indexed(249).convert(ColorKind.ansi), Color.gray);
-      expect(Color.indexed(250).convert(ColorKind.ansi), Color.white);
+      expect(Color.indexed(250).convert(ColorKind.ansi), Color.gray);
       expect(Color.indexed(255).convert(ColorKind.ansi), Color.white);
     });
 
@@ -202,6 +202,34 @@ void main() {
     test('equatable', () {
       expect(Color.fromRGBComponent(0, 1, 2), Color.fromRGBComponent(0, 1, 2));
       expect(Color.fromRGBComponent(0, 0, 0), isNot(Color.fromRGBComponent(0, 0, 1)));
+    });
+  });
+
+  group('Ansi256 downsample accuracy >', () {
+    test('a dark, low-chroma navy is closer to a mid gray than to the cube corner', () {
+      // rgb(32, 32, 64) sits only ~27 units (unweighted) from grayscale
+      // ramp entry 235 (38, 38, 38), but ~55 units from cube corner
+      // (0, 0, 95) at index 17. The nearer candidate wins on distance.
+      expect(Color.fromRGB(0x202040).convert(ColorKind.indexed), Color.indexed(235));
+    });
+
+    test('an exact ramp value hits its ramp entry precisely', () {
+      expect(Color.fromRGB(0xEEEEEE).convert(ColorKind.indexed), Color.indexed(255));
+    });
+
+    test('a near-gray color that crosses a nibble boundary still lands on the ramp', () {
+      expect(Color.fromRGBComponent(0x0F, 0x10, 0x10).convert(ColorKind.indexed), Color.indexed(233));
+    });
+
+    test('a mid-gray value is still exact', () {
+      expect(Color.fromRGBComponent(128, 128, 128).convert(ColorKind.indexed), Color.indexed(244));
+    });
+
+    test('a dark channel value in the 26-47 band quantizes to cube level 0, not level 1', () {
+      // 0x28 (40) is closer to cube level 0 (value 0, distance 40) than to
+      // level 1 (value 95, distance 55); a linear round of 40/255*5 would
+      // wrongly pick level 1.
+      expect(Color.fromRGB(0x28F028).convert(ColorKind.indexed), Color.indexed(46));
     });
   });
 

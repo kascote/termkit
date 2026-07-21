@@ -16,7 +16,7 @@ int findClosestAnsi16(int red, int green, int blue) {
 
   for (var i = 0; i < 16; i++) {
     final (:r, :g, :b) = Color.fromRGB(ansi.ansiHex[i]).toRgbComponents();
-    var distance = _redmeanDistanceSquared(red, green, blue, r, g, b);
+    var distance = _redmeanDistance(red, green, blue, r, g, b);
 
     // Penalize grays when source has significant chroma
     final ansiChroma = _chroma(r, g, b);
@@ -58,10 +58,10 @@ Color? oscColor(String color) {
   return Color.fromRGBComponent(r, g, b);
 }
 
-/// Redmean squared distance - perceptual color matching.
-/// Returns squared distance (no sqrt) for efficient comparisons.
+/// Redmean distance - perceptual color matching.
+/// Returns a normalized distance between 0 and 1.
 /// ref: https://en.wikipedia.org/wiki/Color_difference
-double _redmeanDistanceSquared(int r1, int g1, int b1, int r2, int g2, int b2) {
+double _redmeanDistance(int r1, int g1, int b1, int r2, int g2, int b2) {
   final redMean = (r1 + r2) / 2.0;
   final redWeight = 2 + redMean / 256;
   final blueWeight = 2 + (255 - redMean) / 256;
@@ -69,8 +69,6 @@ double _redmeanDistanceSquared(int r1, int g1, int b1, int r2, int g2, int b2) {
   final dr = r1 - r2;
   final dg = g1 - g2;
   final db = b1 - b2;
-
-  // return redWeight * dr * dr + 4 * dg * dg + blueWeight * db * db;
 
   final distance = math.sqrt(redWeight * dr * dr + 4 * dg * dg + blueWeight * db * db);
   return distance / _maxRedmeanDistance;
@@ -91,9 +89,7 @@ double calculateRedMeanDistance(Color color1, Color color2) {
   final c1 = color1.toRgbComponents();
   final c2 = color2.toRgbComponents();
 
-  return _redmeanDistanceSquared(c1.r, c1.g, c1.b, c2.r, c2.g, c2.b);
-  // final distance = math.sqrt(_redmeanDistanceSquared(c1.r, c1.g, c1.b, c2.r, c2.g, c2.b));
-  // return distance / _maxRedmeanDistance;
+  return _redmeanDistance(c1.r, c1.g, c1.b, c2.r, c2.g, c2.b);
 }
 
 /// Type of the function returned by [colorLerp] function.

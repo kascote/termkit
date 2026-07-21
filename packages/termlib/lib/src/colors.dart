@@ -32,8 +32,19 @@ const _brightBase = 90; // bright foreground: 90-97
 
 // Keeps a cache for the colors requested/converted by the user to save time.
 // Over time this cache must be short, because the there are not many colors
-// that a terminal program will use
+// that a terminal program will use. Capped so a program that streams a wide
+// variety of colors through convert() can't grow this without bound.
 Map<(ColorKind, Color), Color> _colorCache = {};
+
+const _colorCacheLimit = 512;
+
+// The 6x6x6 color cube's per-channel levels (0, 95, 135, 175, 215, 255) are
+// not evenly spaced, so mapping a channel to a level means finding the
+// nearest level directly rather than rounding a linear 0-5 ratio.
+int _cubeLevel(int channel) => channel < 48 ? 0 : (channel < 115 ? 1 : (channel - 35) ~/ 40);
+
+// The RGB value a cube level (0-5) represents.
+int _cubeLevelValue(int level) => level == 0 ? 0 : 55 + 40 * level;
 
 /// Color class
 @immutable
@@ -218,20 +229,18 @@ class Color {
       _ => this, // unreachable
     };
 
+    if (_colorCache.length > _colorCacheLimit) _colorCache.clear();
     _colorCache[cacheKey] = result;
     return result;
   }
 
   /// Convert an indexed color to Ansi Color
+  ///
+  /// Looks up the indexed color's RGB value (covering the 16 base colors,
+  /// the 6x6x6 cube, and the grayscale ramp alike) and finds the nearest
+  /// of the 16 ANSI colors by redmean distance.
   Color indexedToAnsiColor() {
     if (kind != ColorKind.indexed) throw ArgumentError.value(toString(), 'color', 'must be an indexed color');
-    // gray scale range
-    if (value > 231) {
-      if (value < 237) return Color.black;
-      if (value < 250) return Color.gray;
-      return Color.white;
-    }
-
     final rgb = Color.fromRGB(ansi.ansiHex[value]);
     return rgb.rgbToAnsiColor();
   }
@@ -249,27 +258,35 @@ class Color {
   /// - 0-15: standard ANSI colors (handled elsewhere)
   /// - 16-231: 6x6x6 color cube (216 colors)
   /// - 232-255: grayscale ramp (24 shades)
+  ///
+  /// Finds the nearest color cube entry and the nearest grayscale ramp
+  /// entry independently, then returns whichever of the two is perceptually
+  /// closer to the source color.
   Color rgbToIndexedColor() {
     if (kind != ColorKind.rgb) throw ArgumentError.value(toString(), 'color', 'must be an RGB color');
     final rgb = toRgbComponents();
 
-    // Grayscale detection: R, G, B within 16 of each other (same upper nibble)
-    if (rgb.r >> 4 == rgb.g >> 4 && rgb.g >> 4 == rgb.b >> 4) {
-      // Near black → first color cube entry (black)
-      if (rgb.r < 8) return Color.indexed(16);
-      // Near white → last color cube entry (white)
-      if (rgb.r > 248) return Color.indexed(231);
-      // Map to grayscale ramp: 232-255 (24 shades from dark to light)
-      return Color.indexed((((rgb.r - 8) / 247) * 24).round() + 232);
-    }
+    // Color cube candidate: each channel is quantized independently to its
+    // nearest of the cube's six levels, then index = 16 + 36*r + 6*g + b.
+    final cr = _cubeLevel(rgb.r);
+    final cg = _cubeLevel(rgb.g);
+    final cb = _cubeLevel(rgb.b);
+    final cubeIndex = 16 + 36 * cr + 6 * cg + cb;
+    final cubeColor = Color.fromRGBComponent(_cubeLevelValue(cr), _cubeLevelValue(cg), _cubeLevelValue(cb));
 
-    // Map to 6x6x6 color cube (indices 16-231)
-    // Each channel maps 0-255 → 0-5, then: index = 16 + 36*r + 6*g + b
-    final xr = 36 * (rgb.r / 255 * 5).round();
-    final xg = 6 * (rgb.g / 255 * 5).round();
-    final xb = (rgb.b / 255 * 5).round();
+    // Grayscale ramp candidate: the ramp holds 24 shades at 8 + 10n, so the
+    // source is represented there by the average of its channels.
+    final gray = (rgb.r + rgb.g + rgb.b) / 3;
+    final grayLevel = ((gray - 8) / 10).round().clamp(0, 23);
+    final grayIndex = 232 + grayLevel;
+    final grayValue = 8 + 10 * grayLevel;
+    final grayColor = Color.fromRGBComponent(grayValue, grayValue, grayValue);
 
-    return Color.indexed(16 + xr + xg + xb);
+    // Pick whichever candidate is closer to the source by redmean distance.
+    final cubeDistance = calculateRedMeanDistance(this, cubeColor);
+    final grayDistance = calculateRedMeanDistance(this, grayColor);
+
+    return Color.indexed(grayDistance < cubeDistance ? grayIndex : cubeIndex);
   }
 
   /// Returns a record with RGB components
