@@ -122,8 +122,8 @@ void main() {
 
     test('indexedToAnsi on graycale should return the correct value', () {
       expect(Color.indexed(232).convert(ColorKind.ansi), Color.black);
-      expect(Color.indexed(236).convert(ColorKind.ansi), Color.black);
-      expect(Color.indexed(237).convert(ColorKind.ansi), Color.black);
+      expect(Color.indexed(236).convert(ColorKind.ansi), Color.darkGray);
+      expect(Color.indexed(237).convert(ColorKind.ansi), Color.darkGray);
       expect(Color.indexed(249).convert(ColorKind.ansi), Color.gray);
       expect(Color.indexed(250).convert(ColorKind.ansi), Color.gray);
       expect(Color.indexed(255).convert(ColorKind.ansi), Color.white);
@@ -230,6 +230,53 @@ void main() {
       // level 1 (value 95, distance 55); a linear round of 40/255*5 would
       // wrongly pick level 1.
       expect(Color.fromRGB(0x28F028).convert(ColorKind.indexed), Color.indexed(46));
+    });
+  });
+
+  group('Ansi16 downsample accuracy >', () {
+    test('a desaturated green in the color cube moves out of teal, into the yellow-green family', () {
+      // rgb(95,175,95) (indexed 71) is a desaturated green. The old
+      // redmean distance matched it to ANSI cyan (0x008080) because
+      // cyan's blue channel (128) sits numerically closer to the source's
+      // blue channel (95) than green's does (0), even though cyan's hue
+      // is about 52 degrees away from the source's.
+      //
+      // In OKLab it lands on ANSI yellow (0x808000) instead: the source's
+      // OKLab lightness (L=0.68) is much closer to yellow's (L=0.58) than
+      // to saturated green's (L=0.52 -- green alone at half value is
+      // perceptually darker than a red+green mix at the same channel
+      // level), which outweighs yellow's smaller, ~34-degree hue offset.
+      // This is a real improvement in hue proximity over the old teal
+      // result, but it still is not an exact hue match to green.
+      expect(Color.indexed(71).convert(ColorKind.ansi), Color.yellow);
+    });
+
+    test('a near-exact ANSI cyan match still lands on cyan', () {
+      expect(Color.indexed(23).convert(ColorKind.ansi), Color.cyan);
+    });
+
+    test('a saturated blue-violet still lands on ANSI bright blue', () {
+      expect(Color.indexed(57).convert(ColorKind.ansi), Color.brightBlue);
+    });
+
+    test('a fully neutral dark gray only ever matches a neutral ANSI color', () {
+      // rgb(48,48,48) has zero OKLab chroma, so the neutral/chromatic guard
+      // restricts its search to the four gray-family candidates (black,
+      // dark gray, gray, white) only. Without the guard, plain OKLab
+      // distance would pick ANSI red here: red's OKLab lightness (L=0.38)
+      // sits closer to this gray's (L=0.31) than any of the actual grays
+      // except dark gray, purely by coincidence of value.
+      expect(Color.fromRGBComponent(48, 48, 48).rgbToAnsiColor(), Color.darkGray);
+    });
+
+    test('a saturated orange never collapses onto a neutral gray', () {
+      // rgb(255,175,0) has high OKLab chroma (~0.17), well above the
+      // chromatic-only threshold, so the guard restricts its search to the
+      // twelve chromatic candidates. Without the guard, plain OKLab
+      // distance would pick ANSI silver here, purely because silver's
+      // lightness (L=0.808) happens to sit closer to this orange's
+      // (L=0.811) than any chromatic candidate's does.
+      expect(Color.fromRGBComponent(0xff, 0xaf, 0x00).rgbToAnsiColor(), Color.brightYellow);
     });
   });
 

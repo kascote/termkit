@@ -6,24 +6,45 @@ import '../../termlib.dart';
 import './string_extension.dart';
 
 /// Find the closest ANSI 16 color index for a given RGB color.
-/// Uses redmean distance with saturation penalty to avoid mapping
-/// saturated colors to grays.
+///
+/// Matches in OKLab, a perceptually uniform color space, so the search is
+/// hue-aware: a desaturated color is compared by lightness and hue rather
+/// than by raw channel proximity, so it is never mistaken for a
+/// differently-hued palette entry just because one channel happens to be
+/// numerically close.
+///
+/// Plain OKLab distance alone lets lightness dominate hue at the edges of
+/// the palette: against only 16 candidates, a fully neutral gray can be
+/// closer in lightness to a saturated color than to any of the four true
+/// grays, and a fairly saturated color can likewise be closer in lightness
+/// to a gray than to any chromatic entry. Both are wrong in the same way
+/// (matching lightness across a category boundary that should not cross),
+/// so the search first checks how far the source itself sits from neutral:
+///
+/// - Source OKLab chroma at or below 0.03 (essentially gray): search only
+///   the four neutral candidates (black, dark gray, gray, white), so a
+///   near-neutral source can only ever match a near-neutral candidate.
+/// - Source OKLab chroma at or above 0.09 (clearly a color): search only
+///   the twelve chromatic candidates, so a colorful source can never
+///   collapse onto a gray just because a gray happens to be lighter- or
+///   darker-matched.
+/// - In between: search all 16 candidates by plain OKLab distance, same as
+///   before -- there is no clean neutral/chromatic call to make, so let
+///   lightness and hue trade off freely.
 int findClosestAnsi16(int red, int green, int blue) {
+  final src = _srgbToOklab(red, green, blue);
+  final chroma = math.sqrt(src.a * src.a + src.b * src.b);
+  final neutralOnly = chroma <= _neutralChromaCeiling;
+  final chromaticOnly = chroma >= _chromaticChromaFloor;
+
   var minDistance = double.infinity;
   var closestIndex = 0;
 
-  final srcChroma = _chroma(red, green, blue);
-
   for (var i = 0; i < 16; i++) {
-    final (:r, :g, :b) = Color.fromRGB(ansi.ansiHex[i]).toRgbComponents();
-    var distance = _redmeanDistance(red, green, blue, r, g, b);
+    if (neutralOnly && !_ansi16Neutral[i]) continue;
+    if (chromaticOnly && _ansi16Neutral[i]) continue;
 
-    // Penalize grays when source has significant chroma
-    final ansiChroma = _chroma(r, g, b);
-    if (srcChroma > 40 && ansiChroma < 20) {
-      distance *= 3.5; // Strong penalty for mapping chromatic to gray
-    }
-
+    final distance = _oklabDeltaSquared(src, _ansi16Oklab[i]);
     if (distance < minDistance) {
       minDistance = distance;
       closestIndex = i;
@@ -33,11 +54,96 @@ int findClosestAnsi16(int red, int green, int blue) {
   return closestIndex;
 }
 
-/// Returns chroma (max - min of RGB channels) as a saturation measure.
-int _chroma(int r, int g, int b) {
-  final maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
-  final minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
-  return maxC - minC;
+// Source OKLab chroma at or below this is treated as neutral: only the
+// four gray-family ANSI-16 candidates are searched.
+const double _neutralChromaCeiling = 0.03;
+
+// Source OKLab chroma at or above this is treated as clearly chromatic:
+// only the twelve non-gray ANSI-16 candidates are searched.
+const double _chromaticChromaFloor = 0.09;
+
+// OKLab coordinates of the 16 base ANSI colors, computed once on first
+// access. Dart initializes a top-level `final` lazily, which matters here:
+// the conversion runs a cube root, so this list can't be `const`-folded.
+final List<_Oklab> _ansi16Oklab = List.generate(16, (i) {
+  final hex = ansi.ansiHex[i];
+  return _srgbToOklab((hex >> 16) & 0xff, (hex >> 8) & 0xff, hex & 0xff);
+}, growable: false);
+
+// Whether each ANSI-16 palette entry is neutral (r == g == b): indices 0
+// (black), 7 (silver), 8 (dark gray), 15 (white). Computed once alongside
+// [_ansi16Oklab].
+final List<bool> _ansi16Neutral = List.generate(16, (i) {
+  final hex = ansi.ansiHex[i];
+  final r = (hex >> 16) & 0xff;
+  final g = (hex >> 8) & 0xff;
+  final b = hex & 0xff;
+  return r == g && g == b;
+}, growable: false);
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+/// A color's coordinates in OKLab space: `l` is perceptual lightness, `a`
+/// runs green-to-red and `b` runs blue-to-yellow.
+typedef _Oklab = ({double l, double a, double b});
+
+/// Linearizes one sRGB channel (0-255) to [0, 1], undoing the sRGB gamma
+/// curve so the channel can be mixed linearly.
+double _linearizeSrgbChannel(int channel) {
+  final c = channel / 255.0;
+  return c <= 0.04045 ? c / 12.92 : math.pow((c + 0.055) / 1.055, 2.4).toDouble();
+}
+
+/// Converts an sRGB color (0-255 per channel) to OKLab.
+///
+/// ref: https://bottosson.github.io/posts/oklab/
+_Oklab _srgbToOklab(int red, int green, int blue) {
+  final r = _linearizeSrgbChannel(red);
+  final g = _linearizeSrgbChannel(green);
+  final b = _linearizeSrgbChannel(blue);
+
+  final l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  final m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  final s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+
+  // l, m, s are non-negative for any in-gamut sRGB input, so a plain
+  // pow(x, 1/3) is a valid, real-valued cube root here.
+  final lRoot = math.pow(l, 1 / 3).toDouble();
+  final mRoot = math.pow(m, 1 / 3).toDouble();
+  final sRoot = math.pow(s, 1 / 3).toDouble();
+
+  return (
+    l: 0.2104542553 * lRoot + 0.7936177850 * mRoot - 0.0040720468 * sRoot,
+    a: 1.9779984951 * lRoot - 2.4285922050 * mRoot + 0.4505937099 * sRoot,
+    b: 0.0259040371 * lRoot + 0.7827717662 * mRoot - 0.8086757660 * sRoot,
+  );
+}
+
+/// Squared Euclidean distance between two OKLab coordinates.
+///
+/// Left un-square-rooted: every caller only compares distances against one
+/// another to find a minimum, and never needs the absolute value.
+double _oklabDeltaSquared(_Oklab c1, _Oklab c2) {
+  final dl = c1.l - c2.l;
+  final da = c1.a - c2.a;
+  final db = c1.b - c2.b;
+  return dl * dl + da * da + db * db;
+}
+
+/// Squared OKLab distance between two RGB colors.
+///
+/// A perceptual, hue-aware alternative to [calculateRedMeanDistance] used
+/// for nearest-color search. Deliberately not exported from the package
+/// barrel (see `lib/color_util.dart`): it is an implementation detail
+/// shared across files within the library, between this function and
+/// `Color.rgbToIndexedColor`.
+double oklabDistanceSquared(Color color1, Color color2) {
+  if (color1.kind != ColorKind.rgb) throw ArgumentError.value(color1, 'color1', 'must be an RGB color');
+  if (color2.kind != ColorKind.rgb) throw ArgumentError.value(color2, 'color2', 'must be an RGB color');
+
+  final c1 = color1.toRgbComponents();
+  final c2 = color2.toRgbComponents();
+  return _oklabDeltaSquared(_srgbToOklab(c1.r, c1.g, c1.b), _srgbToOklab(c2.r, c2.g, c2.b));
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

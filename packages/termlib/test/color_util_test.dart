@@ -21,7 +21,12 @@ void main() {
       expect(findClosestAnsi16(128, 128, 128), equals(8));
       expect(findClosestAnsi16(255, 0, 0), equals(9));
       expect(findClosestAnsi16(118, 118, 118), equals(8));
-      expect(findClosestAnsi16(175, 135, 95), equals(3));
+      // Under OKLab this tan (a muted brown, not a saturated one) lands on
+      // dark gray (8) rather than olive/yellow (3): its own OKLab chroma
+      // (~0.074) is barely more than half of full-saturation olive's
+      // (~0.127), and combined with a 44-degree hue offset that leaves
+      // achromatic gray as the nearer candidate.
+      expect(findClosestAnsi16(175, 135, 95), equals(8));
     });
   });
 

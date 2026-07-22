@@ -238,7 +238,7 @@ class Color {
   ///
   /// Looks up the indexed color's RGB value (covering the 16 base colors,
   /// the 6x6x6 cube, and the grayscale ramp alike) and finds the nearest
-  /// of the 16 ANSI colors by redmean distance.
+  /// of the 16 ANSI colors in OKLab, a perceptually uniform color space.
   Color indexedToAnsiColor() {
     if (kind != ColorKind.indexed) throw ArgumentError.value(toString(), 'color', 'must be an indexed color');
     final rgb = Color.fromRGB(ansi.ansiHex[value]);
@@ -282,9 +282,10 @@ class Color {
     final grayValue = 8 + 10 * grayLevel;
     final grayColor = Color.fromRGBComponent(grayValue, grayValue, grayValue);
 
-    // Pick whichever candidate is closer to the source by redmean distance.
-    final cubeDistance = calculateRedMeanDistance(this, cubeColor);
-    final grayDistance = calculateRedMeanDistance(this, grayColor);
+    // Pick whichever candidate is perceptually closer to the source, in
+    // OKLab (hue-aware, unlike a plain RGB or redmean distance).
+    final cubeDistance = oklabDistanceSquared(this, cubeColor);
+    final grayDistance = oklabDistanceSquared(this, grayColor);
 
     return Color.indexed(grayDistance < cubeDistance ? grayIndex : cubeIndex);
   }
