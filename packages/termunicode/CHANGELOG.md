@@ -1,4 +1,4 @@
-## unreleased
+## 0.3.0
 
 - feature: `widthString` gained a scalar-scan fast path — code-unit widths are
   summed straight from the table while every unit is a BMP scalar of non-zero
