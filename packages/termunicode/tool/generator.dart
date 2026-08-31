@@ -1,5 +1,5 @@
-import './generator/emitter.dart';
-import './generator/table_builder.dart';
+import 'generator/emitter.dart';
+import 'generator/table_builder.dart';
 
 Future<void> main() async {
   final tables = Tables();

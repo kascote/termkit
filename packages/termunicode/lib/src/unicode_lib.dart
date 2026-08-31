@@ -1,6 +1,6 @@
 import 'package:characters/characters.dart';
 
-import './table.dart';
+import 'table.dart';
 
 const _asciiPrintableStart = 0x20;
 const _asciiPrintableEnd = 0x7F;
