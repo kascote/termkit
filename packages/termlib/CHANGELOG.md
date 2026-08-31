@@ -1,19 +1,25 @@
-## unreleased
+## 0.6.0
 
-- breaking change: refactor Style class
-- breaking change:
-  - `TermLib` replaced by sealed `Term` with factory `Term.open({TermBackend? backend})` returning `InteractiveTerm` (tty stdin) or `PipedTerm` (piped stdin). Users dispatch via pattern matching.
-  - `poll<T>()` renamed to `tryEvent<T>()` and now returns `T?` (no more `NoneEvent` sentinel).
+- breaking: `TermLib` replaced by sealed `Term`. `Term.open({TermBackend? backend})` returns `InteractiveTerm` (tty stdin) or `PipedTerm` (piped stdin); dispatch via pattern matching.
+  - `poll<T>()` renamed to `tryEvent<T>()`, returns `T?` (no more `NoneEvent` sentinel).
   - `pollTimeout<T>({int timeout})` renamed to `awaitEvent<T>({Duration? timeout})`, returns `Future<T?>` (null on timeout).
-  - `read<T>()` renamed to `nextEvent<T>()`, returns `Future<T>` (blocks forever, non-null).
-  - `stdinStream` renamed to `stdinBytes` and moved to `PipedTerm` only.
-  - Runtime `hasTerminal` gates replaced by the sealed split: `events`, `tryEvent`, `nextEvent`, `awaitEvent`, raw mode, cursor/erase extensions, probe and readline now live on `InteractiveTerm` — piped misuse is a compile error.
+  - `read<T>()` renamed to `nextEvent<T>()`, returns `Future<T>` (blocks until matched).
+  - `stdinStream` renamed to `stdinBytes`, moved to `PipedTerm` only.
+  - Runtime `hasTerminal` gates replaced by the sealed split: events, raw mode, cursor/erase extensions, probe and readline live on `InteractiveTerm` — piped misuse is a compile error.
   - `TermRunner` builds an `InteractiveTerm`; callbacks receive it typed.
-- added: probe to check terminal capabilities and return TermInfo
-- added: OSC 9;4 - to set Progress bar
-- added: CSI ? 2031 h/l - Enable/Disable Color Scheme event changes
-- added: CSI ? 2048 h/l - Enable/Disable in band resize events
-- added: CSI ? 2048 - query in band resize support
+  - `terminalOverrides` removed — tests inject `TermBackend.fake(...)` and capture output through a buffered `TermSink`.
+- breaking: `Style` is immutable — `apply(TextStyle)` returns a new `Style` instead of mutating; added `copyWith` and `render(text, {reset})`; instances compare by value.
+- breaking: the event queue is bounded (drop-oldest) — overflow surfaces as a `QueueOverflowEvent`; mouse-motion and resize events coalesce at enqueue.
+- added: `withModes()` — scoped enable/restore of terminal modes (raw, alternate screen, mouse, kitty keyboard enhancement, bracketed paste, in-band resize, line wrap, cursor visibility), tracked in `TermModes`.
+- added: `probe()` detects terminal capabilities and returns a `TermInfo`.
+- added: `enableResizeEvents()` / `disableResizeEvents()` — in-band resize (mode 2048) with a SIGWINCH fallback that synthesizes `WindowResizeEvent` on terminals without the mode.
+- added: `KeyBinding<A>` — declarative key-spec → action mapping (`'ctrl+a'`, aliases); handles kitty repeat events.
+- added: color scheme support — `queryColorScheme()`, `enableColorPaletteUpdates()` / `disableColorPaletteUpdates()`; the terminal reports via `ColorSchemeEvent`.
+- added: DECRQM status queries `queryBracketedPaste()` and `queryInBandResize()`.
+- added: `flush()` — push pending output without close or exit.
+- changed: readline gained emacs-style motions — end of line (`ctrl+e`), word left/right (`alt+b`/`alt+f`), delete word (`alt+d`, `alt+backspace`, `ctrl+w`), transpose (`ctrl+t`), yank (`ctrl+y`), clear screen (`ctrl+l`).
+- changed: the `noColor` profile keeps text attributes (bold, reverse, underline, …) and drops only colors, per no-color.org.
+- fixed: color downsampling accuracy — RGB→256 quantizes to the nearest color-cube level and considers the grayscale ramp; nearest-color matching runs in OKLab, so desaturated colors no longer land on the wrong hue.
 
 ## 0.5.0
 
