@@ -1,9 +1,9 @@
 import 'package:meta/meta.dart';
 
-import './parameter_accumulator.dart';
-import './parameters.dart';
-import './sequence_data.dart';
-import './utf8_decoder.dart';
+import 'parameter_accumulator.dart';
+import 'parameters.dart';
+import 'sequence_data.dart';
+import 'utf8_decoder.dart';
 
 /// A parser engine state.
 ///
