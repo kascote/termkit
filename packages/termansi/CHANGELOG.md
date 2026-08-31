@@ -1,12 +1,14 @@
-### unreleased
+## 0.5.0
 
-- added: OSC 9;4 - to set Progress bar
-- added: CSI ? 996 n - Color Scheme Reporting
-- added: CSI ? 2031 h/l - Enable/Disable Color Scheme event changes
-- added: CSI ? 2048 h/l - Enable/Disable in band resize events
-- added: CSI ? 2048 - query in band resize support
+- added: OSC 9;4 - set progress bar in tab/taskbar (`setProgress`, `clearProgress`, `ProgressState`)
+- added: CSI ? 996 n - query color scheme preference; reply is `CSI ? 997 ; Ps n`
+- added: CSI ? 2031 h/l - enable/disable color scheme update notifications
+- added: CSI ? 2048 h/l - enable/disable in-band resize events
+- added: CSI ? 2048 $ p - query in-band resize support (DECRQM)
+- added: CSI ? 2004 $ p - query bracketed paste status (DECRQM)
+- added: CSI > c - query secondary device attributes (DA2)
 
-### 0.4.0
+## 0.4.0
 
 - added: CSI 2027 - unicode core
 - added: CSI 2024 - bracketed paste mode
