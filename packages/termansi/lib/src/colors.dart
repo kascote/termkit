@@ -1,4 +1,4 @@
-import './escape_codes.dart';
+import 'escape_codes.dart';
 
 /// Terminal color escape sequences
 abstract class Color {

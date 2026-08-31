@@ -1,4 +1,4 @@
-import './escape_codes.dart';
+import 'escape_codes.dart';
 
 /// Enumeration representing different cursor styles.
 enum CursorStyle {

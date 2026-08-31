@@ -1,4 +1,4 @@
-import './escape_codes.dart';
+import 'escape_codes.dart';
 
 /// Progress bar state for ConEmu OSC 9;4 sequences.
 ///

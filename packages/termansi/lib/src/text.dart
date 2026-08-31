@@ -1,4 +1,4 @@
-import './escape_codes.dart';
+import 'escape_codes.dart';
 
 /// Text style escape sequences
 abstract class Text {
