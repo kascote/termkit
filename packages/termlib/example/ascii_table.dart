@@ -1,7 +1,7 @@
 import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 
-import './shared.dart';
+import 'shared.dart';
 
 const lhsCursor = '▌';
 const rhsCursor = '▐';

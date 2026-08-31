@@ -1,9 +1,9 @@
 import 'package:meta/meta.dart';
 import 'package:termansi/termansi.dart' as ansi;
 
-import './colors.dart';
-import './shared/color_util.dart';
-import './termlib_base.dart';
+import 'colors.dart';
+import 'shared/color_util.dart';
+import 'termlib_base.dart';
 
 /// Text Styles that can be applied to a [Style] object.
 enum TextStyle {

@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:termansi/termansi.dart' as ansi;
 
 import '../../termlib.dart';
-import './string_extension.dart';
+import 'string_extension.dart';
 
 /// Find the closest ANSI 16 color index for a given RGB color.
 ///

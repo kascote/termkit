@@ -6,8 +6,8 @@ import 'package:termlib/termlib.dart';
 import 'package:termparser/termparser_events.dart';
 import 'package:test/test.dart';
 
-import './shared.dart';
-import './termlib_mock.dart';
+import 'shared.dart';
+import 'termlib_mock.dart';
 
 void main() {
   group('Term tests >', () {

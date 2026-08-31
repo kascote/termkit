@@ -1,4 +1,4 @@
-import './int_extension.dart';
+import 'int_extension.dart';
 
 /// Extensions for the [List<int>] class.
 extension ListIntUtils on List<int> {

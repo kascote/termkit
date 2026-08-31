@@ -1,7 +1,7 @@
 import 'package:termlib/termlib.dart';
 import 'package:test/test.dart';
 
-import './shared.dart';
+import 'shared.dart';
 
 void main() {
   group('colorProfile >', () {
